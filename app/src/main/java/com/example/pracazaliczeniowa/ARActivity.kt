@@ -9,68 +9,69 @@ import com.google.ar.core.Plane
 import com.google.ar.core.TrackingState
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode
-import io.github.sceneview.math.Position
-import io.github.sceneview.node.ModelNode
-import kotlinx.coroutines.launch
 
 class ARActivity : AppCompatActivity() {
 
     private lateinit var arSceneView: ARSceneView
     private lateinit var statusText: TextView
+    private lateinit var dimensionOverlay: DimensionOverlayView
+
     private var modelPlaced = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
 
-        arSceneView = findViewById(R.id.arSceneView)
-        statusText = findViewById(R.id.statusText)
+        arSceneView      = findViewById(R.id.arSceneView)
+        statusText       = findViewById(R.id.statusText)
+        dimensionOverlay = findViewById(R.id.dimensionOverlay)
 
         arSceneView.lifecycle = this.lifecycle
 
-        // ✅ Correct callback in SceneView 2.x
-        arSceneView.onTouchEvent = { motionEvent, hitResult ->
+        arSceneView.onTouchEvent = { motionEvent, _ ->
             if (!modelPlaced && motionEvent.action == MotionEvent.ACTION_UP) {
-                // hitResult is an ARCore HitResult — check it hit a plane
-                val arHitResult = arSceneView.hitTestAR(
-                    xPx = motionEvent.x,
-                    yPx = motionEvent.y,
-                    planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
-                    trackingStates = setOf(TrackingState.TRACKING)
+                val hit = arSceneView.hitTestAR(
+                    xPx          = motionEvent.x,
+                    yPx          = motionEvent.y,
+                    planeTypes   = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
+                    trackingStates = setOf(TrackingState.TRACKING),
                 )
-                if (arHitResult != null) {
-                    placeModel(arHitResult)
-                }
+                if (hit != null) placeModel(hit)
             }
-            true // consume the event
+            true
         }
     }
 
     private fun placeModel(hitResult: com.google.ar.core.HitResult) {
-        modelPlaced = true
-        statusText.text = "Loading model..."
+        modelPlaced  = true
+        statusText.text = "Loading model…"
 
-        lifecycleScope.launch {
-            val modelInstance = arSceneView.modelLoader.createModelInstance(
-                assetFileLocation = "models/cat.glb"
-            )
+        // ── Build the measurable node ──────────────────────────────────────
+        val measurableNode = MeasurableModelNode(
+            engine      = arSceneView.engine,
+            modelLoader = arSceneView.modelLoader,
+            scope       = lifecycleScope,
+        )
 
-            val anchorNode = AnchorNode(
-                engine = arSceneView.engine,
-                anchor = hitResult.createAnchor()
-            )
-
-            val modelNode = ModelNode(
-                modelInstance = modelInstance,
-                scaleToUnits = 0.5f,
-                centerOrigin = Position(y = -1f)
-            )
-
-            anchorNode.addChildNode(modelNode)
-            arSceneView.addChildNode(anchorNode)
-
-            statusText.text = "Model placed! ✓"
+        measurableNode.onDimensionsChanged = { w, h, d ->
+            statusText.text = "W: ${"%.2f".format(w)} m  " +
+                              "H: ${"%.2f".format(h)} m  " +
+                              "D: ${"%.2f".format(d)} m"
         }
+
+        // Connect the overlay to the scene and node
+        dimensionOverlay.attach(arSceneView, measurableNode)
+
+        // Load the model (async, handled inside MeasurableModelNode)
+        measurableNode.loadModel("models/cat.glb", initialScale = 0.5f)
+
+        // Attach to an anchor at the tapped position
+        val anchorNode = AnchorNode(
+            engine = arSceneView.engine,
+            anchor = hitResult.createAnchor(),
+        )
+        anchorNode.addChildNode(measurableNode)
+        arSceneView.addChildNode(anchorNode)
     }
 
     override fun onDestroy() {
