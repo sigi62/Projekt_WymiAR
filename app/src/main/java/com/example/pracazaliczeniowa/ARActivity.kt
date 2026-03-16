@@ -16,6 +16,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var arSceneView: ARSceneView
     private lateinit var statusText: TextView
     private lateinit var dimensionOverlay: DimensionOverlayView
+    private lateinit var modelControls: ModelControlOverlayView
 
     private var modelPlaced = false
 
@@ -26,6 +27,7 @@ class ARActivity : AppCompatActivity() {
         arSceneView      = findViewById(R.id.arSceneView)
         statusText       = findViewById(R.id.statusText)
         dimensionOverlay = findViewById(R.id.dimensionOverlay)
+        modelControls    = findViewById(R.id.modelControls)
 
         arSceneView.lifecycle = this.lifecycle
 
@@ -70,8 +72,11 @@ class ARActivity : AppCompatActivity() {
         // Connect the overlay to the scene and node
         dimensionOverlay.attach(arSceneView, measurableNode)
 
+        // Bind the UI controls to this node (treat as selected model).
+        modelControls.bindToNode(measurableNode)
+
         // Load the model (async, handled inside MeasurableModelNode)
-        measurableNode.loadModel("models/cat.glb", initialScale = 0.5f)
+        measurableNode.loadModel("models/cat.glb", initialScale = 0.2f)
 
         // Attach to an anchor at the tapped position
         val anchorNode = AnchorNode(

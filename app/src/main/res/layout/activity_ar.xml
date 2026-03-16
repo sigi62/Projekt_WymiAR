@@ -14,16 +14,31 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
-    <TextView
-        android:id="@+id/statusText"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_gravity="bottom|center_horizontal"
-        android:layout_marginBottom="32dp"
-        android:text="Point at a surface to place model"
-        android:textColor="#FFFFFF"
-        android:background="#88000000"
-        android:padding="8dp"
-        android:textSize="14sp" />
+        android:layout_gravity="bottom"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/statusText"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:layout_marginBottom="8dp"
+            android:text="Point at a surface to place model"
+            android:textColor="#FFFFFF"
+            android:background="#88000000"
+            android:padding="8dp"
+            android:textSize="14sp" />
+
+        <com.example.pracazaliczeniowa.ModelControlOverlayView
+            android:id="@+id/modelControls"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#AA000000"
+            android:padding="8dp" />
+
+    </LinearLayout>
 
 </FrameLayout>

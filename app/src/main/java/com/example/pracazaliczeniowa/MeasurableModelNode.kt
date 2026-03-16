@@ -89,7 +89,10 @@ open class MeasurableModelNode(
         }
     }
 
-    // ── Scale API ──────────────────────────────────────────────────────────
+    // ── Transform API (scale + position) ───────────────────────────────────
+
+    /** Current uniform scale in metres. */
+    fun getMetersScale(): Float = _scale
 
     /**
      * Rescales the model uniformly to [scale] metres.
@@ -99,6 +102,14 @@ open class MeasurableModelNode(
         _scale = scale
         modelNode?.scale = Scale(scale, scale, scale)
         fireDimensions()
+    }
+
+    /** Convenience getter for this node's local-position as [Float3]. */
+    fun localPosition(): Float3 = Float3(position.x, position.y, position.z)
+
+    /** Convenience setter for this node's local-position in metres. */
+    fun setLocalPosition(x: Float, y: Float, z: Float) {
+        position = Position(x, y, z)
     }
 
     // ── World-space axis endpoints (used by DimensionOverlayView) ──────────
@@ -119,6 +130,45 @@ open class MeasurableModelNode(
             Float4(0f,  halfY * s, 0f, 1f),   // 3: +Y
             Float4(0f, 0f, -halfZ * s, 1f),   // 4: -Z
             Float4(0f, 0f,  halfZ * s, 1f),   // 5: +Z
+        )
+
+        val wt = mn.worldTransform
+        return local.map { p ->
+            val r = wt * p
+            Float3(r.x, r.y, r.z)
+        }.toTypedArray()
+    }
+
+    /**
+     * Returns the eight corners of the model's bounding box in world space.
+     *
+     * Order:
+     *  0: (-X, -Y, -Z)
+     *  1: (+X, -Y, -Z)
+     *  2: (+X, -Y, +Z)
+     *  3: (-X, -Y, +Z)
+     *  4: (-X, +Y, -Z)
+     *  5: (+X, +Y, -Z)
+     *  6: (+X, +Y, +Z)
+     *  7: (-X, +Y, +Z)
+     */
+    fun getWorldBoundingBoxCorners(): Array<Float3>? {
+        val mn = modelNode ?: return null
+        val s = _scale
+
+        val x = halfX * s
+        val y = halfY * s
+        val z = halfZ * s
+
+        val local = arrayOf(
+            Float4(-x, -y, -z, 1f),
+            Float4( x, -y, -z, 1f),
+            Float4( x, -y,  z, 1f),
+            Float4(-x, -y,  z, 1f),
+            Float4(-x,  y, -z, 1f),
+            Float4( x,  y, -z, 1f),
+            Float4( x,  y,  z, 1f),
+            Float4(-x,  y,  z, 1f),
         )
 
         val wt = mn.worldTransform
