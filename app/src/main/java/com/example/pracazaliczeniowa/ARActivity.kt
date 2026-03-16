@@ -9,6 +9,7 @@ import com.google.ar.core.Plane
 import com.google.ar.core.TrackingState
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode
+import kotlinx.coroutines.launch
 
 class ARActivity : AppCompatActivity() {
 
@@ -27,6 +28,13 @@ class ARActivity : AppCompatActivity() {
         dimensionOverlay = findViewById(R.id.dimensionOverlay)
 
         arSceneView.lifecycle = this.lifecycle
+
+        // Load HDR environment for proper IBL + skybox.
+        lifecycleScope.launch {
+            val env = arSceneView.environmentLoader.loadHDREnvironment("environment.hdr")
+            arSceneView.indirectLight = env?.indirectLight
+            arSceneView.skybox = env?.skybox
+        }
 
         arSceneView.onTouchEvent = { motionEvent, _ ->
             if (!modelPlaced && motionEvent.action == MotionEvent.ACTION_UP) {
