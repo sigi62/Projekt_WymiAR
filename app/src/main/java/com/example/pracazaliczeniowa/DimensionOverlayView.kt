@@ -106,7 +106,7 @@ class DimensionOverlayView @JvmOverloads constructor(
 
         val sv      = sceneView ?: return
         val mn      = node ?: return
-        val endpoints = mn.getWorldAxisEndpoints() ?: return
+        val corners = mn.getWorldBoundingBoxCorners() ?: return
 
         // Get ARCore matrices from the current session frame.
         val frame  = sv.frame ?: return
@@ -120,26 +120,59 @@ class DimensionOverlayView @JvmOverloads constructor(
         val sw = width.toFloat()
         val sh = height.toFloat()
 
-        // endpoints: [0]=-X [1]=+X [2]=-Y [3]=+Y [4]=-Z [5]=+Z
-        val pNX = project(endpoints[0], sw, sh) ?: return
-        val pPX = project(endpoints[1], sw, sh) ?: return
-        val pNY = project(endpoints[2], sw, sh) ?: return
-        val pPY = project(endpoints[3], sw, sh) ?: return
-        val pNZ = project(endpoints[4], sw, sh) ?: return
-        val pPZ = project(endpoints[5], sw, sh) ?: return
+        // corners order:
+        // 0 (-X,-Y,-Z)  1 (+X,-Y,-Z)  2 (+X,-Y,+Z)  3 (-X,-Y,+Z)
+        // 4 (-X,+Y,-Z)  5 (+X,+Y,-Z)  6 (+X,+Y,+Z)  7 (-X,+Y,+Z)
+        val p0 = project(corners[0], sw, sh) ?: return
+        val p1 = project(corners[1], sw, sh) ?: return
+        val p2 = project(corners[2], sw, sh) ?: return
+        val p3 = project(corners[3], sw, sh) ?: return
+        val p5 = project(corners[5], sw, sh) ?: return
 
-        // Lines
-        canvas.drawLine(pNX[0], pNX[1], pPX[0], pPX[1], redPaint)
-        canvas.drawLine(pNY[0], pNY[1], pPY[0], pPY[1], greenPaint)
-        canvas.drawLine(pNZ[0], pNZ[1], pPZ[0], pPZ[1], bluePaint)
+        // ── PLATFORM RECTANGLE (width + depth) ───────────────────
 
-        // Labels at midpoint of each line
-        drawLabel(canvas, "W: ${"%.2f".format(widthM)} m",
-            midpoint(pNX, pPX), redPaint.color)
-        drawLabel(canvas, "H: ${"%.2f".format(heightM)} m",
-            midpoint(pNY, pPY), greenPaint.color)
-        drawLabel(canvas, "D: ${"%.2f".format(depthM)} m",
-            midpoint(pNZ, pPZ), bluePaint.color)
+        val frontLeft  = p0
+        val frontRight = p1
+        val backRight  = p2
+        val backLeft   = p3
+
+        canvas.drawLine(frontLeft[0], frontLeft[1], frontRight[0], frontRight[1], redPaint)
+        canvas.drawLine(frontRight[0], frontRight[1], backRight[0], backRight[1], bluePaint)
+        canvas.drawLine(backRight[0], backRight[1], backLeft[0], backLeft[1], redPaint)
+        canvas.drawLine(backLeft[0], backLeft[1], frontLeft[0], frontLeft[1], bluePaint)
+
+        // ── HEIGHT LINE (from front-right corner) ─────────────────
+
+        val heightTop = p5
+
+        canvas.drawLine(
+            frontRight[0], frontRight[1],
+            heightTop[0], heightTop[1],
+            greenPaint
+        )
+
+        // ── LABELS ───────────────────────────────────────────────
+
+        drawLabel(
+            canvas,
+            "W: ${"%.2f".format(widthM)} m",
+            midpoint(frontLeft, frontRight),
+            redPaint.color
+        )
+
+        drawLabel(
+            canvas,
+            "D: ${"%.2f".format(depthM)} m",
+            midpoint(frontRight, backRight),
+            bluePaint.color
+        )
+
+        drawLabel(
+            canvas,
+            "H: ${"%.2f".format(heightM)} m",
+            midpoint(frontRight, heightTop),
+            greenPaint.color
+        )
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────

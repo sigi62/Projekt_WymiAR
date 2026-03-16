@@ -8,11 +8,44 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <com.example.pracazaliczeniowa.MeasureTapeOverlayView
+        android:id="@+id/measureOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
+
     <com.example.pracazaliczeniowa.DimensionOverlayView
         android:id="@+id/dimensionOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="16dp"
+        android:layout_marginEnd="16dp"
+        android:orientation="horizontal">
+
+        <Button
+            android:id="@+id/unitButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="m"
+            android:background="#88000000"
+            android:textColor="#FFFFFF" />
+
+        <Button
+            android:id="@+id/measureModeButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:text="Measure"
+            android:background="#88000000"
+            android:textColor="#FFFFFF" />
+
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="match_parent"

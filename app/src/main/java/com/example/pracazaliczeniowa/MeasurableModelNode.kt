@@ -85,6 +85,7 @@ open class MeasurableModelNode(
 
             // Apply the desired visual scale.
             mn.scale = Scale(_scale, _scale, _scale)
+
             fireDimensions()
         }
     }
