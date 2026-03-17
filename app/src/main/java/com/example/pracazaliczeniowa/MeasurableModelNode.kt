@@ -32,7 +32,6 @@ open class MeasurableModelNode(
 
     /** Inner model node, available after [loadModel] suspends. */
     var modelNode: ModelNode? = null
-        private set
 
     private var _scale: Float = 1f
 
