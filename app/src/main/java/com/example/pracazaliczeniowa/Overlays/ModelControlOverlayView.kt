@@ -1,12 +1,13 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
-import android.view.View
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import com.example.pracazaliczeniowa.Nodes.MeasurableModelNode
+import com.example.pracazaliczeniowa.R
 import dev.romainguy.kotlin.math.Float3
 
 /**
@@ -56,7 +57,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         zLabel = findViewById(R.id.labelPosZ)
 
         setupSeekBars()
-        visibility = View.GONE
+        visibility = GONE
     }
 
     private fun setupSeekBars() {
@@ -128,7 +129,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
      */
     fun bindToNode(node: MeasurableModelNode) {
         boundNode = node
-        visibility = View.VISIBLE
+        visibility = VISIBLE
 
         // Initialise sliders from the node state.
         val pos = node.getLocalPosition()
@@ -153,7 +154,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     /** Unbind the currently controlled node and hide the overlay. */
     fun unbind() {
         boundNode = null
-        visibility = View.GONE
+        visibility = GONE
     }
 
     private fun lerp(a: Float, b: Float, t: Float): Float =

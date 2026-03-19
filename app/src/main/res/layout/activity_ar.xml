@@ -8,13 +8,13 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.example.pracazaliczeniowa.MeasureTapeOverlayView
+    <com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
         android:id="@+id/measureOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
-    <com.example.pracazaliczeniowa.DimensionOverlayView
+    <com.example.pracazaliczeniowa.Overlays.DimensionOverlayView
         android:id="@+id/dimensionOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -65,7 +65,7 @@
             android:padding="8dp"
             android:textSize="14sp" />
 
-        <com.example.pracazaliczeniowa.ModelControlOverlayView
+        <com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
             android:id="@+id/modelControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

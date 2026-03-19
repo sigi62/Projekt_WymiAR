@@ -1,13 +1,15 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.opengl.Matrix
 import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
+import com.example.pracazaliczeniowa.Nodes.MeasurableModelNode
 import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
@@ -115,7 +117,7 @@ class DimensionOverlayView @JvmOverloads constructor(
 
         camera.getProjectionMatrix(proj, 0, 0.05f, 100f)
         camera.getViewMatrix(view, 0)
-        android.opengl.Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
+        Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
 
         val sw = width.toFloat()
         val sh = height.toFloat()

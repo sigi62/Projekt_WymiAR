@@ -1,7 +1,6 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Nodes
 
-import io.github.sceneview.node.Node
-import io.github.sceneview.node.ModelNode
+import com.google.android.filament.Engine
 import kotlinx.coroutines.CoroutineScope
 
 /**
@@ -22,7 +21,7 @@ object AppModelNodeConverter {
      */
     fun toMeasurableModelNode(
         appNode: AppModelNode,
-        engine: com.google.android.filament.Engine,
+        engine: Engine,
         scope: CoroutineScope
     ): MeasurableModelNode {
 

@@ -1,0 +1,246 @@
+kotlin version: 2.1.0
+error message: org.jetbrains.kotlin.backend.common.BackendException: Backend Internal error: Exception during IR lowering
+File being compiled: F:/studia/Praca Zaliczeniowa/app/src/main/java/com/example/pracazaliczeniowa/Nodes/SelectedModelNode.kt
+The root cause java.lang.RuntimeException was thrown at: org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:48)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException(CodegenUtil.kt:253)
+	at org.jetbrains.kotlin.backend.common.CodegenUtil.reportBackendException$default(CodegenUtil.kt:236)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:55)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:42)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invoke(performByIrFile.kt:28)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:27)
+	at org.jetbrains.kotlin.backend.common.phaser.CompositePhase.invoke(PhaseBuilders.kt:14)
+	at org.jetbrains.kotlin.backend.common.phaser.NamedCompilerPhase.phaseBody(CompilerPhase.kt:166)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.CompilerPhaseKt.invokeToplevel(CompilerPhase.kt:62)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.invokeCodegen(JvmIrCodegenFactory.kt:371)
+	at org.jetbrains.kotlin.codegen.CodegenFactory.generateModule(CodegenFactory.kt:47)
+	at org.jetbrains.kotlin.backend.jvm.JvmIrCodegenFactory.generateModuleInFrontendIRMode(JvmIrCodegenFactory.kt:433)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.generateCodeFromIr(jvmCompilerPipeline.kt:192)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineKt.runBackend(jvmCompilerPipeline.kt:80)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineLightTreeKt.compileModule(jvmCompilerPipelineLightTree.kt:264)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineLightTreeKt.compileSingleModuleUsingFrontendIrAndLightTree(jvmCompilerPipelineLightTree.kt:231)
+	at org.jetbrains.kotlin.cli.jvm.compiler.pipeline.JvmCompilerPipelineLightTreeKt.compileModulesUsingFrontendIrAndLightTree(jvmCompilerPipelineLightTree.kt:86)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:146)
+	at org.jetbrains.kotlin.cli.jvm.K2JVMCompiler.doExecute(K2JVMCompiler.kt:43)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.execImpl(CLICompiler.kt:102)
+	at org.jetbrains.kotlin.cli.common.CLICompiler.exec(CLICompiler.kt:316)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:464)
+	at org.jetbrains.kotlin.incremental.IncrementalJvmCompilerRunner.runCompiler(IncrementalJvmCompilerRunner.kt:73)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.doCompile(IncrementalCompilerRunner.kt:506)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compileImpl(IncrementalCompilerRunner.kt:423)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally$lambda$9$compile(IncrementalCompilerRunner.kt:249)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.tryCompileIncrementally(IncrementalCompilerRunner.kt:267)
+	at org.jetbrains.kotlin.incremental.IncrementalCompilerRunner.compile(IncrementalCompilerRunner.kt:120)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.execIncrementalCompiler(CompileServiceImpl.kt:674)
+	at org.jetbrains.kotlin.daemon.CompileServiceImplBase.access$execIncrementalCompiler(CompileServiceImpl.kt:91)
+	at org.jetbrains.kotlin.daemon.CompileServiceImpl.compile(CompileServiceImpl.kt:1659)
+	at java.base/jdk.internal.reflect.DirectMethodHandleAccessor.invoke(Unknown Source)
+	at java.base/java.lang.reflect.Method.invoke(Unknown Source)
+	at java.rmi/sun.rmi.server.UnicastServerRef.dispatch(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport$1.run(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.Transport.serviceCall(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport.handleMessages(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run0(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.lambda$run$0(Unknown Source)
+	at java.base/java.security.AccessController.doPrivileged(Unknown Source)
+	at java.rmi/sun.rmi.transport.tcp.TCPTransport$ConnectionHandler.run(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)
+	at java.base/java.lang.Thread.run(Unknown Source)
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN name:attachNode visibility:public modality:FINAL <> ($this:com.example.pracazaliczeniowa.Nodes.SelectedModelNode, node:com.example.pracazaliczeniowa.Nodes.DefaultModelNode) returnType:kotlin.Unit
+  $this: VALUE_PARAMETER name:<this> type:com.example.pracazaliczeniowa.Nodes.SelectedModelNode
+  VALUE_PARAMETER name:node index:0 type:com.example.pracazaliczeniowa.Nodes.DefaultModelNode
+  BLOCK_BODY
+    SET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:wrappedNode type:com.example.pracazaliczeniowa.Nodes.DefaultModelNode? visibility:private' type=kotlin.Unit origin=null
+      receiver: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+      value: GET_VAR 'node: com.example.pracazaliczeniowa.Nodes.DefaultModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.DefaultModelNode origin=null
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'public final fun addChildNode (node: io.github.sceneview.node.Node): io.github.sceneview.node.Node [fake_override] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=io.github.sceneview.node.Node origin=null
+        $this: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+        node: GET_VAR 'node: com.example.pracazaliczeniowa.Nodes.DefaultModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.DefaultModelNode origin=null
+      COMPOSITE type=kotlin.Unit origin=null
+    VAR name:box type:com.google.android.filament.Box? [val]
+      CALL 'public final fun getBoundingBox (): com.google.android.filament.Box? declared in com.example.pracazaliczeniowa.Nodes.DefaultModelNode' type=com.google.android.filament.Box? origin=null
+        $this: GET_VAR 'node: com.example.pracazaliczeniowa.Nodes.DefaultModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.DefaultModelNode origin=null
+    VAR name:center type:dev.romainguy.kotlin.math.Float3 [val]
+      BLOCK type=dev.romainguy.kotlin.math.Float3 origin=FOLDED_ELVIS
+        WHEN type=dev.romainguy.kotlin.math.Float3 origin=FOLDED_ELVIS
+          BRANCH
+            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+              arg0: COMPOSITE type=kotlin.Boolean origin=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    arg0: GET_VAR 'val box: com.google.android.filament.Box? [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.google.android.filament.Box? origin=null
+                    arg1: CONST Null type=kotlin.Nothing? value=null
+              arg1: COMPOSITE type=kotlin.Boolean origin=null
+                VAR IR_TEMPORARY_VARIABLE name:tmp1_elvis_lhs type:dev.romainguy.kotlin.math.Float3 [val]
+                  CALL 'public final fun let <T, R> (block: kotlin.Function1<T of kotlin.StandardKt.let, R of kotlin.StandardKt.let>): R of kotlin.StandardKt.let [inline] declared in kotlin.StandardKt' type=dev.romainguy.kotlin.math.Float3 origin=null
+                    <T>: com.google.android.filament.Box
+                    <R>: dev.romainguy.kotlin.math.Float3
+                    $receiver: GET_VAR 'val box: com.google.android.filament.Box? [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.google.android.filament.Box? origin=null
+                    block: BLOCK type=kotlin.Function1<com.google.android.filament.Box, dev.romainguy.kotlin.math.Float3> origin=LAMBDA
+                      COMPOSITE type=kotlin.Unit origin=null
+                      FUNCTION_REFERENCE 'private final fun attachNode$lambda$1 (it: com.google.android.filament.Box): dev.romainguy.kotlin.math.Float3 declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=kotlin.Function1<com.google.android.filament.Box, dev.romainguy.kotlin.math.Float3> origin=INLINE_LAMBDA reflectionTarget=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    arg0: GET_VAR 'val tmp1_elvis_lhs: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+                    arg1: CONST Null type=kotlin.Nothing? value=null
+            then: GET_VAR 'val tmp1_elvis_lhs: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: CONSTRUCTOR_CALL 'public constructor <init> (v: kotlin.Float) declared in dev.romainguy.kotlin.math.Float3' type=dev.romainguy.kotlin.math.Float3 origin=null
+              v: CONST Float type=kotlin.Float value=0.0
+    VAR name:halfExtent type:dev.romainguy.kotlin.math.Float3 [val]
+      BLOCK type=dev.romainguy.kotlin.math.Float3 origin=FOLDED_ELVIS
+        WHEN type=dev.romainguy.kotlin.math.Float3 origin=FOLDED_ELVIS
+          BRANCH
+            if: CALL 'public final fun ANDAND (arg0: kotlin.Boolean, arg1: kotlin.Boolean): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+              arg0: COMPOSITE type=kotlin.Boolean origin=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    arg0: GET_VAR 'val box: com.google.android.filament.Box? [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.google.android.filament.Box? origin=null
+                    arg1: CONST Null type=kotlin.Nothing? value=null
+              arg1: COMPOSITE type=kotlin.Boolean origin=null
+                VAR IR_TEMPORARY_VARIABLE name:tmp3_elvis_lhs type:dev.romainguy.kotlin.math.Float3 [val]
+                  CALL 'public final fun let <T, R> (block: kotlin.Function1<T of kotlin.StandardKt.let, R of kotlin.StandardKt.let>): R of kotlin.StandardKt.let [inline] declared in kotlin.StandardKt' type=dev.romainguy.kotlin.math.Float3 origin=null
+                    <T>: com.google.android.filament.Box
+                    <R>: dev.romainguy.kotlin.math.Float3
+                    $receiver: GET_VAR 'val box: com.google.android.filament.Box? [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.google.android.filament.Box? origin=null
+                    block: BLOCK type=kotlin.Function1<com.google.android.filament.Box, dev.romainguy.kotlin.math.Float3> origin=LAMBDA
+                      COMPOSITE type=kotlin.Unit origin=null
+                      FUNCTION_REFERENCE 'private final fun attachNode$lambda$2 (it: com.google.android.filament.Box): dev.romainguy.kotlin.math.Float3 declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=kotlin.Function1<com.google.android.filament.Box, dev.romainguy.kotlin.math.Float3> origin=INLINE_LAMBDA reflectionTarget=null
+                CALL 'public final fun not (): kotlin.Boolean [operator] declared in kotlin.Boolean' type=kotlin.Boolean origin=null
+                  $this: CALL 'public final fun EQEQ (arg0: kotlin.Any?, arg1: kotlin.Any?): kotlin.Boolean declared in kotlin.internal.ir' type=kotlin.Boolean origin=null
+                    arg0: GET_VAR 'val tmp3_elvis_lhs: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+                    arg1: CONST Null type=kotlin.Nothing? value=null
+            then: GET_VAR 'val tmp3_elvis_lhs: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+          BRANCH
+            if: CONST Boolean type=kotlin.Boolean value=true
+            then: CONSTRUCTOR_CALL 'public constructor <init> (v: kotlin.Float) declared in dev.romainguy.kotlin.math.Float3' type=dev.romainguy.kotlin.math.Float3 origin=null
+              v: CONST Float type=kotlin.Float value=0.5
+    SET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:boundingBoxNode type:io.github.sceneview.node.CubeNode? visibility:private' type=kotlin.Unit origin=null
+      receiver: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+      value: CALL 'public final fun apply <T> (block: @[ExtensionFunctionType] kotlin.Function1<T of kotlin.StandardKt.apply, kotlin.Unit>): T of kotlin.StandardKt.apply [inline] declared in kotlin.StandardKt' type=io.github.sceneview.node.CubeNode origin=null
+        <T>: io.github.sceneview.node.CubeNode
+        $receiver: CONSTRUCTOR_CALL 'public constructor <init> (engine: com.google.android.filament.Engine, size: dev.romainguy.kotlin.math.Float3?, center: dev.romainguy.kotlin.math.Float3?, materialInstance: com.google.android.filament.MaterialInstance?, builderApply: @[ExtensionFunctionType] kotlin.Function1<com.google.android.filament.RenderableManager.Builder, kotlin.Unit>?, $mask0: kotlin.Int, $marker: kotlin.jvm.internal.DefaultConstructorMarker?) declared in io.github.sceneview.node.CubeNode' type=io.github.sceneview.node.CubeNode origin=DEFAULT_DISPATCH_CALL
+          engine: CALL 'public final fun <get-engine> (): com.google.android.filament.Engine [fake_override] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=com.google.android.filament.Engine origin=GET_PROPERTY
+            $this: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+          size: COMPOSITE type=dev.romainguy.kotlin.math.Float3? origin=DEFAULT_VALUE
+            CONST Null type=dev.romainguy.kotlin.math.Float3? value=null
+          center: COMPOSITE type=dev.romainguy.kotlin.math.Float3? origin=DEFAULT_VALUE
+            CONST Null type=dev.romainguy.kotlin.math.Float3? value=null
+          materialInstance: COMPOSITE type=com.google.android.filament.MaterialInstance? origin=DEFAULT_VALUE
+            CONST Null type=com.google.android.filament.MaterialInstance? value=null
+          builderApply: COMPOSITE type=@[ExtensionFunctionType] kotlin.Function1<com.google.android.filament.RenderableManager.Builder, kotlin.Unit>? origin=DEFAULT_VALUE
+            CONST Null type=@[ExtensionFunctionType] kotlin.Function1<com.google.android.filament.RenderableManager.Builder, kotlin.Unit>? value=null
+          $mask0: CONST Int type=kotlin.Int value=30
+          $marker: CONST Null type=kotlin.jvm.internal.DefaultConstructorMarker? value=null
+        block: BLOCK type=@[ExtensionFunctionType] kotlin.Function1<io.github.sceneview.node.CubeNode, kotlin.Unit> origin=LAMBDA
+          COMPOSITE type=kotlin.Unit origin=null
+          FUNCTION_REFERENCE 'private final fun attachNode$lambda$3 ($center: dev.romainguy.kotlin.math.Float3, $halfExtent: dev.romainguy.kotlin.math.Float3): kotlin.Unit declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=@[ExtensionFunctionType] kotlin.Function1<io.github.sceneview.node.CubeNode, kotlin.Unit> origin=INLINE_LAMBDA reflectionTarget=null
+            $center: GET_VAR 'val center: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+            $halfExtent: GET_VAR 'val halfExtent: dev.romainguy.kotlin.math.Float3 [val] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=dev.romainguy.kotlin.math.Float3 origin=null
+    COMPOSITE type=kotlin.Unit origin=null
+      CALL 'public final fun addChildNode (node: io.github.sceneview.node.Node): io.github.sceneview.node.Node [fake_override] declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode' type=io.github.sceneview.node.Node origin=null
+        $this: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+        node: CALL 'public final fun CHECK_NOT_NULL <T0> (arg0: T0 of kotlin.internal.ir.CHECK_NOT_NULL?): {T0 of kotlin.internal.ir.CHECK_NOT_NULL & Any} declared in kotlin.internal.ir' type=io.github.sceneview.node.CubeNode origin=EXCLEXCL
+          <T0>: io.github.sceneview.node.CubeNode
+          arg0: GET_FIELD 'FIELD PROPERTY_BACKING_FIELD name:boundingBoxNode type:io.github.sceneview.node.CubeNode? visibility:private' type=io.github.sceneview.node.CubeNode? origin=null
+            receiver: GET_VAR '<this>: com.example.pracazaliczeniowa.Nodes.SelectedModelNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode' type=com.example.pracazaliczeniowa.Nodes.SelectedModelNode origin=null
+      COMPOSITE type=kotlin.Unit origin=null
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate$default(FunctionCodegen.kt:41)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethodNode(ClassCodegen.kt:407)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generateMethod(ClassCodegen.kt:424)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ClassCodegen.generate(ClassCodegen.kt:169)
+	at org.jetbrains.kotlin.backend.jvm.FileCodegen.lower(JvmPhases.kt:39)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseFactoriesKt.createFilePhase$lambda$4(PhaseFactories.kt:71)
+	at org.jetbrains.kotlin.backend.common.phaser.PhaseBuildersKt$createSimpleNamedCompilerPhase$1.phaseBody(PhaseBuilders.kt:69)
+	at org.jetbrains.kotlin.backend.common.phaser.SimpleNamedCompilerPhase.phaseBody(CompilerPhase.kt:226)
+	at org.jetbrains.kotlin.backend.common.phaser.AbstractNamedCompilerPhase.invoke(CompilerPhase.kt:113)
+	at org.jetbrains.kotlin.backend.common.phaser.PerformByIrFilePhase.invokeSequential(performByIrFile.kt:52)
+	... 46 more
+Caused by: java.lang.RuntimeException: Exception while generating code for:
+FUN INLINE_LAMBDA name:attachNode$lambda$3 visibility:private modality:FINAL <> ($receiver:io.github.sceneview.node.CubeNode, $center:dev.romainguy.kotlin.math.Float3, $halfExtent:dev.romainguy.kotlin.math.Float3) returnType:kotlin.Unit
+  $receiver: VALUE_PARAMETER name:$this$apply type:io.github.sceneview.node.CubeNode
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$center index:0 type:dev.romainguy.kotlin.math.Float3
+  VALUE_PARAMETER BOUND_VALUE_PARAMETER name:$halfExtent index:1 type:dev.romainguy.kotlin.math.Float3
+  BLOCK_BODY
+    VAR name:$i$a$-apply-SelectedModelNode$attachNode$1 type:kotlin.Int [val]
+      CONST Int type=kotlin.Int value=0
+    CALL 'public open fun <set-position> (value: dev.romainguy.kotlin.math.Float3): kotlin.Unit [fake_override] declared in io.github.sceneview.node.CubeNode' type=kotlin.Unit origin=EQ
+      $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      value: GET_VAR '$center: dev.romainguy.kotlin.math.Float3 declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=dev.romainguy.kotlin.math.Float3 origin=null
+    CALL 'public open fun <set-scale> (value: dev.romainguy.kotlin.math.Float3): kotlin.Unit [fake_override] declared in io.github.sceneview.node.CubeNode' type=kotlin.Unit origin=EQ
+      $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      value: CALL 'public final fun times (v: kotlin.Float): dev.romainguy.kotlin.math.Float3 [inline,operator] declared in dev.romainguy.kotlin.math.Float3' type=dev.romainguy.kotlin.math.Float3 origin=MUL
+        $this: TYPE_OP type=dev.romainguy.kotlin.math.Float3 origin=IMPLICIT_CAST typeOperand=dev.romainguy.kotlin.math.Float3
+          GET_VAR '$halfExtent: dev.romainguy.kotlin.math.Float3 declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=dev.romainguy.kotlin.math.Float3 origin=null
+        v: CONST Float type=kotlin.Float value=2.1
+    CALL 'public open fun setParameter (p0: @[EnhancedNullability] kotlin.String, p1: kotlin.Float, p2: kotlin.Float, p3: kotlin.Float, p4: kotlin.Float): kotlin.Unit declared in com.google.android.filament.MaterialInstance' type=kotlin.Unit origin=null
+      $this: CALL 'public open fun <get-materialInstance> (): com.google.android.filament.MaterialInstance [fake_override] declared in io.github.sceneview.node.CubeNode' type=com.google.android.filament.MaterialInstance origin=GET_PROPERTY
+        $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      p0: CONST String type=kotlin.String value="baseColor"
+      p1: CONST Float type=kotlin.Float value=1.0
+      p2: CONST Float type=kotlin.Float value=0.0
+      p3: CONST Float type=kotlin.Float value=0.0
+      p4: CONST Float type=kotlin.Float value=0.4
+    SET_FIELD 'FIELD IR_EXTERNAL_JAVA_DECLARATION_STUB name:priority type:kotlin.Int visibility:public [final,static] declared in android.R.attr' type=kotlin.Unit superQualifierSymbol=android.R.attr origin=EQ
+      value: CONST Int type=kotlin.Int value=100
+    CALL 'public open fun <set-isPositionEditable> (<set-?>: kotlin.Boolean): kotlin.Unit [fake_override] declared in io.github.sceneview.node.CubeNode' type=kotlin.Unit origin=EQ
+      $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      <set-?>: CONST Boolean type=kotlin.Boolean value=false
+    CALL 'public open fun <set-isRotationEditable> (<set-?>: kotlin.Boolean): kotlin.Unit [fake_override] declared in io.github.sceneview.node.CubeNode' type=kotlin.Unit origin=EQ
+      $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      <set-?>: CONST Boolean type=kotlin.Boolean value=false
+    CALL 'public open fun <set-isScaleEditable> (<set-?>: kotlin.Boolean): kotlin.Unit [fake_override] declared in io.github.sceneview.node.CubeNode' type=kotlin.Unit origin=EQ
+      $this: GET_VAR '$this$apply: io.github.sceneview.node.CubeNode declared in com.example.pracazaliczeniowa.Nodes.SelectedModelNode.attachNode$lambda$3' type=io.github.sceneview.node.CubeNode origin=null
+      <set-?>: CONST Boolean type=kotlin.Boolean value=false
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:48)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrSourceCompilerForInline.generateLambdaBody(IrSourceCompilerForInline.kt:67)
+	at org.jetbrains.kotlin.codegen.inline.ExpressionLambda.generateLambdaBody(LambdaInfo.kt:72)
+	at org.jetbrains.kotlin.backend.jvm.codegen.IrInlineCodegen.genValueAndPut(IrInlineCodegen.kt:100)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall$handleParameter(ExpressionCodegen.kt:561)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:589)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitCall(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.expressions.IrCall.accept(IrCall.kt:24)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:830)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitSetField(IrElementVisitor.kt:210)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:860)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.expressions.IrSetField.accept(IrSetField.kt:21)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:524)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:529)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:236)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:124)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:45)
+	... 56 more
+Caused by: java.lang.AssertionError: access of const val: SET_FIELD 'FIELD IR_EXTERNAL_JAVA_DECLARATION_STUB name:priority type:kotlin.Int visibility:public [final,static] declared in android.R.attr' type=kotlin.Unit superQualifierSymbol=android.R.attr origin=EQ
+  value: CONST Int type=kotlin.Int value=100
+
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:813)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitFieldAccess(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.visitors.IrElementVisitor$DefaultImpls.visitSetField(IrElementVisitor.kt:210)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:860)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitSetField(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.expressions.IrSetField.accept(IrSetField.kt:21)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitStatementContainer(ExpressionCodegen.kt:524)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:529)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.visitBlockBody(ExpressionCodegen.kt:134)
+	at org.jetbrains.kotlin.ir.expressions.IrBlockBody.accept(IrBlockBody.kt:20)
+	at org.jetbrains.kotlin.backend.jvm.codegen.ExpressionCodegen.generate(ExpressionCodegen.kt:236)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.doGenerate(FunctionCodegen.kt:124)
+	at org.jetbrains.kotlin.backend.jvm.codegen.FunctionCodegen.generate(FunctionCodegen.kt:45)
+	... 76 more
+
+

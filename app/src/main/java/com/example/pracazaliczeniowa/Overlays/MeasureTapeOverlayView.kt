@@ -1,10 +1,11 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Typeface
+import android.opengl.Matrix
 import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
@@ -114,7 +115,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
 
         camera.getProjectionMatrix(proj, 0, 0.05f, 100f)
         camera.getViewMatrix(view, 0)
-        android.opengl.Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
+        Matrix.multiplyMM(vp, 0, proj, 0, view, 0)
 
         val sw = width.toFloat()
         val sh = height.toFloat()

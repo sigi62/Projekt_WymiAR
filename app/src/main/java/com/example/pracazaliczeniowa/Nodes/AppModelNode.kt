@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Nodes
 
 import com.google.android.filament.Engine
 import dev.romainguy.kotlin.math.Float3
@@ -28,14 +28,6 @@ class AppModelNode(
 
     private var _scale: Float = 1f
 
-    /** Tap callback for this node */
-    init {
-        // Setup single-tap detection
-        onDoubleTap = {
-            onSelected(this)
-            true
-        }
-    }
 
     var onDimensionsChanged: ((Float, Float, Float) -> Unit)? = null
 
@@ -73,6 +65,7 @@ class AppModelNode(
         _scale = scale
         modelNode?.scale = Scale(scale, scale, scale)
     }
+
 
     fun getMetersScale(): Float = _scale
 

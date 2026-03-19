@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Nodes
 
 import com.google.android.filament.Engine
 import dev.romainguy.kotlin.math.Float3
