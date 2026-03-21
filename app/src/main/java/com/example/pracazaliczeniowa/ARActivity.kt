@@ -21,10 +21,11 @@ import android.util.Log
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 
-import com.example.pracazaliczeniowa.Overlays.DimensionOverlayView
+import com.example.pracazaliczeniowa.Overlays.DimensionOverlayViewold
 import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
+import com.google.ar.sceneform.rendering.ViewAttachmentManager
 
 
 fun log(msg: String) {
@@ -37,8 +38,10 @@ class ARActivity : AppCompatActivity() {
     private var pendingPlacement: Runnable? = null
 
     private lateinit var arSceneView: ARSceneView
+
+    private lateinit var viewAttachmentManager: ViewAttachmentManager
     private lateinit var statusText: TextView
-    private lateinit var dimensionOverlay: DimensionOverlayView
+    private lateinit var dimensionOverlay: DimensionOverlayViewold
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
     private lateinit var measureModeButton: Button
@@ -71,6 +74,7 @@ class ARActivity : AppCompatActivity() {
         measureModeButton = findViewById(R.id.measureModeButton)
         unitButton       = findViewById(R.id.unitButton)
 
+        viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
 
         lifecycleScope.launch {
@@ -222,11 +226,14 @@ class ARActivity : AppCompatActivity() {
                 arSceneView.modelLoader.createModelInstance("models/cat.glb")
 
             val node = DefaultModelNode(
-                modelInstance = modelInstance!!,
-                scope = lifecycleScope
+                modelInstance = modelInstance,
+                scope = lifecycleScope,
+                sceneView = arSceneView,
+                viewAttachmentManager = viewAttachmentManager
             )
 
             node.scaleToUnits(0.02f)
+           // node.setupSelectionGizmo(arSceneView, viewAttachmentManager)
 
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
             anchorNode.addChildNode(node)
@@ -237,7 +244,6 @@ class ARActivity : AppCompatActivity() {
             log("Adding new model to models list)")
             models.add(node)
 
-//            selectModel(node)
         }
     }
 
@@ -261,7 +267,6 @@ class ARActivity : AppCompatActivity() {
         models.remove(defaultNode)
 
         val wrapped = defaultNode.wrapAsSelected(
-            engine = arSceneView.engine,
             scope = lifecycleScope
         )
 
@@ -308,8 +313,19 @@ class ARActivity : AppCompatActivity() {
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
+    override fun onResume() {
+        super.onResume()
+        viewAttachmentManager.onResume()
+    }
+
+    override fun onPause() {
+        super.onPause()
+        viewAttachmentManager.onPause()
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         arSceneView.destroy()
     }
+
 }

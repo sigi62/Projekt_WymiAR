@@ -9,6 +9,7 @@ import android.opengl.Matrix
 import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
+import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.MeasurableModelNode
 import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float3
@@ -24,7 +25,7 @@ import kotlin.math.abs
  *
  * Then call [attach] once both the sceneView and the node are ready.
  */
-class DimensionOverlayView @JvmOverloads constructor(
+class DimensionOverlayViewold @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
@@ -91,10 +92,10 @@ class DimensionOverlayView @JvmOverloads constructor(
      * Connect the overlay to the scene and the node to visualise.
      * Safe to call before or after the model finishes loading.
      */
-    fun attach(sv: ARSceneView, measurableNode: MeasurableModelNode) {
+    fun attach(sv: ARSceneView, defaultNode: MeasurableModelNode) {
         sceneView = sv
-        node = measurableNode
-        measurableNode.onDimensionsChanged = { w, h, d ->
+        node = defaultNode
+        defaultNode.onDimensionsChanged = { w, h, d ->
             widthM  = w
             heightM = h
             depthM  = d

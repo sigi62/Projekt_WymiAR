@@ -14,7 +14,7 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
-    <com.example.pracazaliczeniowa.Overlays.DimensionOverlayView
+    <com.example.pracazaliczeniowa.Overlays.DimensionOverlayViewold
         android:id="@+id/dimensionOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
