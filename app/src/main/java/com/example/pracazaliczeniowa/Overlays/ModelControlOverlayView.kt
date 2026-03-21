@@ -3,169 +3,118 @@ package com.example.pracazaliczeniowa.Overlays
 import android.content.Context
 import android.util.AttributeSet
 import android.view.LayoutInflater
+import android.view.View
+import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import com.example.pracazaliczeniowa.Nodes.MeasurableModelNode
+import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
-import dev.romainguy.kotlin.math.Float3
 
-/**
- * Simple UI overlay with sliders to control the selected model's
- * uniform scale (in metres) and local position along X/Y/Z axes.
- *
- * This view is purely UI: it delegates all scene changes to
- * [MeasurableModelNode].
- */
 class ModelControlOverlayView @JvmOverloads constructor(
-    context: Context,
-    attrs: AttributeSet? = null,
+    context: Context, attrs: AttributeSet? = null
 ) : LinearLayout(context, attrs) {
 
-    private var boundNode: MeasurableModelNode? = null
-
-    private val scaleSeek: SeekBar
-    private val xSeek: SeekBar
-    private val ySeek: SeekBar
-    private val zSeek: SeekBar
-
-    private val scaleLabel: TextView
-    private val xLabel: TextView
-    private val yLabel: TextView
-    private val zLabel: TextView
-
-    // Reasonable ranges for demo:
-    // Scale: 0.05 m .. 1.0 m
-    // Position: -0.5 m .. +0.5 m for each axis
-    private val scaleMin = 0.05f
-    private val scaleMax = 1.0f
-    private val posMin = -0.5f
-    private val posMax = 0.5f
+    private var targetNode: SelectedModelNode? = null
+    private var currentMode = "ROTATE"
 
     init {
-        orientation = VERTICAL
+        // 1. This is the missing piece: Inflate the XML into this LinearLayout
         LayoutInflater.from(context).inflate(R.layout.view_model_controls, this, true)
 
-        scaleSeek = findViewById(R.id.seekScale)
-        xSeek = findViewById(R.id.seekPosX)
-        ySeek = findViewById(R.id.seekPosY)
-        zSeek = findViewById(R.id.seekPosZ)
+        // 2. Set orientation since the root in XML is vertical
+        orientation = VERTICAL
+        this.isClickable = true
+        this.isFocusable = true
 
-        scaleLabel = findViewById(R.id.labelScale)
-        xLabel = findViewById(R.id.labelPosX)
-        yLabel = findViewById(R.id.labelPosY)
-        zLabel = findViewById(R.id.labelPosZ)
-
-        setupSeekBars()
-        visibility = GONE
     }
 
-    private fun setupSeekBars() {
-        // All seek bars use 0..100 and are mapped to float ranges.
-        val max = 100
-        scaleSeek.max = max
-        xSeek.max = max
-        ySeek.max = max
-        zSeek.max = max
+    fun bindToNode(node: SelectedModelNode) {
+        this.targetNode = node
+        setupUI()
+    }
 
-        fun SeekBar.onChange(block: (progress: Int, fromUser: Boolean) -> Unit) {
-            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                    block(progress, fromUser)
+    private fun setupUI() {
+        val s1 = findViewById<SeekBar>(R.id.seek1)
+        val s2 = findViewById<SeekBar>(R.id.seek2)
+        val s3 = findViewById<SeekBar>(R.id.seek3)
+        val sUni = findViewById<SeekBar>(R.id.seekUniversalScale)
+        val lUni = findViewById<TextView>(R.id.labelUniversalScale)
+
+        val MIDDLE = 100
+        val RANGE_MAX = 200
+
+        // Reset all sliders to middle on start
+        listOf(s1, s2, s3, sUni).forEach {
+            it.max = RANGE_MAX
+            it.progress = MIDDLE
+        }
+
+        val btnRot = findViewById<Button>(R.id.btnModeRotate)
+        val btnPos = findViewById<Button>(R.id.btnModePosition)
+        val btnScl = findViewById<Button>(R.id.btnModeScale)
+
+        val listener = object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                targetNode?.let { node ->
+                    when (currentMode) {
+                        "ROTATE" -> {
+                            // Range: 0..200 -> -180..180 (factor 1.8)
+                            val f = 1.8f
+                            node.updateRotation(
+                                (s1.progress - MIDDLE) * f,
+                                (s2.progress - MIDDLE) * f,
+                                (s3.progress - MIDDLE) * f
+                            )
+                        }
+
+                        "POSITION" -> {
+                            // Range: 0..200 -> -5m..5m (factor 0.05)
+                            val f = 0.05f
+                            node.updatePosition(
+                                (s1.progress - MIDDLE) * f,
+                                (s2.progress - MIDDLE) * f,
+                                (s3.progress - MIDDLE) * f
+                            )
+                        }
+
+                        "SCALE" -> {
+                            // Range: 0..200 -> 0x..2.5x (factor 0.0125)
+                            // Middle (100) results in 1.25x? No, let's use 0.01 to make 100 = 1.0x
+                            // To get 2.5x max at progress 200, factor = 2.5 / 200 = 0.0125
+                            val f = 0.0125f
+                            node.updateScale(
+                                s1.progress * f,
+                                s2.progress * f,
+                                s3.progress * f,
+                                sUni.progress.toFloat() // node handles /100
+                            )
+                        }
+                    }
                 }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
-                override fun onStopTrackingTouch(seekBar: SeekBar?) = Unit
-            })
-        }
-
-        scaleSeek.onChange { p, fromUser ->
-            val node = boundNode ?: return@onChange
-            val value = lerp(scaleMin, scaleMax, p / 100f)
-            scaleLabel.text = String.format("Scale: %.2f m", value)
-            if (fromUser) {
-                node.setMetersScale(value)
             }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
         }
 
-        val posFormatter = { axis: String, v: Float ->
-            String.format("%s: %.2f m", axis, v)
-        }
+        listOf(s1, s2, s3, sUni).forEach { it.setOnSeekBarChangeListener(listener) }
 
-        xSeek.onChange { p, fromUser ->
-            val node = boundNode ?: return@onChange
-            val value = lerp(posMin, posMax, p / 100f)
-            val current = node.getLocalPosition()
-            xLabel.text = posFormatter("X", value)
-            if (fromUser) {
-                node.setLocalPosition(value, current.y, current.z)
-            }
+        btnRot.setOnClickListener {
+            currentMode = "ROTATE"
+            sUni.visibility = View.GONE
+            lUni.visibility = View.GONE
         }
-
-        ySeek.onChange { p, fromUser ->
-            val node = boundNode ?: return@onChange
-            val value = lerp(posMin, posMax, p / 100f)
-            val current = node.getLocalPosition()
-            yLabel.text = posFormatter("Y", value)
-            if (fromUser) {
-                node.setLocalPosition(current.x, value, current.z)
-            }
+        btnPos.setOnClickListener {
+            currentMode = "POSITION"
+            sUni.visibility = View.GONE
+            lUni.visibility = View.GONE
         }
+        btnScl.setOnClickListener {
+            currentMode = "SCALE"
+            sUni.visibility = View.VISIBLE
+            lUni.visibility = View.VISIBLE
 
-        zSeek.onChange { p, fromUser ->
-            val node = boundNode ?: return@onChange
-            val value = lerp(posMin, posMax, p / 100f)
-            val current = node.getLocalPosition()
-            zLabel.text = posFormatter("Z", value)
-            if (fromUser) {
-                node.setLocalPosition(current.x, current.y, value)
-            }
         }
     }
-
-    /**
-     * Bind this control overlay to a specific [MeasurableModelNode].
-     * The current node transform is read once to initialise sliders.
-     */
-    fun bindToNode(node: MeasurableModelNode) {
-        boundNode = node
-        visibility = VISIBLE
-
-        // Initialise sliders from the node state.
-        val pos = node.getLocalPosition()
-        val s = node.currentScaleMeters()
-
-        val scaleProgress = ((s - scaleMin) / (scaleMax - scaleMin)).coerceIn(0f, 1f) * 100f
-        val xProgress = ((pos.x - posMin) / (posMax - posMin)).coerceIn(0f, 1f) * 100f
-        val yProgress = ((pos.y - posMin) / (posMax - posMin)).coerceIn(0f, 1f) * 100f
-        val zProgress = ((pos.z - posMin) / (posMax - posMin)).coerceIn(0f, 1f) * 100f
-
-        scaleSeek.progress = scaleProgress.toInt()
-        xSeek.progress = xProgress.toInt()
-        ySeek.progress = yProgress.toInt()
-        zSeek.progress = zProgress.toInt()
-
-        scaleLabel.text = String.format("Scale: %.2f m", s)
-        xLabel.text = String.format("X: %.2f m", pos.x)
-        yLabel.text = String.format("Y: %.2f m", pos.y)
-        zLabel.text = String.format("Z: %.2f m", pos.z)
-    }
-
-    /** Unbind the currently controlled node and hide the overlay. */
-    fun unbind() {
-        boundNode = null
-        visibility = GONE
-    }
-
-    private fun lerp(a: Float, b: Float, t: Float): Float =
-        a + (b - a) * t
-
-    private fun MeasurableModelNode.currentScaleMeters(): Float =
-        // widthMeters is 2 * halfX * _scale; we just want the internal scale.
-        // Expose a dedicated getter instead of reverse-computing from width.
-        getMetersScale()
-
-    private fun MeasurableModelNode.getLocalPosition(): Float3 =
-        localPosition()
 }
-

@@ -13,7 +13,6 @@ import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.Node
 import io.github.sceneview.node.ViewNode
-import kotlin.collections.get
 
 
 class DimensionOverlayNode(
@@ -44,9 +43,9 @@ class DimensionOverlayNode(
 
     init {
 
-        addChildNode(labelW)
-        addChildNode(labelH)
-        addChildNode(labelD)
+//        addChildNode(labelW)
+//        addChildNode(labelH)
+//        addChildNode(labelD)
         refresh()
     }
 
@@ -131,8 +130,8 @@ class DimensionOverlayNode(
 
     private fun updateLabel(node: ViewNode, text: String, pos: Float3, color: Float4) {
         node.position = pos
-        node.quaternion = dev.romainguy.kotlin.math.Quaternion()
-                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    
+        node.lookAt(worldPosition)
+
         node.onViewLoaded = { _, view ->
             val textView = view.findViewById<TextView>(R.id.dimensionText)
             textView?.text = text

@@ -21,7 +21,6 @@ import android.util.Log
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 
-import com.example.pracazaliczeniowa.Overlays.DimensionOverlayViewold
 import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
@@ -41,7 +40,6 @@ class ARActivity : AppCompatActivity() {
 
     private lateinit var viewAttachmentManager: ViewAttachmentManager
     private lateinit var statusText: TextView
-    private lateinit var dimensionOverlay: DimensionOverlayViewold
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
     private lateinit var measureModeButton: Button
@@ -68,7 +66,6 @@ class ARActivity : AppCompatActivity() {
 
         arSceneView      = findViewById(R.id.arSceneView)
         statusText       = findViewById(R.id.statusText)
-        dimensionOverlay = findViewById(R.id.dimensionOverlay)
         modelControls    = findViewById(R.id.modelControls)
         measureOverlay   = findViewById(R.id.measureOverlay)
         measureModeButton = findViewById(R.id.measureModeButton)
@@ -186,14 +183,12 @@ class ARActivity : AppCompatActivity() {
             Mode.MODEL -> {
                 measureModeButton.text = "Measure"
                 measureOverlay.visibility = View.GONE
-                dimensionOverlay.visibility = View.VISIBLE
                 modelControls.visibility = View.VISIBLE
                 statusText.text = "Tap to place or select a model"
             }
             Mode.MEASURE -> {
                 measureModeButton.text = "Model"
                 measureOverlay.visibility = View.VISIBLE
-                dimensionOverlay.visibility = View.GONE
                 modelControls.visibility = View.GONE
                 statusText.text = "Tap 2 points to measure distance"
             }
@@ -244,6 +239,8 @@ class ARActivity : AppCompatActivity() {
             log("Adding new model to models list)")
             models.add(node)
 
+            selectModel(node)
+
         }
     }
 
@@ -271,6 +268,11 @@ class ARActivity : AppCompatActivity() {
         )
 
         selectedModel = wrapped
+
+        if (wrapped != null) {
+            modelControls.bindToNode(wrapped)
+            modelControls.visibility = View.VISIBLE
+        }
 
         //dimensionOverlay.attach(arSceneView, wrapped)
         //modelControls.bindToNode(wrapped)

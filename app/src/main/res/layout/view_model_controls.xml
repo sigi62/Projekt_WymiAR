@@ -2,62 +2,33 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
+    android:background="#80000000"
+    android:padding="12dp"
     android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/labelScale"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Scale"
-        android:textColor="@android:color/white"
-        android:textSize="14sp" />
 
-    <SeekBar
-        android:id="@+id/seekScale"
+
+    <TextView android:id="@+id/label1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="X " android:textColor="@android:color/white" />
+    <SeekBar android:id="@+id/seek1" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+
+    <TextView android:id="@+id/label2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Y" android:textColor="@android:color/white" />
+    <SeekBar android:id="@+id/seek2" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+
+    <TextView android:id="@+id/label3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Z" android:textColor="@android:color/white" />
+    <SeekBar android:id="@+id/seek3" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+
+    <TextView android:id="@+id/labelUniversalScale" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Universal Scale" android:textColor="@android:color/white" android:visibility="gone"/>
+    <SeekBar android:id="@+id/seekUniversalScale" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:max="10" android:progress="10"/>
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:id="@+id/labelPosX"
-        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="X"
-        android:textColor="@android:color/white"
-        android:textSize="14sp" />
-
-    <SeekBar
-        android:id="@+id/seekPosX"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:id="@+id/labelPosY"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Y"
-        android:textColor="@android:color/white"
-        android:textSize="14sp" />
-
-    <SeekBar
-        android:id="@+id/seekPosY"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
-
-    <TextView
-        android:id="@+id/labelPosZ"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="8dp"
-        android:text="Z"
-        android:textColor="@android:color/white"
-        android:textSize="14sp" />
-
-    <SeekBar
-        android:id="@+id/seekPosZ"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content" />
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="8dp">
+        <Button android:id="@+id/btnModeRotate" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Rotate" android:textSize="10sp"/>
+        <Button android:id="@+id/btnModePosition" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Position" android:textSize="10sp"/>
+        <Button android:id="@+id/btnModeScale" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Scale" android:textSize="10sp"/>
+    </LinearLayout>
 
 </LinearLayout>
-

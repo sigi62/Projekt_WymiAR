@@ -24,6 +24,10 @@ class SelectedModelNode(
 {
     private var wrappedNode: DefaultModelNode? = null
     private var dimensionOverlay: DimensionOverlayNode? = null
+
+    private var initialWorldPos = Float3(0f)
+    private var initialWorldQuat = dev.romainguy.kotlin.math.Quaternion()
+    private var baseScale = Float3(1f)
     fun unwrap(): DefaultModelNode? {
 
         val child = wrappedNode ?: return null
@@ -55,16 +59,23 @@ class SelectedModelNode(
         return child
     }
 
-    fun attachNode(node: DefaultModelNode, sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager
-    ) {
+    fun attachNode(node: DefaultModelNode) {
         this.wrappedNode = node
+
+        // Capture starting state to use as the "Middle" (progress 100) point
+        this.initialWorldPos = this.worldPosition
+        this.initialWorldQuat = this.worldQuaternion
+        this.baseScale = node.scale
 
         if (node.parent != this) {
             node.parent?.removeChildNode(node)
             this.addChildNode(node)
         }
-
         this.scale = Float3(1.0f)
+    }
+
+    fun showDimensions(node: DefaultModelNode, sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager){
+
         dimensionOverlay?.destroy() // Remove old one if exists
         dimensionOverlay = DimensionOverlayNode(
             engine = engine,
@@ -77,14 +88,33 @@ class SelectedModelNode(
         this.addChildNode(dimensionOverlay!!)
     }
 
-    override var scale: Float3
-        get() = super.scale
-        set(value) {
-            super.scale = value
-            // The wrappedNode's visual dimensions change because its parent (this) scaled
-            dimensionOverlay?.refresh()
-        }
-    // gizmo doens't show up - chagge back to SelectedModelNode??
+
+    // Inside SelectedModelNode class
+    fun updateRotation(xDeg: Float, yDeg: Float, zDeg: Float) {
+        // x, y, z arrive as -180 to 180. We apply this as a relative offset to initial rotation.
+        val extraRot = dev.romainguy.kotlin.math.Quaternion.fromEuler(Float3(xDeg, yDeg, zDeg))
+        this.worldQuaternion = initialWorldQuat * extraRot
+    }
+
+    fun updatePosition(x: Float, y: Float, z: Float) {
+        // x, y, z arrive as -5.0 to 5.0 meters.
+        this.worldPosition = initialWorldPos + Float3(x, y, z)
+    }
+
+    fun updateScale(xMult: Float, yMult: Float, zMult: Float, uniProgress: Float) {
+        // uniProgress 100 = 1.0x. Scale sliders provide up to 2.5x each.
+        val universalFactor = uniProgress / 100f
+
+        wrappedNode?.scale = Float3(
+            baseScale.x * xMult * universalFactor,
+            baseScale.y * yMult * universalFactor,
+            baseScale.z * zMult * universalFactor
+        )
+        dimensionOverlay?.refresh()
+    }
+
+    //maybe needed?
+
 
     //select + change many?
 
