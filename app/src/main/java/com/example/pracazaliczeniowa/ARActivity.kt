@@ -45,10 +45,11 @@ class ARActivity : AppCompatActivity() {
     private lateinit var measureModeButton: Button
     private lateinit var unitButton: Button
 
-    private var mode: Mode = Mode.MODEL
-    private var unit: DistanceUnit = DistanceUnit.METERS
+    private var isMeasureToolActive: Boolean = false
+    private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
 
-    private val placedAnchors = mutableListOf<AnchorNode>()
+    private val placedMeasureNodes = mutableListOf<AnchorNode>()
+    private val placedModelNodes = mutableListOf<AnchorNode>()
 
     // ✅ Clean model system
     private val models = mutableListOf<DefaultModelNode>()
@@ -69,7 +70,8 @@ class ARActivity : AppCompatActivity() {
         modelControls    = findViewById(R.id.modelControls)
         measureOverlay   = findViewById(R.id.measureOverlay)
         measureModeButton = findViewById(R.id.measureModeButton)
-        unitButton       = findViewById(R.id.unitButton)
+        unitButton = findViewById(R.id.unitButton)
+
 
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
@@ -80,15 +82,13 @@ class ARActivity : AppCompatActivity() {
             arSceneView.skybox = env?.skybox
         }
 
+        modelControls.visibility = View.GONE
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
-        applyModeUi()
 
         measureModeButton.setOnClickListener {
-            mode = if (mode == Mode.MODEL) Mode.MEASURE else Mode.MODEL
-            resetScene()
-            applyModeUi()
+            toggleMeasureTool()
         }
 
         unitButton.setOnClickListener {
@@ -116,9 +116,23 @@ class ARActivity : AppCompatActivity() {
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
 
             if (motionEvent.action == MotionEvent.ACTION_UP) {
-                log("SCENE TAP at (${motionEvent.x}, ${motionEvent.y})")
 
                 pendingPlacement?.let { handler.removeCallbacks(it) }
+
+                if (isMeasureToolActive) {
+                    val task = Runnable {
+                        val hit = arSceneView.hitTestAR(
+                            xPx = motionEvent.x,
+                            yPx = motionEvent.y,
+                            planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
+                            trackingStates = setOf(TrackingState.TRACKING),
+                        )
+                        hit?.let { placeMeasurePoint(it) }
+                    }
+                    pendingPlacement = task
+                    handler.postDelayed(task, 150)
+                    return@onTouchEvent true
+                }
 
                 val tappedNode = hitResult?.node
 
@@ -134,40 +148,18 @@ class ARActivity : AppCompatActivity() {
                     selectModel(modelNode)
                     return@onTouchEvent true
                 } else if (selectedModel != null) {
-                    // DESELECT: User tapped empty space, unwrap current selection
-                    val returnedNode = selectedModel?.unwrap()
-                    if (returnedNode != null && !models.contains(returnedNode)) {
-                        models.add(returnedNode)
-                    }
-                    selectedModel = null
-                    statusText.text = "Model deselected"
+                    deselectModel()
                     return@onTouchEvent true
                 }
 
                 val task = Runnable {
-                    when (mode) {
-
-                        Mode.MODEL -> {
-                            val hit = arSceneView.hitTestAR(
-                                xPx = motionEvent.x,
-                                yPx = motionEvent.y,
-                                planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
-                                trackingStates = setOf(TrackingState.TRACKING),
-                            )
-                            log("Placing new model at (${motionEvent.x}, ${motionEvent.y})")
-                            hit?.let { placeModel(it) }
-                        }
-
-                        Mode.MEASURE -> {
-                            val hit = arSceneView.hitTestAR(
-                                xPx = motionEvent.x,
-                                yPx = motionEvent.y,
-                                planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
-                                trackingStates = setOf(TrackingState.TRACKING),
-                            )
-                            if (hit != null) placeMeasurePoint(hit)
-                        }
-                    }
+                    val hit = arSceneView.hitTestAR(
+                        xPx = motionEvent.x,
+                        yPx = motionEvent.y,
+                        planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
+                        trackingStates = setOf(TrackingState.TRACKING),
+                    )
+                    hit?.let { placeModel(it) }
                 }
 
                 pendingPlacement = task
@@ -178,38 +170,21 @@ class ARActivity : AppCompatActivity() {
         }
     }
 
-    private fun applyModeUi() {
-        when (mode) {
-            Mode.MODEL -> {
-                measureModeButton.text = "Measure"
-                measureOverlay.visibility = View.GONE
-                modelControls.visibility = View.VISIBLE
-                statusText.text = "Tap to place or select a model"
-            }
-            Mode.MEASURE -> {
-                measureModeButton.text = "Model"
-                measureOverlay.visibility = View.VISIBLE
-                modelControls.visibility = View.GONE
-                statusText.text = "Tap 2 points to measure distance"
-            }
+    private fun toggleMeasureTool() {
+        isMeasureToolActive = !isMeasureToolActive
+
+        if (isMeasureToolActive) {
+            measureModeButton.text = "Stop Measuring"
+            measureOverlay.visibility = View.VISIBLE
+            statusText.text = "Tap 2 points to measure"
+        } else {
+            measureModeButton.text = "Measure"
+            measureOverlay.visibility = View.GONE
+            clearMeasurements() // Remove points when tool is toggled off
+            statusText.text = "Tap to place or select a model"
         }
     }
 
-    private fun resetScene() {
-
-        measurePointA = null
-        measurePointB = null
-        measureOverlay.clear()
-
-//        selectedModel = null
-//        models.clear()
-//
-//        placedAnchors.forEach {
-//            it.anchor.detach()
-//            it.parent = null
-//        }
-//        placedAnchors.clear()
-    }
 
     private fun placeModel(hitResult: HitResult) {
 
@@ -234,7 +209,7 @@ class ARActivity : AppCompatActivity() {
             anchorNode.addChildNode(node)
             arSceneView.addChildNode(anchorNode)
 
-            placedAnchors.add(anchorNode)
+            placedModelNodes.add(anchorNode)
 
             log("Adding new model to models list)")
             models.add(node)
@@ -280,17 +255,24 @@ class ARActivity : AppCompatActivity() {
         statusText.text = "Model selected"
     }
 
+    private fun deselectModel() {
+        val returnedNode = selectedModel?.unwrap()
+        if (returnedNode != null && !models.contains(returnedNode)) {
+            models.add(returnedNode)
+        }
+        selectedModel = null
+        modelControls.visibility = View.GONE
+        statusText.text = "Model deselected"
+    }
+
+    // Update placeMeasurePoint to use the measureNodes list
     private fun placeMeasurePoint(hitResult: HitResult) {
         val pose = hitResult.hitPose
         val point = Float3(pose.tx(), pose.ty(), pose.tz())
 
-        val anchorNode = AnchorNode(
-            engine = arSceneView.engine,
-            anchor = hitResult.createAnchor(),
-        )
-
+        val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
         arSceneView.addChildNode(anchorNode)
-        placedAnchors.add(anchorNode)
+        placedMeasureNodes.add(anchorNode) // Track specifically as a measure node
 
         if (measurePointA == null || measurePointB != null) {
             measurePointA = point
@@ -308,6 +290,21 @@ class ARActivity : AppCompatActivity() {
         statusText.text = String.format("Distance: %.1f %s", value, suffix)
     }
 
+    private fun clearMeasurements() {
+        measurePointA = null
+        measurePointB = null
+        measureOverlay.clear()
+
+        // Remove only measurement anchors from the scene
+        placedMeasureNodes.forEach {
+            it.anchor?.detach()
+            it.parent = null
+        }
+        placedMeasureNodes.clear()
+    }
+
+
+    //Helper Functions
     private fun distanceMeters(a: Float3, b: Float3): Float {
         val dx = a.x - b.x
         val dy = a.y - b.y
@@ -330,4 +327,8 @@ class ARActivity : AppCompatActivity() {
         arSceneView.destroy()
     }
 
+}
+
+private fun ARActivity.toggleMeasureTool() {
+    TODO("Not yet implemented")
 }
