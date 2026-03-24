@@ -26,6 +26,7 @@ import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
+import io.github.sceneview.node.Node
 
 
 fun log(msg: String) {
@@ -65,6 +66,8 @@ class ARActivity : AppCompatActivity() {
     private var isDragging = false
     private var isPinching = false
     private var initialPinchDistance = 0f
+    private var touchStartPos = android.graphics.PointF()
+    private val MOVE_THRESHOLD = 20f // Pixels; ignore taps if the finger moved more than this
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -132,17 +135,20 @@ class ARActivity : AppCompatActivity() {
         }
 
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
+            val x = motionEvent.x
+            val y = motionEvent.y
 
+            // 1. Identify what was touched: A virtual node vs the real-world floor
+            val nodeHit = hitResult?.node
+            val arHit = arSceneView.hitTestAR(x, y, setOf(Plane.Type.HORIZONTAL_UPWARD_FACING))
             val selected = selectedModel
 
             // --- GESTURE PHASE: Dragging & Pinching ---
             when (motionEvent.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
-
-                    val touchedNode = hitResult?.node
-                    if (touchedNode == selected || touchedNode?.parent == selected || touchedNode == selected?.getWrappedNode()) {
-                        isDragging = true
-                    }
+                    touchStartPos.set(x, y)
+                    // Check if we touched the currently selected model to start a drag
+                    isDragging = (selected != null && (nodeHit == selected || nodeHit?.parent == selected || nodeHit == selected.getWrappedNode()))
                 }
 
                 MotionEvent.ACTION_POINTER_DOWN -> {
@@ -155,95 +161,79 @@ class ARActivity : AppCompatActivity() {
                 }
 
                 MotionEvent.ACTION_MOVE -> {
-                    if (isPinching && motionEvent.pointerCount == 2 && selected != null) {
+                    if (isPinching && selected != null) {
                         val currentDist = getFingerSpacing(motionEvent)
                         if (currentDist > 10f) {
-                            val scaleFactor = currentDist / initialPinchDistance
-                            selected.applyPinchScale(scaleFactor)
+                            selected.applyPinchScale(currentDist / initialPinchDistance)
                         }
-                        return@onTouchEvent true // Intercept: don't trigger placement
+                        return@onTouchEvent true
                     }
 
-                    if (isDragging && motionEvent.pointerCount == 1 && selected != null) {
-                        val hit = arSceneView.hitTestAR(
-                            xPx = motionEvent.x,
-                            yPx = motionEvent.y,
-                            planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING)
-                        )
-                        hit?.let {
-                            selected.moveTo(
-                                Float3(
-                                    it.hitPose.tx(),
-                                    it.hitPose.ty(),
-                                    it.hitPose.tz()
-                                )
-                            )
-                        }
-                        return@onTouchEvent true // Intercept: don't trigger placement
+                    if (isDragging && selected != null && arHit != null) {
+                        // Use the REAL-WORLD surface hit to move the model
+                        selected.moveTo(Float3(arHit.hitPose.tx(), arHit.hitPose.ty(), arHit.hitPose.tz()))
+                        return@onTouchEvent true
                     }
                 }
 
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
-                    val wasGestureActive = isDragging || isPinching
+                MotionEvent.ACTION_UP -> {
+                    val dx = x - touchStartPos.x
+                    val dy = y - touchStartPos.y
+                    val distanceMoved = sqrt(dx * dx + dy * dy)
+
+                    // If it was a movement/gesture, don't trigger a tap action
+                    val wasGesture = isDragging || isPinching || distanceMoved > MOVE_THRESHOLD
                     isDragging = false
                     isPinching = false
-                    // If we were just finishing a drag/pinch, stop here
-                    if (wasGestureActive) return@onTouchEvent true
-                }
-            }
 
-            // --- EXISTING PHASE: Measurement & Placement ---
-            // This part remains exactly as you had it
-            if (motionEvent.action == MotionEvent.ACTION_UP) {
-                pendingPlacement?.let { handler.removeCallbacks(it) }
+                    if (wasGesture) return@onTouchEvent true
 
-                if (isMeasureToolActive) {
-                    val task = Runnable {
-                        val hit = arSceneView.hitTestAR(
-                            xPx = motionEvent.x,
-                            yPx = motionEvent.y,
-                            planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
-                            trackingStates = setOf(TrackingState.TRACKING),
-                        )
-                        hit?.let { placeMeasurePoint(it) }
+                    // --- TAP LOGIC: Use the AR Hit for placement/points ---
+                    if (arHit != null) {
+                        handleTap(arHit, nodeHit)
                     }
-                    pendingPlacement = task
-                    handler.postDelayed(task, 150)
-                    return@onTouchEvent true
                 }
-
-                val tappedNode = hitResult?.node
-                if (tappedNode is SelectedModelNode) {
-                    statusText.text = "Model already selected"
-                    return@onTouchEvent true
-                }
-
-                val modelNode =
-                    tappedNode as? DefaultModelNode ?: tappedNode?.parent as? DefaultModelNode
-                if (modelNode != null) {
-                    selectModel(modelNode)
-                    return@onTouchEvent true
-                } else if (selected != null) {
-                    deselectModel()
-                    return@onTouchEvent true
-                }
-
-                val task = Runnable {
-                    val hit = arSceneView.hitTestAR(
-                        xPx = motionEvent.x,
-                        yPx = motionEvent.y,
-                        planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING),
-                        trackingStates = setOf(TrackingState.TRACKING),
-                    )
-                    hit?.let { placeModel(it) }
-                }
-                pendingPlacement = task
-                handler.postDelayed(task, 150)
             }
 
             true
         }
     }
+
+    private fun handleTap(arHit: HitResult, nodeHit: Node?) {
+        // 1. Priority: Measurement Tool
+        if (isMeasureToolActive) {
+            placeMeasurePoint(arHit)
+            return
+        }
+
+        // 2. Priority: Selection (Is it a model or a child of a model?)
+        val modelNode = nodeHit as? DefaultModelNode ?: nodeHit?.parent as? DefaultModelNode
+        val selected = selectedModel
+
+        when {
+            // CASE: Tapping the already selected model (or its wrapper)
+            selected != null && (nodeHit == selected || modelNode == selected.getWrappedNode()) -> {
+                // Optional: You could deselect here to toggle, or just show status
+                deselectModel()
+            }
+
+            // CASE: Tapping a DIFFERENT model
+            modelNode != null -> {
+                selectModel(modelNode)
+            }
+
+            // CASE: Tapping empty floor while a model is selected -> Deselect
+            selected != null -> {
+                deselectModel()
+            }
+
+            // CASE: Tapping empty floor with nothing selected -> Place new
+            else -> {
+                placeModel(arHit)
+            }
+        }
+    }
+
 
     private fun toggleMeasureTool() {
         isMeasureToolActive = !isMeasureToolActive
