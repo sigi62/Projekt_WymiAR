@@ -19,14 +19,16 @@ import kotlinx.coroutines.CoroutineScope
  */
 class SelectedModelNode(
     engine: Engine,
-    private val scope: CoroutineScope,
+    private val scope: CoroutineScope
 ) : Node(engine)
 {
     private var wrappedNode: DefaultModelNode? = null
 
-
     private var isDimensionsVisible = false // ✅ State stored here
     private var dimensionOverlay: DimensionOverlayNode? = null
+
+    private var isDragging = false
+
 
     private var initialWorldPos = Float3(0f)
     private var initialWorldQuat = dev.romainguy.kotlin.math.Quaternion()
@@ -93,7 +95,27 @@ class SelectedModelNode(
         isDimensionsVisible = true
     }
 
+    // Inside SelectedModelNode class
+    private var initialPinchScale = 1.0f
 
+    fun startPinching() {
+        // Capture current scale of the wrapped node as the starting point
+        initialPinchScale = wrappedNode?.scale?.x ?: 1.0f
+    }
+
+    fun applyPinchScale(factor: Float) {
+        val newScale = initialPinchScale * factor
+        // Optional: add coerceIn(0.01f, 5.0f) to prevent disappearing or massive models
+        wrappedNode?.scale = Float3(newScale)
+        dimensionOverlay?.refresh()
+    }
+
+    fun moveTo(pos: Float3) {
+        // We move the SelectedModelNode (the wrapper), which moves everything inside
+        this.worldPosition = pos
+        // Update initialWorldPos so slider offsets remain relative to the new drop point
+        this.initialWorldPos = pos
+    }
     // Inside SelectedModelNode class
     fun updateRotation(xDeg: Float, yDeg: Float, zDeg: Float) {
         // x, y, z arrive as -180 to 180. We apply this as a relative offset to initial rotation.
@@ -137,6 +159,7 @@ class SelectedModelNode(
         }
         isDimensionsVisible = false
     }
+
 
     //maybe needed?
 

@@ -61,6 +61,11 @@ class ARActivity : AppCompatActivity() {
     private var measurePointA: Float3? = null
     private var measurePointB: Float3? = null
 
+    // Add these flags to ARActivity
+    private var isDragging = false
+    private var isPinching = false
+    private var initialPinchDistance = 0f
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -68,10 +73,10 @@ class ARActivity : AppCompatActivity() {
 
         profileManager = ProfileManager(this)
 
-        arSceneView      = findViewById(R.id.arSceneView)
-        statusText       = findViewById(R.id.statusText)
-        modelControls    = findViewById(R.id.modelControls)
-        measureOverlay   = findViewById(R.id.measureOverlay)
+        arSceneView = findViewById(R.id.arSceneView)
+        statusText = findViewById(R.id.statusText)
+        modelControls = findViewById(R.id.modelControls)
+        measureOverlay = findViewById(R.id.measureOverlay)
         measureModeButton = findViewById(R.id.btnMeasureTapeModeToggle)
         wireframeModeButton = findViewById(R.id.btnWireframeToggle)
         unitButton = findViewById(R.id.btnUnit)
@@ -106,13 +111,13 @@ class ARActivity : AppCompatActivity() {
 
         unitButton.setOnClickListener {
             unit = when (unit) {
-                DistanceUnit.METERS      -> DistanceUnit.CENTIMETERS
+                DistanceUnit.METERS -> DistanceUnit.CENTIMETERS
                 DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
                 DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
             }
 
             unitButton.text = when (unit) {
-                DistanceUnit.METERS      -> "m"
+                DistanceUnit.METERS -> "m"
                 DistanceUnit.CENTIMETERS -> "cm"
                 DistanceUnit.MILLIMETERS -> "mm"
             }
@@ -128,8 +133,68 @@ class ARActivity : AppCompatActivity() {
 
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
 
-            if (motionEvent.action == MotionEvent.ACTION_UP) {
+            val selected = selectedModel
 
+            // --- GESTURE PHASE: Dragging & Pinching ---
+            when (motionEvent.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+
+                    val touchedNode = hitResult?.node
+                    if (touchedNode == selected || touchedNode?.parent == selected || touchedNode == selected?.getWrappedNode()) {
+                        isDragging = true
+                    }
+                }
+
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    if (motionEvent.pointerCount == 2 && selected != null) {
+                        isPinching = true
+                        isDragging = false // Pinching overrides dragging
+                        initialPinchDistance = getFingerSpacing(motionEvent)
+                        selected.startPinching()
+                    }
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    if (isPinching && motionEvent.pointerCount == 2 && selected != null) {
+                        val currentDist = getFingerSpacing(motionEvent)
+                        if (currentDist > 10f) {
+                            val scaleFactor = currentDist / initialPinchDistance
+                            selected.applyPinchScale(scaleFactor)
+                        }
+                        return@onTouchEvent true // Intercept: don't trigger placement
+                    }
+
+                    if (isDragging && motionEvent.pointerCount == 1 && selected != null) {
+                        val hit = arSceneView.hitTestAR(
+                            xPx = motionEvent.x,
+                            yPx = motionEvent.y,
+                            planeTypes = setOf(Plane.Type.HORIZONTAL_UPWARD_FACING)
+                        )
+                        hit?.let {
+                            selected.moveTo(
+                                Float3(
+                                    it.hitPose.tx(),
+                                    it.hitPose.ty(),
+                                    it.hitPose.tz()
+                                )
+                            )
+                        }
+                        return@onTouchEvent true // Intercept: don't trigger placement
+                    }
+                }
+
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> {
+                    val wasGestureActive = isDragging || isPinching
+                    isDragging = false
+                    isPinching = false
+                    // If we were just finishing a drag/pinch, stop here
+                    if (wasGestureActive) return@onTouchEvent true
+                }
+            }
+
+            // --- EXISTING PHASE: Measurement & Placement ---
+            // This part remains exactly as you had it
+            if (motionEvent.action == MotionEvent.ACTION_UP) {
                 pendingPlacement?.let { handler.removeCallbacks(it) }
 
                 if (isMeasureToolActive) {
@@ -148,19 +213,17 @@ class ARActivity : AppCompatActivity() {
                 }
 
                 val tappedNode = hitResult?.node
-
-                // 1. Check if we tapped an existing model or its wrapper
                 if (tappedNode is SelectedModelNode) {
                     statusText.text = "Model already selected"
                     return@onTouchEvent true
                 }
 
-                val modelNode = tappedNode as? DefaultModelNode ?: tappedNode?.parent as? DefaultModelNode
-
+                val modelNode =
+                    tappedNode as? DefaultModelNode ?: tappedNode?.parent as? DefaultModelNode
                 if (modelNode != null) {
                     selectModel(modelNode)
                     return@onTouchEvent true
-                } else if (selectedModel != null) {
+                } else if (selected != null) {
                     deselectModel()
                     return@onTouchEvent true
                 }
@@ -174,7 +237,6 @@ class ARActivity : AppCompatActivity() {
                     )
                     hit?.let { placeModel(it) }
                 }
-
                 pendingPlacement = task
                 handler.postDelayed(task, 150)
             }
@@ -376,6 +438,12 @@ class ARActivity : AppCompatActivity() {
         val dy = a.y - b.y
         val dz = a.z - b.z
         return sqrt(dx * dx + dy * dy + dz * dz)
+    }
+
+    private fun getFingerSpacing(event: MotionEvent): Float {
+        val x = event.getX(0) - event.getX(1)
+        val y = event.getY(0) - event.getY(1)
+        return sqrt(x * x + y * y)
     }
 
     override fun onResume() {
