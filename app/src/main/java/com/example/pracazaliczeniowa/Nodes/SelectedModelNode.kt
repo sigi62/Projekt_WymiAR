@@ -28,6 +28,8 @@ class SelectedModelNode(
     private var initialWorldPos = Float3(0f)
     private var initialWorldQuat = dev.romainguy.kotlin.math.Quaternion()
     private var baseScale = Float3(1f)
+
+    fun getWrappedNode(): DefaultModelNode? = wrappedNode
     fun unwrap(): DefaultModelNode? {
 
         val child = wrappedNode ?: return null

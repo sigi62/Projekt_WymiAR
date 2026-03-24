@@ -27,6 +27,7 @@ import com.example.pracazaliczeniowa.R.layout
  * Minimal UI, triggers selection when tapped.
  */
 class DefaultModelNode(
+    val modelPath: String,
     modelInstance: ModelInstance,
     private val scope: CoroutineScope,
     private val sceneView: ARSceneView,
@@ -37,7 +38,10 @@ class DefaultModelNode(
 )
 
 {
-
+    // Helper to get a clean name for the file system (e.g., "cat")
+    fun getProfileName(): String {
+        return modelPath.substringAfterLast("/").substringBeforeLast(".")
+    }
     fun wrapAsSelected(scope: CoroutineScope, ): SelectedModelNode? {
         val parentNode = this.parent ?: return null
 
@@ -50,6 +54,9 @@ class DefaultModelNode(
         val wrapper = SelectedModelNode(engine,scope)
 
         parentNode.addChildNode(wrapper)
+
+
+        wrapper.attachNode(this)
         wrapper.worldPosition = worldPos
         wrapper.worldQuaternion = worldRot
         // Note: We keep wrapper scale at 1.0 to avoid distorting children
@@ -58,7 +65,7 @@ class DefaultModelNode(
         //parentNode.removeChildNode(this)
         //wrapper.addChildNode(this)
 
-        wrapper.attachNode(this)
+        // change -= wrapper.attachNode(this)
         showSelectedNodeDimensions(wrapper)
 
         // 4. RESET local transforms of 'this' so it sits at 0,0,0 inside wrapper

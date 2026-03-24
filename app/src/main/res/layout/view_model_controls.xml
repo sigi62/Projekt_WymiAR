@@ -29,6 +29,7 @@
         <Button android:id="@+id/btnModeRotate" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Rotate" android:textSize="10sp"/>
         <Button android:id="@+id/btnModePosition" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Position" android:textSize="10sp"/>
         <Button android:id="@+id/btnModeScale" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Scale" android:textSize="10sp"/>
+        <Button android:id="@+id/btnSaveProfile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Save Profile" android:textSize="10sp"/>
     </LinearLayout>
 
 </LinearLayout>

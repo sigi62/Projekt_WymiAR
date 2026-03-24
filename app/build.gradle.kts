@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    id("org.jetbrains.kotlin.plugin.serialization") // Add this line
 }
 
 android {
@@ -60,6 +61,7 @@ dependencies {
 
 
     implementation("io.github.sceneview:arsceneview:2.3.3")
+    implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation(libs.androidx.appcompat)
 
     testImplementation(libs.junit)

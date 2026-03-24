@@ -18,6 +18,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
     private var targetNode: SelectedModelNode? = null
     private var currentMode = "ROTATE"
 
+    var onSaveRequested: (() -> Unit)? = null // Callback for the Activity
+
     init {
         // 1. This is the missing piece: Inflate the XML into this LinearLayout
         LayoutInflater.from(context).inflate(R.layout.view_model_controls, this, true)
@@ -53,6 +55,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val btnRot = findViewById<Button>(R.id.btnModeRotate)
         val btnPos = findViewById<Button>(R.id.btnModePosition)
         val btnScl = findViewById<Button>(R.id.btnModeScale)
+        val btnSave = findViewById<Button>(R.id.btnSaveProfile)
 
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
@@ -115,6 +118,10 @@ class ModelControlOverlayView @JvmOverloads constructor(
             sUni.visibility = View.VISIBLE
             lUni.visibility = View.VISIBLE
 
+        }
+
+        btnSave.setOnClickListener {
+            onSaveRequested?.invoke()
         }
     }
 }

@@ -37,11 +37,11 @@ class ARActivity : AppCompatActivity() {
     private var pendingPlacement: Runnable? = null
 
     private lateinit var arSceneView: ARSceneView
-
     private lateinit var viewAttachmentManager: ViewAttachmentManager
     private lateinit var statusText: TextView
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
+    private lateinit var profileManager: ProfileManager
     private lateinit var measureModeButton: Button
     private lateinit var unitButton: Button
 
@@ -65,6 +65,8 @@ class ARActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
 
+        profileManager = ProfileManager(this)
+
         arSceneView      = findViewById(R.id.arSceneView)
         statusText       = findViewById(R.id.statusText)
         modelControls    = findViewById(R.id.modelControls)
@@ -80,6 +82,10 @@ class ARActivity : AppCompatActivity() {
             val env = arSceneView.environmentLoader.loadHDREnvironment("environment.hdr")
             arSceneView.indirectLight = env?.indirectLight
             arSceneView.skybox = env?.skybox
+        }
+
+        modelControls.onSaveRequested = {
+            saveCurrentModelProfile()
         }
 
         modelControls.visibility = View.GONE
@@ -187,23 +193,29 @@ class ARActivity : AppCompatActivity() {
 
 
     private fun placeModel(hitResult: HitResult) {
-
+        val modelPath = "models/cat.glb"
         statusText.text = "Loading model…"
 
         lifecycleScope.launch {
 
             val modelInstance =
-                arSceneView.modelLoader.createModelInstance("models/cat.glb")
+                arSceneView.modelLoader.createModelInstance(modelPath)
 
             val node = DefaultModelNode(
+                modelPath = modelPath,
                 modelInstance = modelInstance,
                 scope = lifecycleScope,
                 sceneView = arSceneView,
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            node.scaleToUnits(0.02f)
-           // node.setupSelectionGizmo(arSceneView, viewAttachmentManager)
+            val profile = profileManager.loadProfile(node.getProfileName())
+            if (profile != null) {
+                node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+                node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+            } else {
+                node.scaleToUnits(0.02f)
+            }
 
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
             anchorNode.addChildNode(node)
@@ -303,6 +315,24 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.clear()
     }
 
+    private fun saveCurrentModelProfile() {
+        val selected = selectedModel ?: return
+        val wrapped = selected.getWrappedNode() ?: return
+
+        val profileName = wrapped.getProfileName()
+        // Note: You might want to pass the actual model name dynamically
+        val profile = ModelProfile(
+            scaleX = wrapped.scale.x,
+            scaleY = wrapped.scale.y,
+            scaleZ = wrapped.scale.z,
+            rotationX = wrapped.rotation.x,
+            rotationY = wrapped.rotation.y,
+            rotationZ = wrapped.rotation.z
+        )
+
+        profileManager.saveProfile(profileName, profile)
+        statusText.text = "Saved default for $profileName"
+    }
 
     //Helper Functions
     private fun distanceMeters(a: Float3, b: Float3): Float {
