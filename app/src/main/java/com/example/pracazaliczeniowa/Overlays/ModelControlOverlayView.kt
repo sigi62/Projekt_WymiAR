@@ -18,6 +18,14 @@ class ModelControlOverlayView @JvmOverloads constructor(
     private var targetNode: SelectedModelNode? = null
     private var currentMode = "ROTATE"
 
+    // --- State Storage ---
+    private val MIDDLE = 100
+    private val RANGE_MAX = 200
+    private var rotateProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
+    private var positionProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
+    private var scaleProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
+    private var universalScaleProgress = MIDDLE
+
     var onSaveRequested: (() -> Unit)? = null // Callback for the Activity
     var onDeleteRequested: (() -> Unit)? = null // Callback for the Activity
 
@@ -36,6 +44,15 @@ class ModelControlOverlayView @JvmOverloads constructor(
         this.targetNode = node
         setupUI()
     }
+    fun updateScaleFromGesture(factor: Float) {
+        // Map the pinch factor back to our slider progress (0.0125 factor)
+        val newProgress = (factor / 0.0125f).toInt().coerceIn(0, 200)
+        universalScaleProgress = newProgress
+        if (currentMode == "SCALE") {
+            findViewById<SeekBar>(R.id.seekUniversalScale).progress = newProgress
+        }
+    }
+
 
     private fun setupUI() {
         val s1 = findViewById<SeekBar>(R.id.seek1)
@@ -46,8 +63,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
 
         seekBarsLayout.visibility = View.GONE
-        val MIDDLE = 100
-        val RANGE_MAX = 200
+
 
         // Reset all sliders to middle on start
         listOf(s1, s2, s3, sUni).forEach {
@@ -61,6 +77,19 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val btnSave = findViewById<Button>(R.id.btnModelSaveProfile)
         val btnDelete = findViewById<Button>(R.id.btnModelDelete)
 
+        fun refreshSlidersForMode() {
+            val (p1, p2, p3) = when (currentMode) {
+                "ROTATE" -> rotateProgress
+                "POSITION" -> positionProgress
+                "SCALE" -> scaleProgress
+                else -> Triple(MIDDLE, MIDDLE, MIDDLE)
+            }
+            s1.progress = p1
+            s2.progress = p2
+            s3.progress = p3
+            sUni.progress = universalScaleProgress
+        }
+
         fun toggleMode(mode: String) {
             if (currentMode == mode && seekBarsLayout.visibility == View.VISIBLE) {
                 // If clicking the same button again, hide the panel
@@ -69,6 +98,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 // Show panel and set the mode
                 currentMode = mode
                 seekBarsLayout.visibility = View.VISIBLE
+                refreshSlidersForMode()
 
                 // Toggle universal scale visibility based on mode
                 val isScale = mode == "SCALE"
@@ -80,40 +110,29 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                 if (!fromUser) return
+
+                // 1. Save state
+                if (sb?.id == R.id.seekUniversalScale && currentMode == "SCALE") {
+                    s1.progress = p
+                    s2.progress = p
+                    s3.progress = p
+                    universalScaleProgress = p
+                    scaleProgress = Triple(p, p, p)
+                } else {
+                    // Save individual state for other sliders
+                    when (currentMode) {
+                        "ROTATE" -> rotateProgress = Triple(s1.progress, s2.progress, s3.progress)
+                        "POSITION" -> positionProgress = Triple(s1.progress, s2.progress, s3.progress)
+                        "SCALE" -> scaleProgress = Triple(s1.progress, s2.progress, s3.progress)
+                    }
+                }
+
+                // 2. Apply to Node
                 targetNode?.let { node ->
                     when (currentMode) {
-                        "ROTATE" -> {
-                            // Range: 0..200 -> -180..180 (factor 1.8)
-                            val f = 1.8f
-                            node.updateRotation(
-                                (s1.progress - MIDDLE) * f,
-                                (s2.progress - MIDDLE) * f,
-                                (s3.progress - MIDDLE) * f
-                            )
-                        }
-
-                        "POSITION" -> {
-                            // Range: 0..200 -> -5m..5m (factor 0.05)
-                            val f = 0.05f
-                            node.updatePosition(
-                                (s1.progress - MIDDLE) * f,
-                                (s2.progress - MIDDLE) * f,
-                                (s3.progress - MIDDLE) * f
-                            )
-                        }
-
-                        "SCALE" -> {
-                            // Range: 0..200 -> 0x..2.5x (factor 0.0125)
-                            // Middle (100) results in 1.25x? No, let's use 0.01 to make 100 = 1.0x
-                            // To get 2.5x max at progress 200, factor = 2.5 / 200 = 0.0125
-                            val f = 0.0125f
-                            node.updateScale(
-                                s1.progress * f,
-                                s2.progress * f,
-                                s3.progress * f,
-                                sUni.progress.toFloat() // node handles /100
-                            )
-                        }
+                        "ROTATE" -> node.updateRotation((s1.progress - MIDDLE) * 1.8f, (s2.progress - MIDDLE) * 1.8f, (s3.progress - MIDDLE) * 1.8f)
+                        "POSITION" -> node.updatePosition((s1.progress - MIDDLE) * 0.05f, (s2.progress - MIDDLE) * 0.05f, (s3.progress - MIDDLE) * 0.05f)
+                        "SCALE" -> node.updateScale(s1.progress * 0.0125f, s2.progress * 0.0125f, s3.progress * 0.0125f, sUni.progress.toFloat())
                     }
                 }
             }

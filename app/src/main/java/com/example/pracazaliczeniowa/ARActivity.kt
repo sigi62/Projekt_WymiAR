@@ -159,12 +159,17 @@ class ARActivity : AppCompatActivity() {
                         selected.startPinching()
                     }
                 }
-
+                MotionEvent.ACTION_POINTER_UP -> {
+                    // One finger lifted: Stop pinching immediately to prevent index errors
+                    isPinching = false
+                }
                 MotionEvent.ACTION_MOVE -> {
-                    if (isPinching && selected != null) {
+                    if (isPinching &&  motionEvent.pointerCount >= 2 && selected != null) {
                         val currentDist = getFingerSpacing(motionEvent)
                         if (currentDist > 10f) {
-                            selected.applyPinchScale(currentDist / initialPinchDistance)
+                            val scaleFactor = currentDist / initialPinchDistance
+                            selected.applyPinchScale(scaleFactor)
+                            modelControls.updateScaleFromGesture(scaleFactor)
                         }
                         return@onTouchEvent true
                     }
@@ -176,7 +181,7 @@ class ARActivity : AppCompatActivity() {
                     }
                 }
 
-                MotionEvent.ACTION_UP -> {
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
                     val dx = x - touchStartPos.x
                     val dy = y - touchStartPos.y
                     val distanceMoved = sqrt(dx * dx + dy * dy)
@@ -418,6 +423,7 @@ class ARActivity : AppCompatActivity() {
         models.remove(default)
         selectedModel = null
         modelControls.visibility = View.GONE
+        wireframeModeButton.visibility = View.GONE
 
         statusText.text = "deleted model $modelName"
     }
@@ -431,9 +437,17 @@ class ARActivity : AppCompatActivity() {
     }
 
     private fun getFingerSpacing(event: MotionEvent): Float {
-        val x = event.getX(0) - event.getX(1)
-        val y = event.getY(0) - event.getY(1)
-        return sqrt(x * x + y * y)
+        // Safety check: if there aren't at least 2 fingers, return a neutral value
+        if (event.pointerCount < 2) return 10f
+
+        return try {
+            val x = event.getX(0) - event.getX(1)
+            val y = event.getY(0) - event.getY(1)
+            sqrt(x * x + y * y)
+        } catch (e: IllegalArgumentException) {
+            // Fallback if a pointer disappears during the calculation
+            10f
+        }
     }
 
     override fun onResume() {
