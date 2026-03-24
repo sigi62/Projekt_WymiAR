@@ -39,7 +39,7 @@ class DefaultModelNode(
 
 {
     // Helper to get a clean name for the file system (e.g., "cat")
-    fun getProfileName(): String {
+    fun getModeleName(): String {
         return modelPath.substringAfterLast("/").substringBeforeLast(".")
     }
     fun wrapAsSelected(scope: CoroutineScope, ): SelectedModelNode? {

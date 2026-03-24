@@ -19,6 +19,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     private var currentMode = "ROTATE"
 
     var onSaveRequested: (() -> Unit)? = null // Callback for the Activity
+    var onDeleteRequested: (() -> Unit)? = null // Callback for the Activity
 
     init {
         // 1. This is the missing piece: Inflate the XML into this LinearLayout
@@ -42,7 +43,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val s3 = findViewById<SeekBar>(R.id.seek3)
         val sUni = findViewById<SeekBar>(R.id.seekUniversalScale)
         val lUni = findViewById<TextView>(R.id.labelUniversalScale)
+        val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
 
+        seekBarsLayout.visibility = View.GONE
         val MIDDLE = 100
         val RANGE_MAX = 200
 
@@ -55,7 +58,24 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val btnRot = findViewById<Button>(R.id.btnModeRotate)
         val btnPos = findViewById<Button>(R.id.btnModePosition)
         val btnScl = findViewById<Button>(R.id.btnModeScale)
-        val btnSave = findViewById<Button>(R.id.btnSaveProfile)
+        val btnSave = findViewById<Button>(R.id.btnModelSaveProfile)
+        val btnDelete = findViewById<Button>(R.id.btnModelDelete)
+
+        fun toggleMode(mode: String) {
+            if (currentMode == mode && seekBarsLayout.visibility == View.VISIBLE) {
+                // If clicking the same button again, hide the panel
+                seekBarsLayout.visibility = View.GONE
+            } else {
+                // Show panel and set the mode
+                currentMode = mode
+                seekBarsLayout.visibility = View.VISIBLE
+
+                // Toggle universal scale visibility based on mode
+                val isScale = mode == "SCALE"
+                sUni.visibility = if (isScale) View.VISIBLE else View.GONE
+                lUni.visibility = if (isScale) View.VISIBLE else View.GONE
+            }
+        }
 
         val listener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
@@ -103,18 +123,19 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         listOf(s1, s2, s3, sUni).forEach { it.setOnSeekBarChangeListener(listener) }
 
+
         btnRot.setOnClickListener {
-            currentMode = "ROTATE"
+            toggleMode("ROTATE")
             sUni.visibility = View.GONE
             lUni.visibility = View.GONE
         }
         btnPos.setOnClickListener {
-            currentMode = "POSITION"
+            toggleMode("POSITION")
             sUni.visibility = View.GONE
             lUni.visibility = View.GONE
         }
         btnScl.setOnClickListener {
-            currentMode = "SCALE"
+            toggleMode("SCALE")
             sUni.visibility = View.VISIBLE
             lUni.visibility = View.VISIBLE
 
@@ -122,6 +143,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         btnSave.setOnClickListener {
             onSaveRequested?.invoke()
+        }
+        btnDelete.setOnClickListener {
+            onDeleteRequested?.invoke()
         }
     }
 }

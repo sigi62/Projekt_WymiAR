@@ -17,6 +17,7 @@ import io.github.sceneview.ar.node.AnchorNode
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 import android.util.Log
+import android.widget.ImageButton
 
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
@@ -42,7 +43,8 @@ class ARActivity : AppCompatActivity() {
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
     private lateinit var profileManager: ProfileManager
-    private lateinit var measureModeButton: Button
+    private lateinit var measureModeButton: ImageButton
+    private lateinit var wireframeModeButton: ImageButton
     private lateinit var unitButton: Button
 
     private var isMeasureToolActive: Boolean = false
@@ -59,7 +61,6 @@ class ARActivity : AppCompatActivity() {
     private var measurePointA: Float3? = null
     private var measurePointB: Float3? = null
 
-    private enum class Mode { MODEL, MEASURE }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -71,8 +72,9 @@ class ARActivity : AppCompatActivity() {
         statusText       = findViewById(R.id.statusText)
         modelControls    = findViewById(R.id.modelControls)
         measureOverlay   = findViewById(R.id.measureOverlay)
-        measureModeButton = findViewById(R.id.measureModeButton)
-        unitButton = findViewById(R.id.unitButton)
+        measureModeButton = findViewById(R.id.btnMeasureTapeModeToggle)
+        wireframeModeButton = findViewById(R.id.btnWireframeToggle)
+        unitButton = findViewById(R.id.btnUnit)
 
 
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
@@ -87,8 +89,13 @@ class ARActivity : AppCompatActivity() {
         modelControls.onSaveRequested = {
             saveCurrentModelProfile()
         }
+        modelControls.onDeleteRequested = {
+            deleteSelectedModel()
+        }
 
         modelControls.visibility = View.GONE
+        wireframeModeButton.visibility = View.GONE
+
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
@@ -180,11 +187,9 @@ class ARActivity : AppCompatActivity() {
         isMeasureToolActive = !isMeasureToolActive
 
         if (isMeasureToolActive) {
-            measureModeButton.text = "Stop Measuring"
             measureOverlay.visibility = View.VISIBLE
             statusText.text = "Tap 2 points to measure"
         } else {
-            measureModeButton.text = "Measure"
             measureOverlay.visibility = View.GONE
             clearMeasurements() // Remove points when tool is toggled off
             statusText.text = "Tap to place or select a model"
@@ -209,7 +214,7 @@ class ARActivity : AppCompatActivity() {
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            val profile = profileManager.loadProfile(node.getProfileName())
+            val profile = profileManager.loadProfile(node.getModeleName())
             if (profile != null) {
                 node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
                 node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
@@ -259,6 +264,15 @@ class ARActivity : AppCompatActivity() {
         if (wrapped != null) {
             modelControls.bindToNode(wrapped)
             modelControls.visibility = View.VISIBLE
+            wireframeModeButton.visibility = View.VISIBLE
+
+            wireframeModeButton.setOnClickListener {
+                // ✅ The node handles its own logic now
+                wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
+
+                // Optional: Feedback based on the new state
+                statusText.text = "Toggled dimensions"
+            }
         }
 
         //dimensionOverlay.attach(arSceneView, wrapped)
@@ -274,6 +288,7 @@ class ARActivity : AppCompatActivity() {
         }
         selectedModel = null
         modelControls.visibility = View.GONE
+        wireframeModeButton.visibility = View.GONE
         statusText.text = "Model deselected"
     }
 
@@ -319,7 +334,7 @@ class ARActivity : AppCompatActivity() {
         val selected = selectedModel ?: return
         val wrapped = selected.getWrappedNode() ?: return
 
-        val profileName = wrapped.getProfileName()
+        val profileName = wrapped.getModeleName()
         // Note: You might want to pass the actual model name dynamically
         val profile = ModelProfile(
             scaleX = wrapped.scale.x,
@@ -332,6 +347,27 @@ class ARActivity : AppCompatActivity() {
 
         profileManager.saveProfile(profileName, profile)
         statusText.text = "Saved default for $profileName"
+    }
+
+    private fun deleteSelectedModel() {
+        val selected = selectedModel ?: return
+
+        // 1. Get the parent AnchorNode (which holds the model in the AR world)
+        val anchorNode = selected.parent as? AnchorNode
+
+        // 2. Detach the anchor from the ARCore Session
+        anchorNode?.anchor?.detach()
+
+        // 3. Remove the node from the SceneView hierarchy
+        anchorNode?.parent = null
+
+        val default = selected.unwrap()
+        val modelName = default?.getModeleName()
+        models.remove(default)
+        selectedModel = null
+        modelControls.visibility = View.GONE
+
+        statusText.text = "deleted model $modelName"
     }
 
     //Helper Functions
@@ -359,6 +395,4 @@ class ARActivity : AppCompatActivity() {
 
 }
 
-private fun ARActivity.toggleMeasureTool() {
-    TODO("Not yet implemented")
-}
+

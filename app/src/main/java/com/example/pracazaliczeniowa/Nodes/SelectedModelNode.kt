@@ -23,6 +23,9 @@ class SelectedModelNode(
 ) : Node(engine)
 {
     private var wrappedNode: DefaultModelNode? = null
+
+
+    private var isDimensionsVisible = false // ✅ State stored here
     private var dimensionOverlay: DimensionOverlayNode? = null
 
     private var initialWorldPos = Float3(0f)
@@ -76,9 +79,8 @@ class SelectedModelNode(
         this.scale = Float3(1.0f)
     }
 
-    fun showDimensions(node: DefaultModelNode, sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager){
-
-        dimensionOverlay?.destroy() // Remove old one if exists
+    fun showDimensions(node: DefaultModelNode, sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
+        hideDimensions() // Clean up existing first
         dimensionOverlay = DimensionOverlayNode(
             engine = engine,
             modelLoader = sceneView.modelLoader,
@@ -88,6 +90,7 @@ class SelectedModelNode(
             targetNode = node
         )
         this.addChildNode(dimensionOverlay!!)
+        isDimensionsVisible = true
     }
 
 
@@ -113,6 +116,26 @@ class SelectedModelNode(
             baseScale.z * zMult * universalFactor
         )
         dimensionOverlay?.refresh()
+    }
+
+    fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
+        val target = wrappedNode ?: return
+
+        if (isDimensionsVisible) {
+            hideDimensions()
+        } else {
+            showDimensions(target, sceneView, viewAttachmentManager)
+            isDimensionsVisible = true
+        }
+    }
+
+    private fun hideDimensions() {
+        dimensionOverlay?.let {
+            this.removeChildNode(it)
+            it.destroy()
+            dimensionOverlay = null
+        }
+        isDimensionsVisible = false
     }
 
     //maybe needed?

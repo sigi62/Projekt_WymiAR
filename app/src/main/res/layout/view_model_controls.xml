@@ -2,11 +2,16 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:background="#80000000"
-    android:padding="12dp"
     android:orientation="vertical">
 
 
+    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+        android:id="@+id/seekBarsLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:padding="12dp"
+        android:orientation="vertical"
+        android:visibility="gone">
 
     <TextView android:id="@+id/label1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="X " android:textColor="@android:color/white" />
     <SeekBar android:id="@+id/seek1" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
@@ -20,16 +25,51 @@
     <TextView android:id="@+id/labelUniversalScale" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Universal Scale" android:textColor="@android:color/white" android:visibility="gone"/>
     <SeekBar android:id="@+id/seekUniversalScale" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:max="10" android:progress="10"/>
 
+    </LinearLayout>
+
     <LinearLayout
+        android:id="@+id/btnBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="horizontal"
         android:gravity="center"
         android:layout_marginBottom="8dp">
-        <Button android:id="@+id/btnModeRotate" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Rotate" android:textSize="10sp"/>
-        <Button android:id="@+id/btnModePosition" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Position" android:textSize="10sp"/>
-        <Button android:id="@+id/btnModeScale" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Scale" android:textSize="10sp"/>
-        <Button android:id="@+id/btnSaveProfile" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_weight="1" android:text="Save Profile" android:textSize="10sp"/>
-    </LinearLayout>
+
+        <Button
+            android:id="@+id/btnModelDelete"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:drawableTop="@drawable/ic_delete"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/btnModePosition"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:drawableTop="@drawable/ic_position"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/btnModeRotate"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:drawableTop="@drawable/ic_rotate"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/btnModeScale"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:drawableTop="@drawable/ic_scale"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_weight="1"/>
+        <Button
+            android:id="@+id/btnModelSaveProfile"
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:drawableTop="@drawable/ic_save"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_weight="1"/>
+     </LinearLayout>
 
 </LinearLayout>
