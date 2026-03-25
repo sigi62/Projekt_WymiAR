@@ -67,6 +67,7 @@ class DefaultModelNode(
 
         // change -= wrapper.attachNode(this)
         showSelectedNodeDimensions(wrapper)
+        wrapper.showRotationHandle(engine, sceneView)
 
         // 4. RESET local transforms of 'this' so it sits at 0,0,0 inside wrapper
         // But keep the local scale that makes the model look right

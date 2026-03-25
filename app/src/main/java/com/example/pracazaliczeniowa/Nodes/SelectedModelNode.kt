@@ -108,6 +108,7 @@ class SelectedModelNode(
         // Optional: add coerceIn(0.01f, 5.0f) to prevent disappearing or massive models
         wrappedNode?.scale = Float3(newScale)
         dimensionOverlay?.refresh()
+        updateHandleSize()
     }
 
     fun moveTo(pos: Float3) {
@@ -138,6 +139,7 @@ class SelectedModelNode(
             baseScale.z * zMult * universalFactor
         )
         dimensionOverlay?.refresh()
+        updateHandleSize()
     }
 
     fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
@@ -160,6 +162,59 @@ class SelectedModelNode(
         isDimensionsVisible = false
     }
 
+    private var rotationHandle: Node? = null
+
+    fun showRotationHandle(engine: Engine, sceneView: SceneView) {
+        if (rotationHandle != null) return
+        val target = wrappedNode ?: return
+
+        val rawHalfExtents = target.boundingBox.halfExtent
+        val currentWorldScale = target.worldScale
+        val maxHorizontalRadius = maxOf(rawHalfExtents[0] * currentWorldScale.x, rawHalfExtents[2] * currentWorldScale.z)
+
+        val ringSize = maxHorizontalRadius * 2.5f // Make it slightly larger for easier grabbing
+        // 2. Create a Disc
+        // Using a Cylinder/Sphere flattened on the Y axis makes a perfect circle
+        rotationHandle = PlaneNode(
+            engine = engine,
+            size = Float3(ringSize, 0.0f, ringSize),
+            // Use a transparent ring PNG here to make the center "hollow"
+            materialInstance = sceneView.materialLoader.createColorInstance(
+                androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f)
+            )
+        ).apply {
+            name = "rotation_handle"
+            position = Float3(0f, 0.01f, 0f) // Slightly above floor
+            isEditable = false
+        }
+
+        this.addChildNode(rotationHandle!!)
+    }
+
+    fun updateHandleSize() {
+        val target = wrappedNode ?: return
+        val handle = rotationHandle as? PlaneNode ?: return
+
+        // Get the raw bounding box extents
+        val rawHalfExtents = target.boundingBox.halfExtent
+        // We want the visual radius in local space relative to the wrapper
+        val localRadius = maxOf(rawHalfExtents[0] * target.scale.x, rawHalfExtents[2] * target.scale.z)
+
+        val newScale = localRadius * 5.0f // Multiplier for visibility
+        // Avoid setting Y to 0f, use a tiny value so it renders
+        handle.scale = Float3(newScale, 1.0f, newScale)
+        handle.position = Float3(0f, 0.01f, 0f) // Keep it slightly above the ground
+    }
+
+    // make the ring appear lol
+
+    fun hideRotationHandle() {
+        rotationHandle?.let {
+            this.removeChildNode(it)
+            it.destroy()
+            rotationHandle = null
+        }
+    }
 
     //maybe needed?
 

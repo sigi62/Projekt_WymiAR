@@ -68,7 +68,9 @@ class ARActivity : AppCompatActivity() {
     private var initialPinchDistance = 0f
     private var touchStartPos = android.graphics.PointF()
     private val MOVE_THRESHOLD = 20f // Pixels; ignore taps if the finger moved more than this
-
+    private var initialTouchAngle = 0f
+    private var initialModelRotationY = 0f
+    private var isRotating = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -147,8 +149,19 @@ class ARActivity : AppCompatActivity() {
             when (motionEvent.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     touchStartPos.set(x, y)
-                    // Check if we touched the currently selected model to start a drag
-                    isDragging = (selected != null && (nodeHit == selected || nodeHit?.parent == selected || nodeHit == selected.getWrappedNode()))
+
+                    if (nodeHit?.name == "rotation_handle") {
+                        isRotating = true
+                        initialTouchAngle = calculateAngle(x, y, selected!!)
+                        // Capture the current Y rotation
+                        initialModelRotationY = selected.rotation.y
+                        isDragging = false
+                    }
+                    else {
+                        // If we hit the model or floor, handle dragging
+                        isRotating = false
+                        isDragging = (selected != null && (nodeHit == selected || nodeHit?.parent == selected || nodeHit == selected.getWrappedNode()))
+                    }
                 }
 
                 MotionEvent.ACTION_POINTER_DOWN -> {
@@ -164,6 +177,17 @@ class ARActivity : AppCompatActivity() {
                     isPinching = false
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    if (isRotating && selected != null) {
+                        val currentAngle = calculateAngle(motionEvent.x, motionEvent.y, selected)
+                        val angleDiff = currentAngle - initialTouchAngle
+                        val newRotationY = initialModelRotationY + angleDiff
+
+                        // Rotate model around the Y axis
+                        selected.rotation = Float3(0f, initialModelRotationY + angleDiff, 0f)
+                        modelControls.updateRotationFromHandle(newRotationY)
+                        return@onTouchEvent true
+                    }
+
                     if (isPinching &&  motionEvent.pointerCount >= 2 && selected != null) {
                         val currentDist = getFingerSpacing(motionEvent)
                         if (currentDist > 10f) {
@@ -179,6 +203,7 @@ class ARActivity : AppCompatActivity() {
                         selected.moveTo(Float3(arHit.hitPose.tx(), arHit.hitPose.ty(), arHit.hitPose.tz()))
                         return@onTouchEvent true
                     }
+
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -448,6 +473,23 @@ class ARActivity : AppCompatActivity() {
             // Fallback if a pointer disappears during the calculation
             10f
         }
+    }
+    private fun calculateAngle(touchX: Float, touchY: Float, node: Node): Float {
+        // Project the model's 3D position to 2D screen coordinates
+        // 1. Get the 3D world position of the node center
+        val worldPos = node.worldPosition
+
+        // 2. Project 3D world position to 2D screen coordinates (Pixels)
+        // In SceneView 2.3.3, this is accessed via the camera
+        val screenPos = arSceneView.cameraNode.worldToView(worldPos)
+
+        // 3. Calculate delta between touch and model center
+        val dx = touchX - screenPos.x
+        val dy = touchY - screenPos.y
+
+        // 4. atan2 returns the angle in radians; we convert to degrees
+        // We use negative dy because screen coordinates (y-down) are inverted compared to math planes
+        return Math.toDegrees(Math.atan2((-dy).toDouble(), dx.toDouble())).toFloat()
     }
 
     override fun onResume() {

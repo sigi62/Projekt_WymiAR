@@ -53,6 +53,23 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
+    fun updateRotationFromHandle(yDegrees: Float) {
+        // 1. Reverse the math: (degrees / 1.8) + MIDDLE
+        // We normalize the degree to be within a standard -180 to 180 range first
+        val normalizedDeg = ((yDegrees + 180) % 360) - 180
+        val newProgress = (normalizedDeg / 1.8f + MIDDLE).toInt().coerceIn(0, 200)
+
+        // 2. Update state storage
+        // We keep X and Z from the previous state, only updating Y (the second value)
+        rotateProgress = Triple(rotateProgress.first, newProgress, rotateProgress.third)
+
+        // 3. Update UI if currently in Rotate mode
+        if (currentMode == "ROTATE") {
+            val s2 = findViewById<SeekBar>(R.id.seek2) // Assuming seek2 is Y-axis
+            s2.progress = newProgress
+        }
+    }
+
 
     private fun setupUI() {
         val s1 = findViewById<SeekBar>(R.id.seek1)
