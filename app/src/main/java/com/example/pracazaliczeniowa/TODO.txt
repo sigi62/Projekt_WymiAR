@@ -1,0 +1,22 @@
+
+
+  IMPLEMENTATION:
+
+  Add Library to choose models from
+  Add imports
+
+  Add a toggle effect to MeasureTape
+  Add a toggle effect to wireframe mode too ?? Button type special for selected?
+  Add a label for rotation/position/scale seekbars
+  Add display precise measures for seekbars that work with geastures - adjustable limist for position/ scale
+  AR wall manget mode - both vertical and horizontal - add a button for change
+  AR collision
+  More UI changes
+  3D MODE
+
+
+  BUGS / FIXES
+
+  1. Dimension overlay measurements not appearing correctly - not changing units - not calculating
+  2. Rotation Handle shirnking while changing scale - but snaps back when model is selected again
+  3. Deselecting model doesn't work  while tapping on selected???

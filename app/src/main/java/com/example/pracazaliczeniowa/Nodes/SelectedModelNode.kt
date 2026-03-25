@@ -197,16 +197,21 @@ class SelectedModelNode(
 
         // Get the raw bounding box extents
         val rawHalfExtents = target.boundingBox.halfExtent
+        val currentLocalRadius = maxOf(
+            rawHalfExtents[0] * target.scale.x,
+            rawHalfExtents[2] * target.scale.z
+        )
         // We want the visual radius in local space relative to the wrapper
-        val localRadius = maxOf(rawHalfExtents[0] * target.scale.x, rawHalfExtents[2] * target.scale.z)
+        val visualScale = currentLocalRadius * 2.5f
 
-        val newScale = localRadius * 5.0f // Multiplier for visibility
-        // Avoid setting Y to 0f, use a tiny value so it renders
-        handle.scale = Float3(newScale, 1.0f, newScale)
-        handle.position = Float3(0f, 0.01f, 0f) // Keep it slightly above the ground
+        handle.scale = Float3(visualScale / this.scale.x, 1.0f, visualScale / this.scale.z)
+        // Use 1.0f for Y to ensure the plane has 'volume' for the renderer
+        //handle.scale = Float3(visualScale, 1.0f, visualScale)
+
+        // Ensure it stays slightly above the floor to prevent Z-fighting (flickering)
+        handle.position = Float3(0f, 0.01f, 0f)
     }
 
-    // make the ring appear lol
 
     fun hideRotationHandle() {
         rotationHandle?.let {
@@ -216,9 +221,7 @@ class SelectedModelNode(
         }
     }
 
-    //maybe needed?
-
-
+    //TODO - rotation handle shrinking while
     //select + change many?
 
     //model storage for changing position?? like, zrzucasz na psek kilka kart i możesz wybrać którą otworzyć

@@ -66,7 +66,6 @@ class DefaultModelNode(
         //wrapper.addChildNode(this)
 
         // change -= wrapper.attachNode(this)
-        showSelectedNodeDimensions(wrapper)
         wrapper.showRotationHandle(engine, sceneView)
 
         // 4. RESET local transforms of 'this' so it sits at 0,0,0 inside wrapper
@@ -77,9 +76,6 @@ class DefaultModelNode(
         return wrapper
     }
 
-    fun showSelectedNodeDimensions(selectedNode: SelectedModelNode) {
-        selectedNode.showDimensions(this, sceneView, viewAttachmentManager)
-    }
     fun scaleToUnits(f: Float) {
         this.scale = Float3(f)
     }
