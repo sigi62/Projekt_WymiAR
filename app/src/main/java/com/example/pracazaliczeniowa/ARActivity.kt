@@ -65,12 +65,14 @@ class ARActivity : AppCompatActivity() {
     // Add these flags to ARActivity
     private var isDragging = false
     private var isPinching = false
+    private var isRotating = false
+
     private var initialPinchDistance = 0f
     private var touchStartPos = android.graphics.PointF()
     private val MOVE_THRESHOLD = 20f // Pixels; ignore taps if the finger moved more than this
     private var initialTouchAngle = 0f
     private var initialModelRotationY = 0f
-    private var isRotating = false
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -152,9 +154,8 @@ class ARActivity : AppCompatActivity() {
 
                     if (nodeHit?.name == "rotation_handle") {
                         isRotating = true
-                        initialTouchAngle = calculateAngle(x, y, selected!!)
-                        // Capture the current Y rotation
-                        initialModelRotationY = selected.rotation.y
+                        touchStartPos.set(x, y) // Capture the exact pixel where the touch started
+                        initialModelRotationY = selected!!.rotation.y // Store the starting rotation
                         isDragging = false
                     }
                     else {
@@ -178,12 +179,19 @@ class ARActivity : AppCompatActivity() {
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isRotating && selected != null) {
-                        val currentAngle = calculateAngle(motionEvent.x, motionEvent.y, selected)
-                        val angleDiff = currentAngle - initialTouchAngle
-                        val newRotationY = initialModelRotationY + angleDiff
+                        val dx = motionEvent.x - touchStartPos.x // How many pixels did the finger move?
 
-                        // Rotate model around the Y axis
-                        selected.rotation = Float3(0f, initialModelRotationY + angleDiff, 0f)
+                        // 1 pixel = 0.5 degrees (Adjust this for speed!)
+                        // Higher multiplier = Faster rotation
+                        val sensitivity = 0.2f
+                        val rotationOffset = dx * sensitivity
+
+                        val newRotationY = initialModelRotationY + rotationOffset // Subtract to match finger direction
+
+                        // Apply the rotation
+                        selected.rotation = Float3(0f, newRotationY, 0f)
+
+                        // Sync the UI sliders
                         modelControls.updateRotationFromHandle(newRotationY)
                         return@onTouchEvent true
                     }

@@ -1,8 +1,13 @@
 package com.example.pracazaliczeniowa.Nodes
 
+import android.graphics.Bitmap
 import androidx.compose.ui.graphics.Color
 import com.example.pracazaliczeniowa.Overlays.DistanceUnit
+import com.example.pracazaliczeniowa.R
 import com.google.android.filament.Engine
+import com.google.android.filament.Texture
+import com.google.android.filament.TextureSampler
+import com.google.android.filament.gltfio.MaterialProvider
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.SceneView
@@ -13,6 +18,8 @@ import io.github.sceneview.node.Node
 import io.github.sceneview.node.PlaneNode
 import io.github.sceneview.node.ViewNode
 import kotlinx.coroutines.CoroutineScope
+import java.nio.ByteBuffer
+
 /**
  * Selected node with extra overlays: highlight, width-depth plane, and height line.
  * Wraps an existing DefaultModelNode without changing its transform or scale.
@@ -175,41 +182,48 @@ class SelectedModelNode(
         val ringSize = maxHorizontalRadius * 2.5f // Make it slightly larger for easier grabbing
         // 2. Create a Disc
         // Using a Cylinder/Sphere flattened on the Y axis makes a perfect circle
+
         rotationHandle = PlaneNode(
             engine = engine,
             size = Float3(ringSize, 0.0f, ringSize),
             // Use a transparent ring PNG here to make the center "hollow"
             materialInstance = sceneView.materialLoader.createColorInstance(
                 androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f)
-            )
-        ).apply {
+                )
+            ).apply {
             name = "rotation_handle"
             position = Float3(0f, 0.01f, 0f) // Slightly above floor
             isEditable = false
         }
 
         this.addChildNode(rotationHandle!!)
+        updateHandleSize()
     }
 
     fun updateHandleSize() {
         val target = wrappedNode ?: return
         val handle = rotationHandle as? PlaneNode ?: return
+        // 1. Get raw dimensions (in model-space meters)
+        val box = target.modelInstance.asset.boundingBox
+        val s = target.scale
 
-        // Get the raw bounding box extents
-        val rawHalfExtents = target.boundingBox.halfExtent
-        val currentLocalRadius = maxOf(
-            rawHalfExtents[0] * target.scale.x,
-            rawHalfExtents[2] * target.scale.z
-        )
-        // We want the visual radius in local space relative to the wrapper
-        val visualScale = currentLocalRadius * 2.5f
+        // 2. Calculate current world dimensions in METERS (just like DimensionOverlayNode)
+        // We multiply raw extent by the scale to get actual size
+        val w = box.halfExtent[0] * 10f * s.x
+        val d = box.halfExtent[2] * 10f * s.z
 
-        handle.scale = Float3(visualScale / this.scale.x, 1.0f, visualScale / this.scale.z)
-        // Use 1.0f for Y to ensure the plane has 'volume' for the renderer
-        //handle.scale = Float3(visualScale, 1.0f, visualScale)
+        // 3. Determine the radius.
+        // We use a multiplier (e.g., 1.5f) to ensure the ring is outside the model
+        val multiplier = 1.5f
+        val ringSize = maxOf(w, d) * multiplier
 
-        // Ensure it stays slightly above the floor to prevent Z-fighting (flickering)
-        handle.position = Float3(0f, 0.01f, 0f)
+        // 4. Set the scale.
+        // IMPORTANT: Since PlaneNode's 'size' is often 1m x 1m,
+        // we set the scale to the exact meter size we want.
+        handle.scale = Float3(ringSize, 1.0f, ringSize)
+
+        val scaledCenter = Float3(box.center[0] * s.x, 0.01f, box.center[2] * s.z)
+        handle.position = scaledCenter
     }
 
 
@@ -225,5 +239,7 @@ class SelectedModelNode(
     //select + change many?
 
     //model storage for changing position?? like, zrzucasz na psek kilka kart i możesz wybrać którą otworzyć
+
+
 
 }

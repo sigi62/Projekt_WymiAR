@@ -12,11 +12,12 @@
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
   More UI changes
+  BETTER PLANE DETECTING
   3D MODE
 
 
   BUGS / FIXES
 
   1. Dimension overlay measurements not appearing correctly - not changing units - not calculating
-  2. Rotation Handle shirnking while changing scale - but snaps back when model is selected again
+  2. Rotation Handle not a ring
   3. Deselecting model doesn't work  while tapping on selected???
