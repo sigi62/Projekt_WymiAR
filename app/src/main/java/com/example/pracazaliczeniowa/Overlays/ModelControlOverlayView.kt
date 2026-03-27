@@ -72,6 +72,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
 
     private fun setupUI() {
+
+        val modeLabel = findViewById<TextView>(R.id.modeLabel)
         val s1 = findViewById<SeekBar>(R.id.seek1)
         val s2 = findViewById<SeekBar>(R.id.seek2)
         val s3 = findViewById<SeekBar>(R.id.seek3)
@@ -111,10 +113,14 @@ class ModelControlOverlayView @JvmOverloads constructor(
             if (currentMode == mode && seekBarsLayout.visibility == View.VISIBLE) {
                 // If clicking the same button again, hide the panel
                 seekBarsLayout.visibility = View.GONE
+                modeLabel.visibility = View.GONE
             } else {
                 // Show panel and set the mode
                 currentMode = mode
                 seekBarsLayout.visibility = View.VISIBLE
+                modeLabel.visibility = View.VISIBLE
+                modeLabel.text = currentMode
+
                 refreshSlidersForMode()
 
                 // Toggle universal scale visibility based on mode
