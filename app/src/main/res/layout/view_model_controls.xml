@@ -4,8 +4,10 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
+    <TextView android:id="@+id/modeLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="@android:color/white" android:paddingTop="8dp" android:visibility="gone" android:layout_gravity="center"/>
 
-    <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    <LinearLayout
+        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/seekBarsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -13,17 +15,134 @@
         android:orientation="vertical"
         android:visibility="gone">
 
-    <TextView android:id="@+id/label1" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="X " android:textColor="@android:color/white" />
-    <SeekBar android:id="@+id/seek1" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+        <!-- X row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
 
-    <TextView android:id="@+id/label2" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Y" android:textColor="@android:color/white" />
-    <SeekBar android:id="@+id/seek2" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+            <TextView
+                android:id="@+id/label1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="X"
+                android:textColor="@android:color/white"/>
 
-    <TextView android:id="@+id/label3" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Z" android:textColor="@android:color/white" />
-    <SeekBar android:id="@+id/seek3" android:layout_width="match_parent" android:layout_height="wrap_content" android:max="360" />
+            <SeekBar
+                android:id="@+id/seek1"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="360"/>
+            <EditText
+                android:id="@+id/input1"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:inputType="number"
+                android:textColor="@android:color/black"
+                android:background="@android:drawable/edit_text"
+                android:gravity="center"/>
+        </LinearLayout>
 
-    <TextView android:id="@+id/labelUniversalScale" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="Universal Scale" android:textColor="@android:color/white" android:visibility="gone"/>
-    <SeekBar android:id="@+id/seekUniversalScale" android:layout_width="match_parent" android:layout_height="wrap_content" android:visibility="gone" android:max="10" android:progress="10"/>
+        <!-- Y row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/label2"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Y"
+                android:textColor="@android:color/white"/>
+
+            <SeekBar
+                android:id="@+id/seek2"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="360"/>
+            <EditText
+                android:id="@+id/input2"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:inputType="number"
+                android:textColor="@android:color/black"
+                android:background="@android:drawable/edit_text"
+                android:gravity="center"/>
+        </LinearLayout>
+
+        <!-- Z row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:layout_marginBottom="8dp">
+
+            <TextView
+                android:id="@+id/label3"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Z"
+                android:textColor="@android:color/white"/>
+
+            <SeekBar
+                android:id="@+id/seek3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="360"/>
+            <EditText
+                android:id="@+id/input3"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:inputType="number"
+                android:textColor="@android:color/black"
+                android:background="@android:drawable/edit_text"
+                android:gravity="center"/>
+        </LinearLayout>
+
+        <!-- Universal Scale row -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:visibility="gone">
+
+            <TextView
+                android:id="@+id/labelUniversalScale"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Universal Scale"
+                android:textColor="@android:color/white"/>
+
+            <SeekBar
+                android:id="@+id/seekUniversalScale"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="10"
+                android:progress="10"/>
+            <EditText
+                android:id="@+id/inputUniScale"
+                android:layout_width="60dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:inputType="number"
+                android:textColor="@android:color/black"
+                android:background="@android:drawable/edit_text"
+                android:gravity="center"/>
+        </LinearLayout>
 
     </LinearLayout>
 
