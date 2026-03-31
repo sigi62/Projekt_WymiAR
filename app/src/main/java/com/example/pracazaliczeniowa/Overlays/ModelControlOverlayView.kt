@@ -456,10 +456,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val v2 = progressToValue(s2.progress)
         val v3 = progressToValue(s3.progress)
 
-        val cmToMetres = 100f
 
         when (currentMode) {
-            "POSITION" -> node.updatePosition(v1 / cmToMetres, v2 / cmToMetres, v3 / cmToMetres)
+            "POSITION" -> node.updatePosition(v1 / currentUnitFactor, v2 / currentUnitFactor, v3 / currentUnitFactor)
             "ROTATE"   -> node.updateRotation(v1, v2, v3)
             "SCALE"    -> node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
         }
@@ -552,4 +551,23 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     /** One decimal place is enough for all three modes. */
     private fun formatValue(value: Float) = String.format("%.1f", value)
+
+    private var currentUnitFactor: Float = 100f //default to CM
+    fun updateUnit(unit: DistanceUnit) {
+        val oldFactor = currentUnitFactor
+        currentUnitFactor = when(unit) {
+            DistanceUnit.METERS -> 1f
+            DistanceUnit.CENTIMETERS -> 100f
+            DistanceUnit.MILLIMETERS -> 1000f
+        }
+        val multiplier = currentUnitFactor / oldFactor
+
+        positionProgress = Triple(
+            (((positionProgress.first - posDynMid) * multiplier) + posDynMid).toInt(),
+            (((positionProgress.second - posDynMid) * multiplier) + posDynMid).toInt(),
+            (((positionProgress.third - posDynMid) * multiplier) + posDynMid).toInt()
+        )
+        // Refresh the UI so the numbers in EditTexts update immediately
+        refreshSlidersForMode()
+    }
 }

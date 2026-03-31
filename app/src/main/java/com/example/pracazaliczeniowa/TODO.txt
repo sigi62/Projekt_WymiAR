@@ -8,6 +8,7 @@
   Add a toggle effect to MeasureTape
   Add a toggle effect to wireframe mode too ?? Button type special for selected?
   Add a label for rotation/position/scale seekbars
+
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
   More UI changes

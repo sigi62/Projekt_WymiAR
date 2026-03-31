@@ -130,6 +130,7 @@ class ARActivity : AppCompatActivity() {
             }
 
             measureOverlay.setUnit(unit)
+            modelControls.updateUnit(unit)
 
             if (measurePointA != null && measurePointB != null) {
                 val dist = distanceMeters(measurePointA!!, measurePointB!!)
