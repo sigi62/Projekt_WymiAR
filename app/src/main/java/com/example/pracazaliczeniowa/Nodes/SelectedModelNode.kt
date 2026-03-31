@@ -138,7 +138,7 @@ class SelectedModelNode(
 
     fun updateScale(xMult: Float, yMult: Float, zMult: Float, uniProgress: Float) {
         // uniProgress 100 = 1.0x. Scale sliders provide up to 2.5x each.
-        val universalFactor = uniProgress / 100f
+        val universalFactor = uniProgress
 
         wrappedNode?.scale = Float3(
             baseScale.x * xMult * universalFactor,

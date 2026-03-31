@@ -2,14 +2,21 @@ package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
 import android.util.AttributeSet
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.Button
+import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
+import kotlin.math.abs
+
+fun log(msg: String) {
+    Log.d("AR_CONTROL_DEBUG", msg)
+}
 
 class ModelControlOverlayView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
@@ -19,15 +26,26 @@ class ModelControlOverlayView @JvmOverloads constructor(
     private var currentMode = "ROTATE"
 
     // --- State Storage ---
-    private val MIDDLE = 100
-    private val RANGE_MAX = 200
-    private var rotateProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
-    private var positionProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
-    private var scaleProgress = Triple(MIDDLE, MIDDLE, MIDDLE)
-    private var universalScaleProgress = MIDDLE
+    private var posMin = 0; private var posMax = 200;  private var posMid = 100
+    private var sclMin = 0; private var sclMax = 100; private var sclMid = 10
+    private val rotMin = 0; private val rotMax = 360; private var rotMid = 180
+    private var positionProgress = Triple(posMid, posMid, posMid)
+    private var scaleProgress = Triple(sclMid, sclMid, sclMid)
+    private var rotateProgress = Triple(rotMid, rotMid, rotMid)
+    private var universalScaleProgress = sclMid
+
+
+    // prevention
+    private val MIN_SCALE_VALUE = 0.1f
 
     var onSaveRequested: (() -> Unit)? = null // Callback for the Activity
     var onDeleteRequested: (() -> Unit)? = null // Callback for the Activity
+
+
+    private lateinit var s1: SeekBar; private lateinit var s2: SeekBar; private lateinit var s3: SeekBar
+    private lateinit var i1: EditText; private lateinit var i2: EditText; private lateinit var i3: EditText
+
+    private lateinit var sUni: SeekBar; private lateinit var iUni: EditText
 
     init {
         // 1. This is the missing piece: Inflate the XML into this LinearLayout
@@ -45,11 +63,22 @@ class ModelControlOverlayView @JvmOverloads constructor(
         setupUI()
     }
     fun updateScaleFromGesture(factor: Float) {
-        // Map the pinch factor back to our slider progress (0.0125 factor)
-        val newProgress = (factor / 0.0125f).toInt().coerceIn(0, 200)
+        // If factor > 1, we are pinching out (growing). If < 1, pinching in.
+        // We adjust our Int-based progress based on the gesture's scale factor.
+        val sensitivity = 10f
+        val delta = (factor - 1.0f) * sensitivity
+
+        val newProgress = (universalScaleProgress + delta.toInt()).coerceIn(sclMin, sclMax)
+
         universalScaleProgress = newProgress
+
+
         if (currentMode == "SCALE") {
-            findViewById<SeekBar>(R.id.seekUniversalScale).progress = newProgress
+            sUni.progress = newProgress
+            // This will trigger the SeekBar listener, which calls applyToNode()
+        } else {
+            // If menu is closed, apply directly
+            applyToNode()
         }
     }
 
@@ -57,7 +86,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         // 1. Reverse the math: (degrees / 1.8) + MIDDLE
         // We normalize the degree to be within a standard -180 to 180 range first
         val normalizedDeg = ((yDegrees + 180) % 360) - 180
-        val newProgress = (normalizedDeg / 1.8f + MIDDLE).toInt().coerceIn(0, 200)
+        val newProgress = (normalizedDeg / 1.8f + rotMid).toInt().coerceIn(rotMin, rotMax)
 
         // 2. Update state storage
         // We keep X and Z from the previous state, only updating Y (the second value)
@@ -70,25 +99,26 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
+    fun updatePositionFromGeasture(x: Float, y: Float, z: Float) {
+      //TODO
+    }
 
     private fun setupUI() {
 
         val modeLabel = findViewById<TextView>(R.id.modeLabel)
-        val s1 = findViewById<SeekBar>(R.id.seek1)
-        val s2 = findViewById<SeekBar>(R.id.seek2)
-        val s3 = findViewById<SeekBar>(R.id.seek3)
-        val sUni = findViewById<SeekBar>(R.id.seekUniversalScale)
-        val lUni = findViewById<TextView>(R.id.labelUniversalScale)
         val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
+
+        s1 = findViewById(R.id.seek1); s2 = findViewById(R.id.seek2); s3 = findViewById(R.id.seek3)
+        i1 = findViewById(R.id.input1); i2 = findViewById(R.id.input2); i3 = findViewById(R.id.input3)
+        sUni = findViewById(R.id.seekUniversalScale); iUni = findViewById(R.id.inputUniScale);  val lUni = findViewById<TextView>(R.id.labelUniversalScale)
 
         seekBarsLayout.visibility = View.GONE
 
-
-        // Reset all sliders to middle on start
         listOf(s1, s2, s3, sUni).forEach {
-            it.max = RANGE_MAX
-            it.progress = MIDDLE
+            it.max = getSeekBarMax()
+            it.progress = getSeekBarMiddle()
         }
+
 
         val btnRot = findViewById<Button>(R.id.btnModeRotate)
         val btnPos = findViewById<Button>(R.id.btnModePosition)
@@ -97,16 +127,42 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val btnDelete = findViewById<Button>(R.id.btnModelDelete)
 
         fun refreshSlidersForMode() {
+
+            // 1. Update the physical limits of the sliders
+            listOf(s1, s2, s3, sUni).forEach {
+                it.max = getSeekBarMax()
+                it.progress = getSeekBarMiddle()
+            }
+
+            log(  "seekbar middle : ")
+            log(  getSeekBarMiddle().toString())
             val (p1, p2, p3) = when (currentMode) {
                 "ROTATE" -> rotateProgress
                 "POSITION" -> positionProgress
-                "SCALE" -> scaleProgress
-                else -> Triple(MIDDLE, MIDDLE, MIDDLE)
+                "SCALE" -> (scaleProgress  )
+                else -> Triple(0, 0, 0)
             }
+
+
+            log(  "updating seekbar progress for every  : ")
+            log(  p1.toString())
+            log(  p2.toString())
+            log(  p3.toString())
+
             s1.progress = p1
             s2.progress = p2
             s3.progress = p3
             sUni.progress = universalScaleProgress
+
+            // 4. ADD THIS: Set initial text based on the progress values
+            // Use the translator function progressToValue() created in the previous step
+            i1.setText(String.format("%.1f", progressToValue(p1)))
+            i2.setText(String.format("%.1f", progressToValue(p2)))
+            i3.setText(String.format("%.1f", progressToValue(p3)))
+
+            if (currentMode == "SCALE") {
+                iUni.setText(String.format("%.1f", progressToValue(universalScaleProgress)))
+            }
         }
 
         fun toggleMode(mode: String) {
@@ -130,41 +186,53 @@ class ModelControlOverlayView @JvmOverloads constructor(
             }
         }
 
-        val listener = object : SeekBar.OnSeekBarChangeListener {
+        //button mode change listener
+        val seekListener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, p: Int, fromUser: Boolean) {
                 if (!fromUser) return
 
-                // 1. Save state
+                // 1. Synchronize Universal Scale if in Scale Mode
                 if (sb?.id == R.id.seekUniversalScale && currentMode == "SCALE") {
-                    s1.progress = p
-                    s2.progress = p
-                    s3.progress = p
+                    s1.progress = p; s2.progress = p; s3.progress = p
                     universalScaleProgress = p
-                    scaleProgress = Triple(p, p, p)
-                } else {
-                    // Save individual state for other sliders
-                    when (currentMode) {
-                        "ROTATE" -> rotateProgress = Triple(s1.progress, s2.progress, s3.progress)
-                        "POSITION" -> positionProgress = Triple(s1.progress, s2.progress, s3.progress)
-                        "SCALE" -> scaleProgress = Triple(s1.progress, s2.progress, s3.progress)
-                    }
                 }
 
-                // 2. Apply to Node
-                targetNode?.let { node ->
-                    when (currentMode) {
-                        "ROTATE" -> node.updateRotation((s1.progress - MIDDLE) * 1.8f, (s2.progress - MIDDLE) * 1.8f, (s3.progress - MIDDLE) * 1.8f)
-                        "POSITION" -> node.updatePosition((s1.progress - MIDDLE) * 0.05f, (s2.progress - MIDDLE) * 0.05f, (s3.progress - MIDDLE) * 0.05f)
-                        "SCALE" -> node.updateScale(s1.progress * 0.0125f, s2.progress * 0.0125f, s3.progress * 0.0125f, sUni.progress.toFloat())
-                    }
+                // 2. Update State Storage
+                when (currentMode) {
+                    "ROTATE" -> rotateProgress = Triple(s1.progress, s2.progress, s3.progress)
+                    "POSITION" -> positionProgress = Triple(s1.progress, s2.progress, s3.progress)
+                    "SCALE" -> scaleProgress = Triple(s1.progress, s2.progress, s3.progress)
                 }
+
+                // 3. Update EditTexts based on the new logic
+                val factor = if (currentMode == "ROTATE") 1f else 10f
+                i1.setText(String.format("%.1f", s1.progress / factor))
+                i2.setText(String.format("%.1f", s2.progress / factor))
+                i3.setText(String.format("%.1f", s3.progress / factor))
+
+                // 4. Finally, apply to the actual 3D Node
+                applyToNode()
             }
             override fun onStartTrackingTouch(sb: SeekBar?) {}
             override fun onStopTrackingTouch(sb: SeekBar?) {}
         }
 
-        listOf(s1, s2, s3, sUni).forEach { it.setOnSeekBarChangeListener(listener) }
+        listOf(s1, s2, s3, sUni).forEach { it.setOnSeekBarChangeListener(seekListener) }
 
+
+        // slider / text listeners
+        val textWatcher = object : android.text.TextWatcher {
+            override fun afterTextChanged(s: android.text.Editable?) {
+                val val1 = i1.text.toString().toFloatOrNull() ?: return
+                val val2 = i2.text.toString().toFloatOrNull() ?: return
+                val val3 = i3.text.toString().toFloatOrNull() ?: return
+                updateFromInput(val1, val2, val3)
+            }
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
+        }
+
+        listOf(i1, i2, i3).forEach { it.addTextChangedListener(textWatcher) }
 
         btnRot.setOnClickListener {
             toggleMode("ROTATE")
@@ -189,5 +257,89 @@ class ModelControlOverlayView @JvmOverloads constructor(
         btnDelete.setOnClickListener {
             onDeleteRequested?.invoke()
         }
+    }
+
+    private fun updateFromInput(v1: Float, v2: Float, v3: Float) {
+        val (prog1, prog2, prog3) = when (currentMode) {
+            "POSITION" -> {
+                // Float meters to Int: 5.5m -> 55
+                Triple((v1 * 10).toInt(), (v2 * 10).toInt(), (v3 * 10).toInt())
+            }
+            "SCALE" -> {
+                // Float scale to Int: 1.5x -> 15
+                Triple((v1 * 10).toInt(), (v2 * 10).toInt(), (v3 * 10).toInt())
+            }
+            else -> { // ROTATE
+                Triple(v1.toInt(), v2.toInt(), v3.toInt())
+            }
+        }
+
+        // Update the SeekBars (this will trigger their listeners and call applyToNode)
+        s1.progress = prog1.coerceIn(getMin(), getMax())
+        s2.progress = prog2.coerceIn(getMin(), getMax())
+        s3.progress = prog3.coerceIn(getMin(), getMax())
+    }
+
+    private fun applyToNode() {
+        val node = targetNode ?: return
+
+        // Get the current progress values from the sliders
+        val p1 = s1.progress
+        val p2 = s2.progress
+        val p3 = s3.progress
+
+        when (currentMode) {
+            "POSITION" -> {
+                // Philosophy: -100 to 100 Int = -10.0m to 10.0m Float (Divide by 10)
+                node.updatePosition(p1 / 10f, p2 / 10f, p3 / 10f)
+            }
+            "ROTATE" -> {
+                // Philosophy: -180 to 180 Int = -180.0 to 180.0 Degrees (Direct map)
+                node.updateRotation(p1.toFloat(), p2.toFloat(), p3.toFloat())
+            }
+            "SCALE" -> {
+                // Philosophy: 1 to 100 Int = 0.1 to 10.0 Scale (Divide by 10)
+                node.updateScale((p1 / 10f).coerceAtLeast(MIN_SCALE_VALUE)
+                    , (p2 / 10f).coerceAtLeast(MIN_SCALE_VALUE)
+                    , (p3 / 10f).coerceAtLeast(MIN_SCALE_VALUE)
+                    , (sUni.progress / 10f).coerceAtLeast(MIN_SCALE_VALUE))
+            }
+        }
+    }
+    private fun getMin() = when(currentMode) { "ROTATE" -> rotMin; "POSITION" -> posMin; else -> sclMin }
+    private fun getMax() = when(currentMode) { "ROTATE" -> rotMax; "POSITION" -> posMax; else -> sclMax }
+
+
+    private fun getSeekBarMiddle() = when(currentMode) { "ROTATE" -> 180; "POSITION" -> (abs(posMid) + abs(posMax))/2; else -> sclMid}
+    private fun getSeekBarMax() = when(currentMode) { "ROTATE" -> 360 ; "POSITION" ->  abs(posMid) + abs(posMax); else -> sclMax}
+
+
+    private fun progressToValue(progress: Int): Float {
+        return when (currentMode) {
+            "ROTATE" -> progress.toFloat() - 180f        // 0..360 -> -180..180
+            "POSITION" -> (progress - 100f) / 10f      // 0..200 -> -10.0..10.0
+            "SCALE" -> (progress / 10f).coerceAtLeast(MIN_SCALE_VALUE) // 1..100 -> 0.1..10.0
+            else -> progress.toFloat()
+        }
+    }
+
+    private fun valueToProgress(value: Float): Int {
+        return when (currentMode) {
+            "ROTATE" -> (value + 180).toInt().coerceIn(rotMin, rotMax)
+            "POSITION" -> (value * 10 + 100).toInt().coerceIn(posMin, posMax)
+            "SCALE" -> (value * 10).toInt().coerceIn(sclMin, sclMax)
+            else -> value.toInt()
+        }
+    }
+
+    private fun mapValueToProgress(value: Float, min: Float, max: Float): Int {
+        val range = max - min
+        if (range == 0f) return 500
+        val percent = (value - min) / range
+        return (percent * 1000).toInt().coerceIn(0, 1000)
+    }
+
+    private fun mapProgressToValue(progress: Int, min: Float, max: Float): Float {
+        return min + (progress / 1000f) * (max - min)
     }
 }

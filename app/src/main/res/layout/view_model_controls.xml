@@ -35,7 +35,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="360"/>
+                android:max="100"/>
             <EditText
                 android:id="@+id/input1"
                 android:layout_width="60dp"
@@ -67,7 +67,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="360"/>
+                android:max="100"/>
             <EditText
                 android:id="@+id/input2"
                 android:layout_width="60dp"
@@ -99,7 +99,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="360"/>
+                android:max="100"/>
             <EditText
                 android:id="@+id/input3"
                 android:layout_width="60dp"
@@ -131,7 +131,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="10"
+                android:max="100"
                 android:progress="10"/>
             <EditText
                 android:id="@+id/inputUniScale"
