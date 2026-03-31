@@ -4,10 +4,16 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView android:id="@+id/modeLabel" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="" android:textColor="@android:color/white" android:paddingTop="8dp" android:visibility="gone" android:layout_gravity="center"/>
+    <TextView android:id="@+id/modeLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="@android:color/white"
+        android:paddingTop="8dp"
+        android:visibility="gone"
+        android:layout_gravity="center"/>
 
     <LinearLayout
-        xmlns:android="http://schemas.android.com/apk/res/android"
         android:id="@+id/seekBarsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -36,12 +42,20 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:max="100"/>
+
+            <!--
+                inputType="numberSigned|numberDecimal" allows negative values and
+                a decimal point.  imeOptions="actionDone" closes the keyboard and
+                triggers the IME action listener we attach in code.
+            -->
             <EditText
                 android:id="@+id/input1"
-                android:layout_width="60dp"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:inputType="number"
+                android:inputType="numberSigned|numberDecimal"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
                 android:textColor="@android:color/black"
                 android:background="@android:drawable/edit_text"
                 android:gravity="center"/>
@@ -68,12 +82,15 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:max="100"/>
+
             <EditText
                 android:id="@+id/input2"
-                android:layout_width="60dp"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:inputType="number"
+                android:inputType="numberSigned|numberDecimal"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
                 android:textColor="@android:color/black"
                 android:background="@android:drawable/edit_text"
                 android:gravity="center"/>
@@ -100,18 +117,21 @@
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
                 android:max="100"/>
+
             <EditText
                 android:id="@+id/input3"
-                android:layout_width="60dp"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:inputType="number"
+                android:inputType="numberSigned|numberDecimal"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
                 android:textColor="@android:color/black"
                 android:background="@android:drawable/edit_text"
                 android:gravity="center"/>
         </LinearLayout>
 
-        <!-- Universal Scale row -->
+        <!-- Universal Scale row (SCALE mode only) -->
         <LinearLayout
             android:id="@+id/layoutUniversalScale"
             android:layout_width="match_parent"
@@ -123,7 +143,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Universal Scale"
+                android:text="Uni"
                 android:textColor="@android:color/white"/>
 
             <SeekBar
@@ -133,12 +153,15 @@
                 android:layout_weight="1"
                 android:max="100"
                 android:progress="10"/>
+
             <EditText
                 android:id="@+id/inputUniScale"
-                android:layout_width="60dp"
+                android:layout_width="70dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="8dp"
-                android:inputType="number"
+                android:inputType="numberDecimal"
+                android:imeOptions="actionDone"
+                android:singleLine="true"
                 android:textColor="@android:color/black"
                 android:background="@android:drawable/edit_text"
                 android:gravity="center"/>
@@ -189,6 +212,6 @@
             android:drawableTop="@drawable/ic_save"
             style="@style/Widget.AppCompat.Button.Borderless"
             android:layout_weight="1"/>
-     </LinearLayout>
+    </LinearLayout>
 
 </LinearLayout>
