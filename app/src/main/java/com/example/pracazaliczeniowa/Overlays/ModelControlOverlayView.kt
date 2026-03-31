@@ -26,18 +26,29 @@ class ModelControlOverlayView @JvmOverloads constructor(
 ) : LinearLayout(context, attrs) {
 
     // -------------------------------------------------------------------------
-    // Configuration
+    // Configuration — fixed constants
     // -------------------------------------------------------------------------
 
     private companion object {
-        // Position: progress 0..200, mid=100  →  value = progress - 100  (cm)
-        const val POS_MIN = 0;   const val POS_MAX = 200;  const val POS_MID = 100
+        // Rotation is fixed; never adapts.
+        const val ROT_MIN = 0;  const val ROT_MAX = 360;  const val ROT_MID = 180
 
-        // Rotation: progress 0..360, mid=180  →  value = progress - 180  (degrees)
-        const val ROT_MIN = 0;   const val ROT_MAX = 360;  const val ROT_MID = 180
+        // Scale: progress / SCL_MID = displayed value.  SCL_MID is fixed as the
+        // denominator so the mapping stays simple; only the seekbar max grows.
+        const val SCL_MID = 100
+        const val SCL_MIN = 1
+        // Default seekbar max  →  5.00×  (progress 500 / SCL_MID 100)
+        const val SCL_MAX_DEFAULT = 500
+        // Hard ceiling: 100.00×  (progress 10000 / SCL_MID 100)
+        const val SCL_MAX_HARD    = 10_000
 
-        // Scale:    progress 1..500, mid=100  →  value = progress / 100f  (multiplier)
-        const val SCL_MIN = 1;   const val SCL_MAX = 500;  const val SCL_MID = 100
+        // Position: progress - posMid = displayed cm value.  posMid grows when
+        // the user types a value outside the current range.
+        const val POS_MIN = 0
+        // Default half-range → ±100 cm  (seekbar 0..200, mid=100)
+        const val POS_MID_DEFAULT = 100
+        // Hard ceiling: ±1000 cm
+        const val POS_MID_HARD    = 1_000
 
         const val MIN_SCALE_VALUE = 0.01f
 
@@ -46,16 +57,31 @@ class ModelControlOverlayView @JvmOverloads constructor(
     }
 
     // -------------------------------------------------------------------------
-    // State
+    // State — dynamic range (mutable; grow on demand, never shrink)
     // -------------------------------------------------------------------------
 
     private var targetNode: SelectedModelNode? = null
     private var currentMode = "ROTATE"
 
+    /**
+     * Current half-range for position in cm.
+     * Seekbar range is always  0 .. 2*posDynMid,  displayed value = progress - posDynMid.
+     * Grows when the user types a value whose |abs| > current mid; capped at POS_MID_HARD.
+     */
+    private var posDynMid: Int = POS_MID_DEFAULT
+
+    /**
+     * Current seekbar max for scale.
+     * Displayed value = progress / SCL_MID.
+     * Grows when the user types a value whose progress equivalent > current max;
+     * capped at SCL_MAX_HARD.
+     */
+    private var sclDynMax: Int = SCL_MAX_DEFAULT
+
     /** Persisted progress values per mode so switching tabs restores sliders. */
-    private var positionProgress    = Triple(POS_MID, POS_MID, POS_MID)
-    private var scaleProgress       = Triple(SCL_MID, SCL_MID, SCL_MID)
-    private var rotateProgress      = Triple(ROT_MID, ROT_MID, ROT_MID)
+    private var positionProgress       = Triple(posDynMid, posDynMid, posDynMid)
+    private var scaleProgress          = Triple(SCL_MID,   SCL_MID,   SCL_MID)
+    private var rotateProgress         = Triple(ROT_MID,   ROT_MID,   ROT_MID)
     private var universalScaleProgress = SCL_MID
 
     // -------------------------------------------------------------------------
@@ -139,7 +165,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     fun updateScaleFromGesture(factor: Float) {
         val sensitivity = 10f
         val delta = ((factor - 1.0f) * sensitivity).toInt()
-        val newProgress = (universalScaleProgress + delta).coerceIn(SCL_MIN, SCL_MAX)
+        val newProgress = (universalScaleProgress + delta).coerceIn(SCL_MIN, sclDynMax)
         universalScaleProgress = newProgress
 
         if (currentMode == "SCALE") {
@@ -308,44 +334,54 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     /**
-     * Reads i1/i2/i3, clamps values to the current mode's legal range,
-     * updates the seekbars (and the canonical display text), then applies.
+     * Reads i1/i2/i3, expands the dynamic range if any value exceeds the current
+     * bounds (POSITION and SCALE only), repositions all seekbars, then applies.
      */
     private fun commitEditTexts() {
         val v1 = i1.text.toString().toFloatOrNull() ?: progressToValue(s1.progress)
         val v2 = i2.text.toString().toFloatOrNull() ?: progressToValue(s2.progress)
         val v3 = i3.text.toString().toFloatOrNull() ?: progressToValue(s3.progress)
 
+        // Expand range *before* calling valueToProgress so progress is mapped correctly.
+        maybeExpandRange(v1); maybeExpandRange(v2); maybeExpandRange(v3)
+
         val p1 = valueToProgress(v1)
         val p2 = valueToProgress(v2)
         val p3 = valueToProgress(v3)
 
         withSync {
+            // Apply updated max first so Android doesn't clamp the new progress.
+            val dynMax = modeMax()
+            s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
+
             s1.progress = p1;  s2.progress = p2;  s3.progress = p3
-            // Clamp-correct the text so the user sees the capped value
             i1.setText(formatValue(progressToValue(p1)))
             i2.setText(formatValue(progressToValue(p2)))
             i3.setText(formatValue(progressToValue(p3)))
-            // Move cursor to end for a nicer feel
             i1.setSelection(i1.text.length)
             i2.setSelection(i2.text.length)
             i3.setSelection(i3.text.length)
             saveCurrentProgress()
         }
 
-        log("Committed [$currentMode] values: $v1, $v2, $v3  →  progress: $p1, $p2, $p3")
+        log("Committed [$currentMode] values: $v1, $v2, $v3  →  progress: $p1, $p2, $p3 | posMid=$posDynMid sclMax=$sclDynMax")
         applyToNode()
     }
 
-    /** Same for the universal-scale field. */
+    /** Same for the universal-scale field — expands scale range if needed. */
     private fun commitUniScaleEditText() {
         if (currentMode != "SCALE") return
 
         val v = iUni.text.toString().toFloatOrNull() ?: progressToValue(sUni.progress)
-        val p = valueToProgress(v).coerceIn(SCL_MIN, SCL_MAX)
+        maybeExpandRange(v)
+
+        val p = valueToProgress(v).coerceIn(SCL_MIN, sclDynMax)
         universalScaleProgress = p
 
         withSync {
+            sUni.max = sclDynMax
+            s1.max   = sclDynMax;  s2.max = sclDynMax;  s3.max = sclDynMax
+
             sUni.progress = p
             s1.progress   = p;  s2.progress = p;  s3.progress = p
             iUni.setText(formatValue(progressToValue(p)))
@@ -373,10 +409,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
 
         withSync {
-            s1.max  = modeMax();  s2.max  = modeMax();  s3.max  = modeMax()
-            sUni.max = SCL_MAX
+            // Always apply current dynamic max *before* setting progress, otherwise
+            // Android silently clamps progress to the old max.
+            val dynMax = modeMax()
+            s1.max   = dynMax;  s2.max   = dynMax;  s3.max   = dynMax
+            sUni.max = sclDynMax
 
-            s1.progress  = p1;  s2.progress  = p2;  s3.progress  = p3
+            s1.progress   = p1;  s2.progress   = p2;  s3.progress   = p3
             sUni.progress = universalScaleProgress
 
             i1.setText(formatValue(progressToValue(p1)))
@@ -427,50 +466,88 @@ class ModelControlOverlayView @JvmOverloads constructor(
     }
 
     // -------------------------------------------------------------------------
-    // Mapping functions
+    // Mapping functions  (always use dynamic mid/max, never the default constants)
     // -------------------------------------------------------------------------
 
     /**
-     * Converts a seekbar integer progress value to the human-readable float
-     * displayed in the EditTexts and sent to the node.
+     * Converts a seekbar integer progress value to the human-readable float.
      *
-     * | Mode     | Progress range | Value range       | Example             |
-     * |----------|----------------|-------------------|---------------------|
-     * | POSITION | 0 – 200        | -100 … +100 cm    | 115 → 15.0          |
-     * | ROTATE   | 0 – 360        | -180 … +180 °     | 180 → 0.0           |
-     * | SCALE    | 1 – 500        | 0.01 … 5.00 ×     | 206 → 2.06          |
+     * | Mode     | Formula                        | Example (defaults)        |
+     * |----------|--------------------------------|---------------------------|
+     * | POSITION | progress − posDynMid           | 115 → 15.0 cm             |
+     * | ROTATE   | progress − ROT_MID  (fixed)    | 180 → 0.0 °               |
+     * | SCALE    | progress / SCL_MID             | 206 → 2.06 ×              |
      */
     private fun progressToValue(progress: Int): Float = when (currentMode) {
-        "POSITION" -> (progress - POS_MID).toFloat()                           // 115 → 15.0
-        "ROTATE"   -> (progress - ROT_MID).toFloat()                           // 180 → 0.0
-        "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE) // 206 → 2.06
+        "POSITION" -> (progress - posDynMid).toFloat()
+        "ROTATE"   -> (progress - ROT_MID).toFloat()
+        "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE)
         else       -> progress.toFloat()
     }
 
     /**
-     * Inverse of [progressToValue] — clamps to the mode's legal range.
+     * Inverse of [progressToValue].  Clamps to the *current* dynamic range —
+     * always call [maybeExpandRange] first if you want out-of-range values to
+     * expand the range rather than be clamped.
      *
-     * | Mode     | Value        | Progress          |
-     * |----------|--------------|-------------------|
-     * | POSITION | 15.0         | 115               |
-     * | ROTATE   | 0.0          | 180               |
-     * | SCALE    | 2.06         | 206               |
+     * | Mode     | Formula                              |
+     * |----------|--------------------------------------|
+     * | POSITION | value + posDynMid  → 0..2*posDynMid |
+     * | ROTATE   | value + ROT_MID    → 0..360 (fixed)  |
+     * | SCALE    | value * SCL_MID    → 1..sclDynMax    |
      */
     private fun valueToProgress(value: Float): Int = when (currentMode) {
-        "POSITION" -> (value + POS_MID).toInt().coerceIn(POS_MIN, POS_MAX)
+        "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
         "ROTATE"   -> (value + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
-        "SCALE"    -> (value * SCL_MID).toInt().coerceIn(SCL_MIN, SCL_MAX)
+        "SCALE"    -> (value * SCL_MID).toInt().coerceIn(SCL_MIN, sclDynMax)
         else       -> value.toInt()
+    }
+
+    // -------------------------------------------------------------------------
+    // Dynamic range expansion
+    // -------------------------------------------------------------------------
+
+    /**
+     * Checks whether [value] fits in the current range for the active mode and,
+     * if not, expands [posDynMid] or [sclDynMax] to accommodate it.
+     * Rotation is intentionally excluded — its range is always fixed ±180°.
+     *
+     * Expansion rules:
+     *  • POSITION: new mid = ceil(|value|), capped at POS_MID_HARD (1000 cm).
+     *              The seekbar max becomes  2 * posDynMid.
+     *  • SCALE:    new max = ceil(value * SCL_MID), capped at SCL_MAX_HARD (10 000).
+     *              The seekbar max becomes sclDynMax.
+     *
+     * Values that exceed the hard cap are silently clamped by [valueToProgress].
+     */
+    private fun maybeExpandRange(value: Float) {
+        when (currentMode) {
+            "POSITION" -> {
+                val needed = kotlin.math.abs(value).toInt()  // mid must be >= |value|
+                if (needed > posDynMid) {
+                    posDynMid = needed.coerceAtMost(POS_MID_HARD)
+                    log("Position range expanded → ±$posDynMid cm")
+                }
+            }
+            "SCALE" -> {
+                val neededMax = (value * SCL_MID).toInt()    // progress equivalent
+                if (neededMax > sclDynMax) {
+                    sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
+                    log("Scale range expanded → max progress $sclDynMax (${sclDynMax / SCL_MID.toFloat()}×)")
+                }
+            }
+        }
     }
 
     // -------------------------------------------------------------------------
     // Utility
     // -------------------------------------------------------------------------
 
+    /** Returns the current seekbar max for the active mode. */
     private fun modeMax() = when (currentMode) {
-        "POSITION" -> POS_MAX
+        "POSITION" -> 2 * posDynMid   // symmetric around mid
         "ROTATE"   -> ROT_MAX
-        else       -> SCL_MAX
+        else       -> sclDynMax
     }
 
     /** One decimal place is enough for all three modes. */
