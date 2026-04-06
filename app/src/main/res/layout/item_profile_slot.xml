@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    res/layout/item_profile_slot.xml
+    One row in the profile picker dialog.
+
+    Layout:  [Name ─────────────────] [Overwrite] [Load] [✕]
+-->
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingTop="6dp"
+    android:paddingBottom="6dp">
+
+    <!-- Profile name -->
+    <TextView
+        android:id="@+id/tvSlotName"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textColor="@android:color/white"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:ellipsize="end"/>
+
+    <!-- Overwrite / Save button -->
+    <Button
+        android:id="@+id/btnSlotOverwrite"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Overwrite"
+        android:textSize="11sp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:layout_marginStart="4dp"
+        android:backgroundTint="#555555"
+        android:textColor="@android:color/white"/>
+
+    <!-- Load button -->
+    <Button
+        android:id="@+id/btnSlotLoad"
+        android:layout_width="wrap_content"
+        android:layout_height="36dp"
+        android:text="Load"
+        android:textSize="11sp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:layout_marginStart="4dp"
+        android:backgroundTint="#2196F3"
+        android:textColor="@android:color/white"/>
+
+    <!-- Delete button (hidden for Default slot) -->
+    <ImageButton
+        android:id="@+id/btnSlotDelete"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="4dp"
+        android:src="@android:drawable/ic_menu_delete"
+        android:backgroundTint="@android:color/transparent"
+        android:tint="#F44336"
+        android:contentDescription="Delete profile"
+        android:visibility="gone"/>
+
+</LinearLayout>

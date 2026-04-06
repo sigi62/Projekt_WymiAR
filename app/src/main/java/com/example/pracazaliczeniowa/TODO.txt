@@ -21,3 +21,5 @@
   1. Dimension overlay measurements not appearing correctly - not changing units - not calculating
   2. Rotation Handle not a ring
   3. Deselecting model doesn't work  while tapping on selected???
+  4. Rotation Handle scaling incorrectly
+  5. Profiles not loading in?

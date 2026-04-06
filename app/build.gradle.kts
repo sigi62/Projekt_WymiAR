@@ -63,6 +63,8 @@ dependencies {
     implementation("io.github.sceneview:arsceneview:2.3.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
     implementation(libs.androidx.appcompat)
+    implementation(libs.androidx.recyclerview)
+    implementation("androidx.cardview:cardview:1.0.0")
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

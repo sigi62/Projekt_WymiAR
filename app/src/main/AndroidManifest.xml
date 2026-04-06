@@ -39,6 +39,10 @@
             android:name=".ARActivity"
             android:exported="false"
             android:theme="@style/Theme.ARActivity" />
+        <activity
+            android:name=".LibraryActivity"
+            android:exported="false"
+            android:theme="@style/Theme.LibraryActivity"/>
     </application>
 
 </manifest>

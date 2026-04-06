@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Single card in the model library grid.
+    Place this file at: res/layout/item_model_card.xml
+-->
+<androidx.cardview.widget.CardView
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_margin="8dp"
+    app:cardCornerRadius="12dp"
+    app:cardBackgroundColor="#1E1E1E"
+    app:cardElevation="4dp">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="8dp">
+
+        <!-- Thumbnail image -->
+        <ImageView
+            android:id="@+id/imgModelThumbnail"
+            android:layout_width="match_parent"
+            android:layout_height="120dp"
+            android:scaleType="centerCrop"
+            android:contentDescription="Model thumbnail"
+            android:background="#2A2A2A"/>
+
+        <!-- Model name -->
+        <TextView
+            android:id="@+id/tvModelName"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:textColor="@android:color/white"
+            android:textSize="14sp"
+            android:textStyle="bold"
+            android:paddingTop="8dp"
+            android:paddingBottom="2dp"
+            android:gravity="center_horizontal"/>
+
+        <!-- "✓ Saved" profile badge – hidden by default, shown by adapter -->
+        <TextView
+            android:id="@+id/tvSavedBadge"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center_horizontal"
+            android:text="✓ Saved"
+            android:textColor="#4CAF50"
+            android:textSize="11sp"
+            android:paddingBottom="4dp"
+            android:visibility="gone"/>
+
+    </LinearLayout>
+
+</androidx.cardview.widget.CardView>

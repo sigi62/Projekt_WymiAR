@@ -1,4 +1,3 @@
-
 package com.example.pracazaliczeniowa
 
 import android.os.Bundle
@@ -54,29 +53,35 @@ class ARActivity : AppCompatActivity() {
     private val placedMeasureNodes = mutableListOf<AnchorNode>()
     private val placedModelNodes = mutableListOf<AnchorNode>()
 
-    // ✅ Clean model system
     private val models = mutableListOf<DefaultModelNode>()
     private var selectedModel: SelectedModelNode? = null
-
 
     private var measurePointA: Float3? = null
     private var measurePointB: Float3? = null
 
-    // Add these flags to ARActivity
     private var isDragging = false
     private var isPinching = false
     private var isRotating = false
 
     private var initialPinchDistance = 0f
     private var touchStartPos = android.graphics.PointF()
-    private val MOVE_THRESHOLD = 20f // Pixels; ignore taps if the finger moved more than this
+    private val MOVE_THRESHOLD = 20f
     private var initialTouchAngle = 0f
     private var initialModelRotationY = 0f
 
+    // ---------------------------------------------------------------
+    // Active model path – set from LibraryActivity via Intent extra.
+    // Falls back to cat.glb so the app still works if launched directly.
+    // ---------------------------------------------------------------
+    private var activeModelPath: String = "models/cat.glb"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
+
+        // Read the model path chosen in LibraryActivity
+        activeModelPath = intent.getStringExtra(LibraryActivity.EXTRA_MODEL_PATH)
+            ?: "models/cat.glb"
 
         profileManager = ProfileManager(this)
 
@@ -88,7 +93,6 @@ class ARActivity : AppCompatActivity() {
         wireframeModeButton = findViewById(R.id.btnWireframeToggle)
         unitButton = findViewById(R.id.btnUnit)
 
-
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
 
@@ -99,7 +103,7 @@ class ARActivity : AppCompatActivity() {
         }
 
         modelControls.onSaveRequested = {
-            saveCurrentModelProfile()
+            showProfileDialog()
         }
         modelControls.onDeleteRequested = {
             deleteSelectedModel()
@@ -111,20 +115,19 @@ class ARActivity : AppCompatActivity() {
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
-
         measureModeButton.setOnClickListener {
             toggleMeasureTool()
         }
 
         unitButton.setOnClickListener {
             unit = when (unit) {
-                DistanceUnit.METERS -> DistanceUnit.CENTIMETERS
+                DistanceUnit.METERS      -> DistanceUnit.CENTIMETERS
                 DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
                 DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
             }
 
             unitButton.text = when (unit) {
-                DistanceUnit.METERS -> "m"
+                DistanceUnit.METERS      -> "m"
                 DistanceUnit.CENTIMETERS -> "cm"
                 DistanceUnit.MILLIMETERS -> "mm"
             }
@@ -139,28 +142,27 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
+        // Show which model is active
+        statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
+
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
             val x = motionEvent.x
             val y = motionEvent.y
 
-            // 1. Identify what was touched: A virtual node vs the real-world floor
             val nodeHit = hitResult?.node
             val arHit = arSceneView.hitTestAR(x, y, setOf(Plane.Type.HORIZONTAL_UPWARD_FACING))
             val selected = selectedModel
 
-            // --- GESTURE PHASE: Dragging & Pinching ---
             when (motionEvent.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     touchStartPos.set(x, y)
 
                     if (nodeHit?.name == "rotation_handle") {
                         isRotating = true
-                        touchStartPos.set(x, y) // Capture the exact pixel where the touch started
-                        initialModelRotationY = selected!!.rotation.y // Store the starting rotation
+                        touchStartPos.set(x, y)
+                        initialModelRotationY = selected!!.rotation.y
                         isDragging = false
-                    }
-                    else {
-                        // If we hit the model or floor, handle dragging
+                    } else {
                         isRotating = false
                         isDragging = (selected != null && (nodeHit == selected || nodeHit?.parent == selected || nodeHit == selected.getWrappedNode()))
                     }
@@ -169,35 +171,26 @@ class ARActivity : AppCompatActivity() {
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     if (motionEvent.pointerCount == 2 && selected != null) {
                         isPinching = true
-                        isDragging = false // Pinching overrides dragging
+                        isDragging = false
                         initialPinchDistance = getFingerSpacing(motionEvent)
                         selected.startPinching()
                     }
                 }
                 MotionEvent.ACTION_POINTER_UP -> {
-                    // One finger lifted: Stop pinching immediately to prevent index errors
                     isPinching = false
                 }
                 MotionEvent.ACTION_MOVE -> {
                     if (isRotating && selected != null) {
-                        val dx = motionEvent.x - touchStartPos.x // How many pixels did the finger move?
-
-                        // 1 pixel = 0.5 degrees (Adjust this for speed!)
-                        // Higher multiplier = Faster rotation
+                        val dx = motionEvent.x - touchStartPos.x
                         val sensitivity = 0.2f
                         val rotationOffset = dx * sensitivity
-
-                        val newRotationY = initialModelRotationY + rotationOffset // Subtract to match finger direction
-
-                        // Apply the rotation
+                        val newRotationY = initialModelRotationY + rotationOffset
                         selected.rotation = Float3(0f, newRotationY, 0f)
-
-                        // Sync the UI sliders
                         modelControls.updateRotationFromHandle(newRotationY)
                         return@onTouchEvent true
                     }
 
-                    if (isPinching &&  motionEvent.pointerCount >= 2 && selected != null) {
+                    if (isPinching && motionEvent.pointerCount >= 2 && selected != null) {
                         val currentDist = getFingerSpacing(motionEvent)
                         if (currentDist > 10f) {
                             val scaleFactor = currentDist / initialPinchDistance
@@ -208,11 +201,9 @@ class ARActivity : AppCompatActivity() {
                     }
 
                     if (isDragging && selected != null && arHit != null) {
-                        // Use the REAL-WORLD surface hit to move the model
                         selected.moveTo(Float3(arHit.hitPose.tx(), arHit.hitPose.ty(), arHit.hitPose.tz()))
                         return@onTouchEvent true
                     }
-
                 }
 
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
@@ -220,14 +211,12 @@ class ARActivity : AppCompatActivity() {
                     val dy = y - touchStartPos.y
                     val distanceMoved = sqrt(dx * dx + dy * dy)
 
-                    // If it was a movement/gesture, don't trigger a tap action
                     val wasGesture = isDragging || isPinching || distanceMoved > MOVE_THRESHOLD
                     isDragging = false
                     isPinching = false
 
                     if (wasGesture) return@onTouchEvent true
 
-                    // --- TAP LOGIC: Use the AR Hit for placement/points ---
                     if (arHit != null) {
                         handleTap(arHit, nodeHit)
                     }
@@ -239,40 +228,29 @@ class ARActivity : AppCompatActivity() {
     }
 
     private fun handleTap(arHit: HitResult, nodeHit: Node?) {
-        // 1. Priority: Measurement Tool
         if (isMeasureToolActive) {
             placeMeasurePoint(arHit)
             return
         }
 
-        // 2. Priority: Selection (Is it a model or a child of a model?)
         val modelNode = nodeHit as? DefaultModelNode ?: nodeHit?.parent as? DefaultModelNode
         val selected = selectedModel
 
         when {
-            // CASE: Tapping the already selected model (or its wrapper)
             selected != null && (nodeHit == selected || modelNode == selected.getWrappedNode()) -> {
-                // Optional: You could deselect here to toggle, or just show status
                 deselectModel()
             }
-
-            // CASE: Tapping a DIFFERENT model
             modelNode != null -> {
                 selectModel(modelNode)
             }
-
-            // CASE: Tapping empty floor while a model is selected -> Deselect
             selected != null -> {
                 deselectModel()
             }
-
-            // CASE: Tapping empty floor with nothing selected -> Place new
             else -> {
                 placeModel(arHit)
             }
         }
     }
-
 
     private fun toggleMeasureTool() {
         isMeasureToolActive = !isMeasureToolActive
@@ -282,35 +260,35 @@ class ARActivity : AppCompatActivity() {
             statusText.text = "Tap 2 points to measure"
         } else {
             measureOverlay.visibility = View.GONE
-            clearMeasurements() // Remove points when tool is toggled off
+            clearMeasurements()
             statusText.text = "Tap to place or select a model"
         }
     }
 
-
+    // ---------------------------------------------------------------
+    // Uses activeModelPath instead of the hardcoded "models/cat.glb"
+    // ---------------------------------------------------------------
     private fun placeModel(hitResult: HitResult) {
-        val modelPath = "models/cat.glb"
         statusText.text = "Loading model…"
 
         lifecycleScope.launch {
-
-            val modelInstance =
-                arSceneView.modelLoader.createModelInstance(modelPath)
+            val modelInstance = arSceneView.modelLoader.createModelInstance(activeModelPath)
 
             val node = DefaultModelNode(
-                modelPath = modelPath,
-                modelInstance = modelInstance,
-                scope = lifecycleScope,
-                sceneView = arSceneView,
+                modelPath            = activeModelPath,
+                modelInstance        = modelInstance,
+                scope                = lifecycleScope,
+                sceneView            = arSceneView,
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            val profile = profileManager.loadProfile(node.getModeleName())
+            // Auto-apply the default profile if one has been saved, otherwise use scene default size
+            val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
-                node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+                node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
                 node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             } else {
-                node.scaleToUnits(0.02f)
+                //node.scaleToUnits(0.02f)
             }
 
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
@@ -319,37 +297,27 @@ class ARActivity : AppCompatActivity() {
 
             placedModelNodes.add(anchorNode)
 
-            log("Adding new model to models list)")
+            log("Adding new model to models list")
             models.add(node)
 
             selectModel(node)
-
         }
     }
 
     private fun selectModel(defaultNode: DefaultModelNode) {
-
         log("SELECT MODEL CALLED")
 
         selectedModel?.let { currentWrapper ->
             val returnedNode = currentWrapper.unwrap()
-            if (returnedNode != null) {
-                // Ensure the old model is back in the general list
-                if (!models.contains(returnedNode)) {
-
-                    log("Adding returning model back to model list)")
-                    models.add(returnedNode)
-                }
+            if (returnedNode != null && !models.contains(returnedNode)) {
+                log("Adding returning model back to model list")
+                models.add(returnedNode)
             }
         }
 
-        // 2. Remove the new target from the general list
         models.remove(defaultNode)
 
-        val wrapped = defaultNode.wrapAsSelected(
-            scope = lifecycleScope
-        )
-
+        val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
         selectedModel = wrapped
 
         if (wrapped != null) {
@@ -358,16 +326,10 @@ class ARActivity : AppCompatActivity() {
             wireframeModeButton.visibility = View.VISIBLE
 
             wireframeModeButton.setOnClickListener {
-                // ✅ The node handles its own logic now
                 wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
-
-                // Optional: Feedback based on the new state
                 statusText.text = "Toggled dimensions"
             }
         }
-
-        //dimensionOverlay.attach(arSceneView, wrapped)
-        //modelControls.bindToNode(wrapped)
 
         statusText.text = "Model selected"
     }
@@ -383,14 +345,13 @@ class ARActivity : AppCompatActivity() {
         statusText.text = "Model deselected"
     }
 
-    // Update placeMeasurePoint to use the measureNodes list
     private fun placeMeasurePoint(hitResult: HitResult) {
-        val pose = hitResult.hitPose
+        val pose  = hitResult.hitPose
         val point = Float3(pose.tx(), pose.ty(), pose.tz())
 
         val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
         arSceneView.addChildNode(anchorNode)
-        placedMeasureNodes.add(anchorNode) // Track specifically as a measure node
+        placedMeasureNodes.add(anchorNode)
 
         if (measurePointA == null || measurePointB != null) {
             measurePointA = point
@@ -413,7 +374,6 @@ class ARActivity : AppCompatActivity() {
         measurePointB = null
         measureOverlay.clear()
 
-        // Remove only measurement anchors from the scene
         placedMeasureNodes.forEach {
             it.anchor?.detach()
             it.parent = null
@@ -421,38 +381,46 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.clear()
     }
 
-    private fun saveCurrentModelProfile() {
-        val selected = selectedModel ?: return
-        val wrapped = selected.getWrappedNode() ?: return
+    /** Opens the profile picker dialog for the currently selected model. */
+    private fun showProfileDialog() {
+        val selected  = selectedModel ?: return
+        val wrapped   = selected.getWrappedNode() ?: return
+        val modelName = wrapped.getModeleName()
 
-        val profileName = wrapped.getModeleName()
-        // Note: You might want to pass the actual model name dynamically
-        val profile = ModelProfile(
-            scaleX = wrapped.scale.x,
-            scaleY = wrapped.scale.y,
-            scaleZ = wrapped.scale.z,
-            rotationX = wrapped.rotation.x,
-            rotationY = wrapped.rotation.y,
-            rotationZ = wrapped.rotation.z
-        )
+        val dialog = ProfilePickerDialog.newInstance(modelName)
 
-        profileManager.saveProfile(profileName, profile)
-        statusText.text = "Saved default for $profileName"
+        // Provide a live snapshot of the current model state when Save/Overwrite is tapped
+        dialog.getCurrentProfile = {
+            ModelProfile(
+                scaleX    = wrapped.scale.x,
+                scaleY    = wrapped.scale.y,
+                scaleZ    = wrapped.scale.z,
+                rotationX = wrapped.rotation.x,
+                rotationY = wrapped.rotation.y,
+                rotationZ = wrapped.rotation.z
+            )
+        }
+
+        // Apply a loaded profile back onto the live model and refresh the control overlay
+        dialog.onLoadProfile = { profile ->
+            selected.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+            selected.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+            modelControls.bindToNode(selected)
+        }
+
+        dialog.onStatusUpdate = { message -> statusText.text = message }
+
+        dialog.show(supportFragmentManager, "ProfilePickerDialog")
     }
 
     private fun deleteSelectedModel() {
-        val selected = selectedModel ?: return
-
-        // 1. Get the parent AnchorNode (which holds the model in the AR world)
+        val selected   = selectedModel ?: return
         val anchorNode = selected.parent as? AnchorNode
 
-        // 2. Detach the anchor from the ARCore Session
         anchorNode?.anchor?.detach()
-
-        // 3. Remove the node from the SceneView hierarchy
         anchorNode?.parent = null
 
-        val default = selected.unwrap()
+        val default   = selected.unwrap()
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
@@ -462,7 +430,9 @@ class ARActivity : AppCompatActivity() {
         statusText.text = "deleted model $modelName"
     }
 
-    //Helper Functions
+    // ---------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------
     private fun distanceMeters(a: Float3, b: Float3): Float {
         val dx = a.x - b.x
         val dy = a.y - b.y
@@ -471,33 +441,19 @@ class ARActivity : AppCompatActivity() {
     }
 
     private fun getFingerSpacing(event: MotionEvent): Float {
-        // Safety check: if there aren't at least 2 fingers, return a neutral value
         if (event.pointerCount < 2) return 10f
-
         return try {
             val x = event.getX(0) - event.getX(1)
             val y = event.getY(0) - event.getY(1)
             sqrt(x * x + y * y)
-        } catch (e: IllegalArgumentException) {
-            // Fallback if a pointer disappears during the calculation
-            10f
-        }
+        } catch (e: IllegalArgumentException) { 10f }
     }
+
     private fun calculateAngle(touchX: Float, touchY: Float, node: Node): Float {
-        // Project the model's 3D position to 2D screen coordinates
-        // 1. Get the 3D world position of the node center
-        val worldPos = node.worldPosition
-
-        // 2. Project 3D world position to 2D screen coordinates (Pixels)
-        // In SceneView 2.3.3, this is accessed via the camera
+        val worldPos  = node.worldPosition
         val screenPos = arSceneView.cameraNode.worldToView(worldPos)
-
-        // 3. Calculate delta between touch and model center
         val dx = touchX - screenPos.x
         val dy = touchY - screenPos.y
-
-        // 4. atan2 returns the angle in radians; we convert to degrees
-        // We use negative dy because screen coordinates (y-down) are inverted compared to math planes
         return Math.toDegrees(Math.atan2((-dy).toDouble(), dx.toDouble())).toFloat()
     }
 
@@ -515,7 +471,4 @@ class ARActivity : AppCompatActivity() {
         super.onDestroy()
         arSceneView.destroy()
     }
-
 }
-
-

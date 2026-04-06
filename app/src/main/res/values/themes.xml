@@ -4,4 +4,6 @@
     <style name="Theme.PracaZaliczeniowa" parent="android:Theme.Material.Light.NoActionBar" />
 
     <style name="Theme.ARActivity" parent="Theme.AppCompat.Light.NoActionBar" />
+
+    <style name="Theme.LibraryActivity" parent="Theme.AppCompat.Light.NoActionBar" />
 </resources>
