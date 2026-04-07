@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_ar.xml
+    ───────────────
+    Added a ⚙ settings ImageButton to the top-start corner so it is always
+    reachable without conflicting with the existing top-end controls.
+-->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -14,6 +20,21 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
+    <!-- ── Settings button – top-start ─────────────────────────────────── -->
+    <ImageButton
+        android:id="@+id/btnSettings"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start"
+        android:layout_marginTop="16dp"
+        android:layout_marginStart="16dp"
+        android:src="@drawable/ic_settings"
+        android:background="@drawable/rounded_button"
+        android:scaleType="centerInside"
+        android:padding="10dp"
+        android:contentDescription="Settings"/>
+
+    <!-- ── Unit toggle – top-end ────────────────────────────────────────── -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -30,10 +51,9 @@
             android:background="#88000000"
             android:textColor="#FFFFFF" />
 
-
-
     </LinearLayout>
 
+    <!-- ── Measure tape / wireframe toggles – top-end ───────────────────── -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -61,10 +81,9 @@
             android:scaleType="centerInside"
             android:padding="10dp"/>
 
-
-
     </LinearLayout>
 
+    <!-- ── Status text + model controls – bottom ────────────────────────── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"

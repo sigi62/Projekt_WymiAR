@@ -14,6 +14,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import com.example.pracazaliczeniowa.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
 
@@ -67,6 +68,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
      * Current half-range for position in cm.
      * Seekbar range is always  0 .. 2*posDynMid,  displayed value = progress - posDynMid.
      * Grows when the user types a value whose |abs| > current mid; capped at POS_MID_HARD.
+     *
+     * Initialised from [AppSettings] via [applySettings]; falls back to [POS_MID_DEFAULT].
      */
     private var posDynMid: Int = POS_MID_DEFAULT
 
@@ -75,6 +78,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
      * Displayed value = progress / SCL_MID.
      * Grows when the user types a value whose progress equivalent > current max;
      * capped at SCL_MAX_HARD.
+     *
+     * Initialised from [AppSettings] via [applySettings]; falls back to [SCL_MAX_DEFAULT].
      */
     private var sclDynMax: Int = SCL_MAX_DEFAULT
 
@@ -88,11 +93,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Sync guard — prevents seekbar ↔ editText feedback loops
     // -------------------------------------------------------------------------
 
-    /**
-     * When true, programmatic changes to seekbars / editTexts are ignored by
-     * their respective listeners.  Always set via [withSync] to guarantee it
-     * is reset even if an exception is thrown.
-     */
     private var isSyncing = false
 
     private inline fun withSync(block: () -> Unit) {
@@ -106,14 +106,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private val commitHandler = Handler(Looper.getMainLooper())
 
-    /** One pending runnable per EditText; cancelled on each new keystroke. */
     private val pendingCommit = HashMap<EditText, Runnable>()
 
-    /**
-     * Schedule [action] to run [EDIT_COMMIT_DELAY_MS] ms after the last
-     * keystroke into [editText].  Any previously pending runnable for that
-     * EditText is cancelled first.
-     */
     private fun scheduleCommit(editText: EditText, action: () -> Unit) {
         pendingCommit[editText]?.let { commitHandler.removeCallbacks(it) }
         val runnable = Runnable { action() }
@@ -121,7 +115,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         commitHandler.postDelayed(runnable, EDIT_COMMIT_DELAY_MS)
     }
 
-    /** Cancel a pending commit for [editText] (e.g. when focus is lost and we commit immediately). */
     private fun cancelCommit(editText: EditText) {
         pendingCommit.remove(editText)?.let { commitHandler.removeCallbacks(it) }
     }
@@ -159,6 +152,47 @@ class ModelControlOverlayView @JvmOverloads constructor(
     fun bindToNode(node: SelectedModelNode) {
         targetNode = node
         setupUI()
+    }
+
+    /**
+     * Apply persisted settings from [AppSettings] as the new starting defaults
+     * for [posDynMid] and [sclDynMax].
+     *
+     * Call this:
+     *  • Once in [ARActivity.onCreate] before any node is bound, so the very
+     *    first seekbars already reflect the user's chosen ranges.
+     *  • Again in [ARActivity.onResume] so a change made in SettingsActivity
+     *    is picked up without needing to restart the app.
+     *
+     * The method only *lowers* or *raises* the defaults; it never shrinks a
+     * range that was already dynamically expanded during the current session
+     * (we keep the "never shrink" contract).
+     */
+    fun applySettings(settings: AppSettings) {
+        val newPosMid = settings.posMidDefault
+        val newSclMax = settings.sclMaxDefault
+
+        // Only update if the stored value is larger than the current dynamic
+        // value (i.e. don't shrink a range the user already expanded via typing).
+        if (newPosMid > posDynMid) {
+            posDynMid = newPosMid
+            // Reset position progress to the new centre so sliders start neutral.
+            positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+            log("Settings applied → posDynMid=$posDynMid")
+        }
+        if (newSclMax > sclDynMax) {
+            sclDynMax = newSclMax
+            log("Settings applied → sclDynMax=$sclDynMax")
+        }
+
+        // If the UI is already inflated, refresh the seekbar maxes immediately.
+        if (::s1.isInitialized) {
+            withSync {
+                val dynMax = modeMax()
+                s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
+                sUni.max = sclDynMax
+            }
+        }
     }
 
     /** Called by a pinch gesture; updates the universal-scale progress and applies it. */
@@ -286,33 +320,24 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // EditText wiring helper
     // -------------------------------------------------------------------------
 
-    /**
-     * Attaches a [android.text.TextWatcher] for debounced commits and an
-     * [OnFocusChangeListener] / IME action listener for immediate commit on blur
-     * or "Done" key press.  [onCommit] is called when the value should be
-     * applied; it runs outside [isSyncing] so it can safely update seekbars.
-     */
     private fun attachEditTextListeners(editText: EditText, onCommit: () -> Unit) {
-        // Debounce: schedule a commit 2 s after each keystroke
         editText.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: android.text.Editable?) {
-                if (isSyncing) return  // programmatic change — ignore
+                if (isSyncing) return
                 scheduleCommit(editText, onCommit)
             }
         })
 
-        // Immediate commit when the field loses focus
         editText.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
-                cancelCommit(editText)  // cancel the pending debounce
-                onCommit()              // commit right now
+                cancelCommit(editText)
+                onCommit()
                 dismissKeyboard(editText)
             }
         }
 
-        // Immediate commit on IME "Done" action
         editText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
                 cancelCommit(editText)
@@ -333,16 +358,11 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Commit helpers — parse EditTexts, clamp, push to seekbars, apply
     // -------------------------------------------------------------------------
 
-    /**
-     * Reads i1/i2/i3, expands the dynamic range if any value exceeds the current
-     * bounds (POSITION and SCALE only), repositions all seekbars, then applies.
-     */
     private fun commitEditTexts() {
         val v1 = i1.text.toString().toFloatOrNull() ?: progressToValue(s1.progress)
         val v2 = i2.text.toString().toFloatOrNull() ?: progressToValue(s2.progress)
         val v3 = i3.text.toString().toFloatOrNull() ?: progressToValue(s3.progress)
 
-        // Expand range *before* calling valueToProgress so progress is mapped correctly.
         maybeExpandRange(v1); maybeExpandRange(v2); maybeExpandRange(v3)
 
         val p1 = valueToProgress(v1)
@@ -350,7 +370,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val p3 = valueToProgress(v3)
 
         withSync {
-            // Apply updated max first so Android doesn't clamp the new progress.
             val dynMax = modeMax()
             s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
 
@@ -368,7 +387,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         applyToNode()
     }
 
-    /** Same for the universal-scale field — expands scale range if needed. */
     private fun commitUniScaleEditText() {
         if (currentMode != "SCALE") return
 
@@ -386,6 +404,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
             s1.progress   = p;  s2.progress = p;  s3.progress = p
             iUni.setText(formatValue(progressToValue(p)))
             iUni.setSelection(iUni.text.length)
+
             i1.setText(formatValue(progressToValue(p)))
             i2.setText(formatValue(progressToValue(p)))
             i3.setText(formatValue(progressToValue(p)))
@@ -399,7 +418,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Refresh helpers
     // -------------------------------------------------------------------------
 
-    /** Restores seekbars and EditTexts when switching modes. */
     private fun refreshSlidersForMode() {
         val (p1, p2, p3) = when (currentMode) {
             "ROTATE"   -> rotateProgress
@@ -409,8 +427,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
 
         withSync {
-            // Always apply current dynamic max *before* setting progress, otherwise
-            // Android silently clamps progress to the old max.
             val dynMax = modeMax()
             s1.max   = dynMax;  s2.max   = dynMax;  s3.max   = dynMax
             sUni.max = sclDynMax
@@ -427,7 +443,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    /** Syncs EditTexts to the current seekbar positions (called from the seek listener). */
     private fun refreshEditTexts() {
         i1.setText(formatValue(progressToValue(s1.progress)))
         i2.setText(formatValue(progressToValue(s2.progress)))
@@ -437,7 +452,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    /** Writes the current seekbar positions back into the per-mode state stores. */
     private fun saveCurrentProgress() {
         when (currentMode) {
             "ROTATE"   -> rotateProgress    = Triple(s1.progress, s2.progress, s3.progress)
@@ -456,7 +470,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val v2 = progressToValue(s2.progress)
         val v3 = progressToValue(s3.progress)
 
-
         when (currentMode) {
             "POSITION" -> node.updatePosition(v1 / currentUnitFactor, v2 / currentUnitFactor, v3 / currentUnitFactor)
             "ROTATE"   -> node.updateRotation(v1, v2, v3)
@@ -465,18 +478,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
     }
 
     // -------------------------------------------------------------------------
-    // Mapping functions  (always use dynamic mid/max, never the default constants)
+    // Mapping functions
     // -------------------------------------------------------------------------
 
-    /**
-     * Converts a seekbar integer progress value to the human-readable float.
-     *
-     * | Mode     | Formula                        | Example (defaults)        |
-     * |----------|--------------------------------|---------------------------|
-     * | POSITION | progress − posDynMid           | 115 → 15.0 cm             |
-     * | ROTATE   | progress − ROT_MID  (fixed)    | 180 → 0.0 °               |
-     * | SCALE    | progress / SCL_MID             | 206 → 2.06 ×              |
-     */
     private fun progressToValue(progress: Int): Float = when (currentMode) {
         "POSITION" -> (progress - posDynMid).toFloat()
         "ROTATE"   -> (progress - ROT_MID).toFloat()
@@ -484,17 +488,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         else       -> progress.toFloat()
     }
 
-    /**
-     * Inverse of [progressToValue].  Clamps to the *current* dynamic range —
-     * always call [maybeExpandRange] first if you want out-of-range values to
-     * expand the range rather than be clamped.
-     *
-     * | Mode     | Formula                              |
-     * |----------|--------------------------------------|
-     * | POSITION | value + posDynMid  → 0..2*posDynMid |
-     * | ROTATE   | value + ROT_MID    → 0..360 (fixed)  |
-     * | SCALE    | value * SCL_MID    → 1..sclDynMax    |
-     */
     private fun valueToProgress(value: Float): Int = when (currentMode) {
         "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
         "ROTATE"   -> (value + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
@@ -506,30 +499,17 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Dynamic range expansion
     // -------------------------------------------------------------------------
 
-    /**
-     * Checks whether [value] fits in the current range for the active mode and,
-     * if not, expands [posDynMid] or [sclDynMax] to accommodate it.
-     * Rotation is intentionally excluded — its range is always fixed ±180°.
-     *
-     * Expansion rules:
-     *  • POSITION: new mid = ceil(|value|), capped at POS_MID_HARD (1000 cm).
-     *              The seekbar max becomes  2 * posDynMid.
-     *  • SCALE:    new max = ceil(value * SCL_MID), capped at SCL_MAX_HARD (10 000).
-     *              The seekbar max becomes sclDynMax.
-     *
-     * Values that exceed the hard cap are silently clamped by [valueToProgress].
-     */
     private fun maybeExpandRange(value: Float) {
         when (currentMode) {
             "POSITION" -> {
-                val needed = kotlin.math.abs(value).toInt()  // mid must be >= |value|
+                val needed = kotlin.math.abs(value).toInt()
                 if (needed > posDynMid) {
                     posDynMid = needed.coerceAtMost(POS_MID_HARD)
                     log("Position range expanded → ±$posDynMid cm")
                 }
             }
             "SCALE" -> {
-                val neededMax = (value * SCL_MID).toInt()    // progress equivalent
+                val neededMax = (value * SCL_MID).toInt()
                 if (neededMax > sclDynMax) {
                     sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
                     log("Scale range expanded → max progress $sclDynMax (${sclDynMax / SCL_MID.toFloat()}×)")
@@ -542,21 +522,19 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Utility
     // -------------------------------------------------------------------------
 
-    /** Returns the current seekbar max for the active mode. */
     private fun modeMax() = when (currentMode) {
-        "POSITION" -> 2 * posDynMid   // symmetric around mid
+        "POSITION" -> 2 * posDynMid
         "ROTATE"   -> ROT_MAX
         else       -> sclDynMax
     }
 
-    /** One decimal place is enough for all three modes. */
     private fun formatValue(value: Float) = String.format("%.1f", value)
 
-    private var currentUnitFactor: Float = 100f //default to CM
+    private var currentUnitFactor: Float = 100f
     fun updateUnit(unit: DistanceUnit) {
         val oldFactor = currentUnitFactor
         currentUnitFactor = when(unit) {
-            DistanceUnit.METERS -> 1f
+            DistanceUnit.METERS      -> 1f
             DistanceUnit.CENTIMETERS -> 100f
             DistanceUnit.MILLIMETERS -> 1000f
         }
@@ -567,7 +545,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
             (((positionProgress.second - posDynMid) * multiplier) + posDynMid).toInt(),
             (((positionProgress.third - posDynMid) * multiplier) + posDynMid).toInt()
         )
-        // Refresh the UI so the numbers in EditTexts update immediately
         refreshSlidersForMode()
     }
 }

@@ -12,6 +12,7 @@
         android:required="false" />
 
     <application
+        android:name=".App"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -43,6 +44,11 @@
             android:name=".LibraryActivity"
             android:exported="false"
             android:theme="@style/Theme.LibraryActivity"/>
+
+        <activity
+            android:name=".SettingsActivity"
+            android:parentActivityName=".LibraryActivity"
+            android:label="Settings" />
     </application>
 
 </manifest>

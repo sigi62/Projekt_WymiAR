@@ -1,9 +1,11 @@
 package com.example.pracazaliczeniowa
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -16,7 +18,6 @@ import io.github.sceneview.ar.node.AnchorNode
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 import android.util.Log
-import android.widget.ImageButton
 
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
@@ -46,6 +47,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var unitButton: Button
+    private lateinit var settingsButton: ImageButton   // ← NEW
 
     private var isMeasureToolActive: Boolean = false
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
@@ -85,13 +87,22 @@ class ARActivity : AppCompatActivity() {
 
         profileManager = ProfileManager(this)
 
-        arSceneView = findViewById(R.id.arSceneView)
-        statusText = findViewById(R.id.statusText)
-        modelControls = findViewById(R.id.modelControls)
-        measureOverlay = findViewById(R.id.measureOverlay)
-        measureModeButton = findViewById(R.id.btnMeasureTapeModeToggle)
-        wireframeModeButton = findViewById(R.id.btnWireframeToggle)
-        unitButton = findViewById(R.id.btnUnit)
+        arSceneView           = findViewById(R.id.arSceneView)
+        statusText            = findViewById(R.id.statusText)
+        modelControls         = findViewById(R.id.modelControls)
+        measureOverlay        = findViewById(R.id.measureOverlay)
+        measureModeButton     = findViewById(R.id.btnMeasureTapeModeToggle)
+        wireframeModeButton   = findViewById(R.id.btnWireframeToggle)
+        unitButton            = findViewById(R.id.btnUnit)
+        settingsButton        = findViewById(R.id.btnSettings)       // ← NEW
+
+        // ── Apply saved overlay defaults before any node is bound ───────
+        modelControls.applySettings(AppSettings(this))
+
+        // ── Settings button ─────────────────────────────────────────────
+        settingsButton.setOnClickListener {
+            startActivity(Intent(this, SettingsActivity::class.java))
+        }
 
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
@@ -99,7 +110,7 @@ class ARActivity : AppCompatActivity() {
         lifecycleScope.launch {
             val env = arSceneView.environmentLoader.loadHDREnvironment("environment.hdr")
             arSceneView.indirectLight = env?.indirectLight
-            arSceneView.skybox = env?.skybox
+            arSceneView.skybox        = env?.skybox
         }
 
         modelControls.onSaveRequested = {
@@ -109,7 +120,7 @@ class ARActivity : AppCompatActivity() {
             deleteSelectedModel()
         }
 
-        modelControls.visibility = View.GONE
+        modelControls.visibility     = View.GONE
         wireframeModeButton.visibility = View.GONE
 
         measureOverlay.attach(arSceneView)
@@ -204,69 +215,84 @@ class ARActivity : AppCompatActivity() {
                         selected.moveTo(Float3(arHit.hitPose.tx(), arHit.hitPose.ty(), arHit.hitPose.tz()))
                         return@onTouchEvent true
                     }
+
+                    return@onTouchEvent false
                 }
 
-                MotionEvent.ACTION_UP, MotionEvent.ACTION_CANCEL -> {
-                    val dx = x - touchStartPos.x
-                    val dy = y - touchStartPos.y
-                    val distanceMoved = sqrt(dx * dx + dy * dy)
+                MotionEvent.ACTION_UP -> {
+                    val moved = Math.abs(x - touchStartPos.x) > MOVE_THRESHOLD ||
+                            Math.abs(y - touchStartPos.y) > MOVE_THRESHOLD
 
-                    val wasGesture = isDragging || isPinching || distanceMoved > MOVE_THRESHOLD
-                    isDragging = false
-                    isPinching = false
+                    isDragging  = false
+                    isPinching  = false
+                    isRotating  = false
 
-                    if (wasGesture) return@onTouchEvent true
+                    if (moved) return@onTouchEvent false
+
+                    if (isMeasureToolActive) {
+                        if (arHit != null) placeMeasurePoint(arHit)
+                        return@onTouchEvent true
+                    }
+
+                    if (nodeHit != null) {
+                        val clickedDefault = models.find { it == nodeHit || it == nodeHit.parent }
+                        if (clickedDefault != null) {
+                            selectModel(clickedDefault)
+                            return@onTouchEvent true
+                        }
+
+                        if (selected != null &&
+                            (nodeHit == selected || nodeHit.parent == selected ||
+                                    nodeHit == selected.getWrappedNode())) {
+                            return@onTouchEvent true
+                        }
+
+                        deselectModel()
+                        return@onTouchEvent true
+                    }
+
+                    if (selected != null) {
+                        deselectModel()
+                        return@onTouchEvent true
+                    }
 
                     if (arHit != null) {
-                        handleTap(arHit, nodeHit)
+                        placeModel(arHit)
+                        return@onTouchEvent true
                     }
+
+                    return@onTouchEvent false
                 }
             }
-
-            true
-        }
-    }
-
-    private fun handleTap(arHit: HitResult, nodeHit: Node?) {
-        if (isMeasureToolActive) {
-            placeMeasurePoint(arHit)
-            return
-        }
-
-        val modelNode = nodeHit as? DefaultModelNode ?: nodeHit?.parent as? DefaultModelNode
-        val selected = selectedModel
-
-        when {
-            selected != null && (nodeHit == selected || modelNode == selected.getWrappedNode()) -> {
-                deselectModel()
-            }
-            modelNode != null -> {
-                selectModel(modelNode)
-            }
-            selected != null -> {
-                deselectModel()
-            }
-            else -> {
-                placeModel(arHit)
-            }
-        }
-    }
-
-    private fun toggleMeasureTool() {
-        isMeasureToolActive = !isMeasureToolActive
-
-        if (isMeasureToolActive) {
-            measureOverlay.visibility = View.VISIBLE
-            statusText.text = "Tap 2 points to measure"
-        } else {
-            measureOverlay.visibility = View.GONE
-            clearMeasurements()
-            statusText.text = "Tap to place or select a model"
+            false
         }
     }
 
     // ---------------------------------------------------------------
-    // Uses activeModelPath instead of the hardcoded "models/cat.glb"
+    // Re-apply settings when returning from SettingsActivity so that
+    // the next model placement picks up any changed defaults.
+    // ---------------------------------------------------------------
+    override fun onResume() {
+        super.onResume()
+        viewAttachmentManager.onResume()
+        modelControls.applySettings(AppSettings(this))
+    }
+
+    // ---------------------------------------------------------------
+    // Measure tool toggle
+    // ---------------------------------------------------------------
+    private fun toggleMeasureTool() {
+        isMeasureToolActive = !isMeasureToolActive
+        if (!isMeasureToolActive) {
+            clearMeasurements()
+            statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
+        } else {
+            statusText.text = "Tap to place first measure point"
+        }
+    }
+
+    // ---------------------------------------------------------------
+    // Model placement
     // ---------------------------------------------------------------
     private fun placeModel(hitResult: HitResult) {
         statusText.text = "Loading model…"
@@ -275,20 +301,18 @@ class ARActivity : AppCompatActivity() {
             val modelInstance = arSceneView.modelLoader.createModelInstance(activeModelPath)
 
             val node = DefaultModelNode(
-                modelPath            = activeModelPath,
-                modelInstance        = modelInstance,
-                scope                = lifecycleScope,
-                sceneView            = arSceneView,
+                modelPath             = activeModelPath,
+                modelInstance         = modelInstance,
+                scope                 = lifecycleScope,
+                sceneView             = arSceneView,
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            // Auto-apply the default profile if one has been saved, otherwise use scene default size
+            // Auto-apply the default profile if one has been saved
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
                 node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
                 node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
-            } else {
-                //node.scaleToUnits(0.02f)
             }
 
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
@@ -322,7 +346,7 @@ class ARActivity : AppCompatActivity() {
 
         if (wrapped != null) {
             modelControls.bindToNode(wrapped)
-            modelControls.visibility = View.VISIBLE
+            modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
 
             wireframeModeButton.setOnClickListener {
@@ -340,7 +364,7 @@ class ARActivity : AppCompatActivity() {
             models.add(returnedNode)
         }
         selectedModel = null
-        modelControls.visibility = View.GONE
+        modelControls.visibility      = View.GONE
         wireframeModeButton.visibility = View.GONE
         statusText.text = "Model deselected"
     }
@@ -389,7 +413,6 @@ class ARActivity : AppCompatActivity() {
 
         val dialog = ProfilePickerDialog.newInstance(modelName)
 
-        // Provide a live snapshot of the current model state when Save/Overwrite is tapped
         dialog.getCurrentProfile = {
             ModelProfile(
                 scaleX    = wrapped.scale.x,
@@ -401,7 +424,6 @@ class ARActivity : AppCompatActivity() {
             )
         }
 
-        // Apply a loaded profile back onto the live model and refresh the control overlay
         dialog.onLoadProfile = { profile ->
             selected.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             selected.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
@@ -424,7 +446,7 @@ class ARActivity : AppCompatActivity() {
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
-        modelControls.visibility = View.GONE
+        modelControls.visibility      = View.GONE
         wireframeModeButton.visibility = View.GONE
 
         statusText.text = "deleted model $modelName"
@@ -455,11 +477,6 @@ class ARActivity : AppCompatActivity() {
         val dx = touchX - screenPos.x
         val dy = touchY - screenPos.y
         return Math.toDegrees(Math.atan2((-dy).toDouble(), dx.toDouble())).toFloat()
-    }
-
-    override fun onResume() {
-        super.onResume()
-        viewAttachmentManager.onResume()
     }
 
     override fun onPause() {

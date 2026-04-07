@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- res/values-night/colors.xml  — DARK mode values -->
+<resources>
+    <color name="screen_background">#1C1B1F</color>
+    <color name="card_background">#2B2930</color>
+
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#CAC4D0</color>
+    <color name="text_section_label">#D0BCFF</color>
+
+    <color name="button_background">#49454F</color>
+    <color name="button_text">#FFFFFF</color>
+
+    <color name="edit_text_hint">#938F99</color>
+
+    <color name="icon_tint">#000000</color>
+    <color name="accent">#49454F</color>
+</resources>
