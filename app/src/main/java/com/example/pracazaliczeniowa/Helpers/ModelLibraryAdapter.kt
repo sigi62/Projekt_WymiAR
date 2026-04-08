@@ -1,6 +1,7 @@
 package com.example.pracazaliczeniowa.Helpers
 
 import android.graphics.BitmapFactory
+import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -16,8 +17,10 @@ class ModelLibraryAdapter(
     private val items: List<ModelItem>,
     /** Set of profileKeys that already have a saved JSON profile. */
     private val savedProfiles: Set<String>,
+    private var selectedKey: String? = null,
     private val onItemClick: (ModelItem) -> Unit
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
+
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val thumbnail: ImageView  = view.findViewById(R.id.imgModelThumbnail)
@@ -33,7 +36,15 @@ class ModelLibraryAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item    = items[position]
+
+        if (item.profileKey == selectedKey) {
+            holder.itemView.rootView.setBackgroundColor(Color.parseColor("#330000FF"))
+        } else {
+            holder.itemView.rootView.setBackgroundColor(Color.TRANSPARENT)
+        }
         val context = holder.itemView.context
+
+        holder.thumbnail.setImageDrawable(null)
 
         // ── Thumbnail ───────────────────────────────────────────────────────
         // Priority 1: cached PNG captured from ModelPreviewActivity
@@ -43,6 +54,7 @@ class ModelLibraryAdapter(
                 val bmp = BitmapFactory.decodeFile(cached.absolutePath)
                 if (bmp != null) {
                     holder.thumbnail.setImageBitmap(bmp)
+                    return
                 } else {
                     // Corrupt file – fall through to resource fallback
                     setFallbackThumbnail(holder.thumbnail, item)
@@ -56,6 +68,7 @@ class ModelLibraryAdapter(
             else -> {
                 holder.thumbnail.setImageResource(R.drawable.ic_model_placeholder)
             }
+
         }
 
         // ── Name ────────────────────────────────────────────────────────────
@@ -68,6 +81,12 @@ class ModelLibraryAdapter(
         // ── Click ───────────────────────────────────────────────────────────
         holder.itemView.setOnClickListener { onItemClick(item) }
     }
+
+    fun updateSelection(key: String?) {
+        this.selectedKey = key
+        notifyDataSetChanged()
+    }
+
 
     override fun getItemCount() = items.size
 

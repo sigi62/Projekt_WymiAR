@@ -27,6 +27,12 @@ class LibraryActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) recreate()
     }
 
+    private var selectedModelKey: String? = null // Track selection
+
+    private val arLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        adapter.notifyDataSetChanged()
+    }
+
     // Refresh the grid when returning from the preview (thumbnails may have changed)
     private val previewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
@@ -60,15 +66,30 @@ class LibraryActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.rvModelLibrary)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
+
         adapter = ModelLibraryAdapter(
-            items         = models,
-            savedProfiles = savedProfiles
+            items = models,
+            savedProfiles = savedProfiles,
+            selectedKey = selectedModelKey // Pass selection to adapter
         ) { selectedModel ->
-            val intent = Intent(this, ModelPreviewActivity::class.java).apply {
-                putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH, selectedModel.modelPath)
+            selectedModelKey = selectedModel.profileKey
+            adapter.updateSelection(selectedModelKey) // Highlighting logic
+
+            val intent = Intent(this, ARActivity::class.java).apply {
+                putExtra("extra_model_path", selectedModel.modelPath)
             }
-            previewLauncher.launch(intent)
+            arLauncher.launch(intent)
         }
+        //Preview adapter
+//        adapter = ModelLibraryAdapter(
+//            items         = models,
+//            savedProfiles = savedProfiles
+//        ) { selectedModel ->
+//            val intent = Intent(this, ModelPreviewActivity::class.java).apply {
+//                putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH, selectedModel.modelPath)
+//            }
+//            previewLauncher.launch(intent)
+//        }
 
         recyclerView.adapter = adapter
 
@@ -76,10 +97,15 @@ class LibraryActivity : AppCompatActivity() {
         // The hidden SceneView renders each model off-screen at a fixed
         // isometric angle and saves a 256×256 PNG to filesDir/thumbnails/.
         // The adapter is refreshed automatically when all captures finish.
+        // In LibraryActivity.kt
         ThumbnailCaptureHelper(
             context   = this,
             models    = models,
-            onAllDone = { adapter.notifyDataSetChanged() }
+            onAllDone = {
+                runOnUiThread {
+                    adapter.notifyDataSetChanged()
+                }
+            }
         ).start()
     }
 }
