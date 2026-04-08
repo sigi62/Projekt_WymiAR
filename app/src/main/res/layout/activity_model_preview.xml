@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    activity_model_preview.xml
+    Place in:  res/layout/activity_model_preview.xml
+-->
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <!-- SceneView surface – fills the whole screen -->
+    <io.github.sceneview.SceneView
+        android:id="@+id/previewSceneView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Back button (top-left) -->
+    <ImageButton
+        android:id="@+id/btnPreviewBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|start"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Back"
+        android:src="@drawable/ic_arrow_back"/>
+
+    <!-- "Open in AR" button (bottom-centre) -->
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/btnOpenInAR"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="32dp"
+        android:text="Open in AR" />
+
+</FrameLayout>

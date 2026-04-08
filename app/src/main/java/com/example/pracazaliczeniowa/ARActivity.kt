@@ -18,6 +18,10 @@ import io.github.sceneview.ar.node.AnchorNode
 import kotlinx.coroutines.launch
 import kotlin.math.sqrt
 import android.util.Log
+import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Helpers.ModelProfile
+import com.example.pracazaliczeniowa.Helpers.ProfileManager
+import com.example.pracazaliczeniowa.Helpers.ProfilePickerDialog
 
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
@@ -415,9 +419,9 @@ class ARActivity : AppCompatActivity() {
 
         dialog.getCurrentProfile = {
             ModelProfile(
-                scaleX    = wrapped.scale.x,
-                scaleY    = wrapped.scale.y,
-                scaleZ    = wrapped.scale.z,
+                scaleX = wrapped.scale.x,
+                scaleY = wrapped.scale.y,
+                scaleZ = wrapped.scale.z,
                 rotationX = wrapped.rotation.x,
                 rotationY = wrapped.rotation.y,
                 rotationZ = wrapped.rotation.z

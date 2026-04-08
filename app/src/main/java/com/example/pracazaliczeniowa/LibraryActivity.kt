@@ -9,20 +9,39 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 
+import com.example.pracazaliczeniowa.Helpers.ModelItem
+import com.example.pracazaliczeniowa.Helpers.ModelLibraryAdapter
+import com.example.pracazaliczeniowa.Helpers.ProfileManager
+import com.example.pracazaliczeniowa.Helpers.ThumbnailCaptureHelper
+
 class LibraryActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_MODEL_PATH = "extra_model_path"
     }
 
-    // Launcher that recreates this activity if SettingsActivity signals a theme change
+    // Reloads this activity when SettingsActivity signals a theme change
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) {
-            recreate()
-        }
+        if (result.resultCode == Activity.RESULT_OK) recreate()
     }
+
+    // Refresh the grid when returning from the preview (thumbnails may have changed)
+    private val previewLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        adapter.notifyDataSetChanged()
+    }
+
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: ModelLibraryAdapter
+
+    private val models = listOf(
+        ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder),
+        ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder),
+        ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder),
+    )
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -32,28 +51,35 @@ class LibraryActivity : AppCompatActivity() {
             settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
         }
 
-        val models = listOf(
-            ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder),
-            ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder),
-            ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder),
-        )
-
         val profileManager = ProfileManager(this)
         val savedProfiles = models
             .filter { profileManager.hasAnyProfile(it.profileKey) }
-            .map { it.profileKey }
+            .map    { it.profileKey }
             .toSet()
 
-        val recyclerView = findViewById<RecyclerView>(R.id.rvModelLibrary)
+        recyclerView = findViewById(R.id.rvModelLibrary)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
-        recyclerView.adapter = ModelLibraryAdapter(
+
+        adapter = ModelLibraryAdapter(
             items         = models,
             savedProfiles = savedProfiles
         ) { selectedModel ->
-            val intent = Intent(this, ARActivity::class.java).apply {
-                putExtra(EXTRA_MODEL_PATH, selectedModel.modelPath)
+            val intent = Intent(this, ModelPreviewActivity::class.java).apply {
+                putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH, selectedModel.modelPath)
             }
-            startActivity(intent)
+            previewLauncher.launch(intent)
         }
+
+        recyclerView.adapter = adapter
+
+        // Pre-cache thumbnails for any models that don't have one yet.
+        // The hidden SceneView renders each model off-screen at a fixed
+        // isometric angle and saves a 256×256 PNG to filesDir/thumbnails/.
+        // The adapter is refreshed automatically when all captures finish.
+        ThumbnailCaptureHelper(
+            context   = this,
+            models    = models,
+            onAllDone = { adapter.notifyDataSetChanged() }
+        ).start()
     }
 }

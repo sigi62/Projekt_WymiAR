@@ -1,12 +1,14 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Helpers
 
 import android.app.AlertDialog
 import android.os.Bundle
+import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.example.pracazaliczeniowa.R
 
 /**
  * A dialog that lets the user manage profiles for the currently selected model.
@@ -162,8 +164,8 @@ class ProfilePickerDialog : DialogFragment() {
         val input = EditText(requireContext()).apply {
             hint       = "Profile name"
             maxLines   = 1
-            inputType  = android.text.InputType.TYPE_CLASS_TEXT or
-                         android.text.InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            inputType  = InputType.TYPE_CLASS_TEXT or
+                         InputType.TYPE_TEXT_FLAG_CAP_WORDS
         }
 
         AlertDialog.Builder(requireContext())

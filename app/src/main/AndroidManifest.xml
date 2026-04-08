@@ -49,6 +49,10 @@
             android:name=".SettingsActivity"
             android:parentActivityName=".LibraryActivity"
             android:label="Settings" />
+        <activity
+            android:name=".ModelPreviewActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ARActivity"/>
     </application>
 
 </manifest>

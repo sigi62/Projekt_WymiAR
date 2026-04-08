@@ -14,7 +14,7 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import com.example.pracazaliczeniowa.AppSettings
+import com.example.pracazaliczeniowa.Helpers.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
 
