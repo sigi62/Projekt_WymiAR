@@ -1,16 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_model_preview.xml
-    Place in:  res/layout/activity_model_preview.xml
--->
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#DCDCDC">
 
-    <!-- ARSceneView in non-AR mode: gives us proper Filament + HDR lighting
-         without needing a camera feed or plane detection. -->
     <io.github.sceneview.SceneView
         android:id="@+id/previewSceneView"
         android:layout_width="match_parent"
@@ -27,8 +21,49 @@
         android:contentDescription="Back"
         android:src="@drawable/ic_arrow_back_color_invert"/>
 
-    <!-- Bottom button row -->
+    <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────
+         Sits above the SceneView. The darkened surround is drawn by
+         CropOverlayView; this container just holds the confirm/cancel row. -->
+    <com.example.pracazaliczeniowa.Overlays.CropOverlayView
+        android:id="@+id/cropOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <!-- Confirm / Cancel row — shown together with the crop overlay -->
     <LinearLayout
+        android:id="@+id/cropConfirmBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
+        android:visibility="gone">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCropCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="Cancel" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCropConfirm"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="✓ Save Thumbnail" />
+
+    </LinearLayout>
+
+    <!-- Bottom button row (hidden while crop overlay is active) -->
+    <LinearLayout
+        android:id="@+id/normalButtonBar"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|center_horizontal"

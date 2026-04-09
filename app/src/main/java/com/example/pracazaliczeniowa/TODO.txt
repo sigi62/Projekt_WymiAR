@@ -7,8 +7,6 @@
 
   Add a toggle effect to MeasureTape
   Add a toggle effect to wireframe mode too ?? Button type special for selected?
-  Add a label for rotation/position/scale seekbars
-
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
   More UI changes
@@ -23,12 +21,10 @@
   3. Deselecting model doesn't work  while tapping on selected???
   5. Profiles not loading in?
   6. Model Cards delay before AR loads
-  7. model cards blue highlight
 
 
   IDEAS
 
   1. Thumbnails for auto models are pre-made
-  2. User can make own thumnail by snapping a picture
-  3. Option near model - three dots - change thumbnail / Or going to Preview Space and there's an option
-  4. Selecting model still auto going to AR
+  2. Thumbnail capture allows scale
+ 

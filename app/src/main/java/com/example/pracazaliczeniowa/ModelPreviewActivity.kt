@@ -1,40 +1,30 @@
 package com.example.pracazaliczeniowa
 
 import android.graphics.Bitmap
+import android.graphics.RectF
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.PixelCopy
+import android.view.View
 import android.widget.Button
 import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import com.example.pracazaliczeniowa.Overlays.CropOverlayView
 import io.github.sceneview.SceneView
 import io.github.sceneview.node.ModelNode
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileOutputStream
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/**
- * Full-screen 3D model preview — no AR, grey void background.
- *
- * Layout XML must declare R.id.previewSceneView as io.github.sceneview.SceneView.
- *
- * One-finger drag  → orbit camera (azimuth + elevation)
- * Two-finger pinch → zoom (camera distance)
- * "Set Thumbnail"  → captures the current frame via PixelCopy and saves it to
- *                    filesDir/thumbnails/<profileKey>.png, which is the same
- *                    path ModelLibraryAdapter reads from.
- *
- * Extras:
- *  - EXTRA_MODEL_PATH  (String) – asset path, e.g. "models/cat.glb"
- *  - EXTRA_PROFILE_KEY (String) – thumbnail filename key, e.g. "cat"
- */
 class ModelPreviewActivity : AppCompatActivity() {
 
     companion object {
@@ -53,15 +43,15 @@ class ModelPreviewActivity : AppCompatActivity() {
         private const val CAM_ELEV_MAX =  89.0
     }
 
-    private lateinit var sceneView: SceneView
+    private lateinit var sceneView:       SceneView
+    private lateinit var cropOverlay: CropOverlayView
+    private lateinit var normalButtonBar: LinearLayout
+    private lateinit var cropConfirmBar:  LinearLayout
+
     private var modelNode: ModelNode? = null
     private lateinit var profileKey: String
 
-    /**
-     * Flipped to true by the "Set Thumbnail" button.
-     * Consumed inside the onFrame callback so PixelCopy always sees a
-     * fully-rendered, non-black surface.
-     */
+    /** Set to true inside onFrame so PixelCopy runs on a live surface. */
     private var captureNextFrame = false
 
     private var camDist    = CAM_DIST_INIT
@@ -79,17 +69,16 @@ class ModelPreviewActivity : AppCompatActivity() {
         setContentView(R.layout.activity_model_preview)
 
         val modelPath = intent.getStringExtra(EXTRA_MODEL_PATH) ?: run {
-            Log.e(TAG, "No model path provided")
-            finish()
-            return
+            Log.e(TAG, "No model path provided"); finish(); return
         }
         profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run {
-            Log.e(TAG, "No profile key provided")
-            finish()
-            return
+            Log.e(TAG, "No profile key provided"); finish(); return
         }
 
-        sceneView = findViewById(R.id.previewSceneView)
+        sceneView       = findViewById(R.id.previewSceneView)
+        cropOverlay     = findViewById(R.id.cropOverlay)
+        normalButtonBar = findViewById(R.id.normalButtonBar)
+        cropConfirmBar  = findViewById(R.id.cropConfirmBar)
 
         // ── Grey void ─────────────────────────────────────────────────────
         sceneView.skybox = null
@@ -100,14 +89,13 @@ class ModelPreviewActivity : AppCompatActivity() {
                 val env = sceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
                 if (env != null) {
                     sceneView.environment = env.apply { sceneView.skybox = null }
-                    Log.d(TAG, "HDR environment loaded")
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Could not load environment.hdr: ${e.message}")
             }
         }
 
-        // ── Buttons ───────────────────────────────────────────────────────
+        // ── Normal buttons ────────────────────────────────────────────────
         findViewById<ImageButton>(R.id.btnPreviewBack).setOnClickListener { finish() }
 
         findViewById<Button>(R.id.btnOpenInAR).setOnClickListener {
@@ -115,16 +103,26 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
 
         findViewById<Button>(R.id.btnTakeScreenshot).setOnClickListener {
-            captureNextFrame = true
-            Toast.makeText(this, "Capturing…", Toast.LENGTH_SHORT).show()
+            showCropOverlay()
         }
 
-        // ── Load model ────────────────────────────────────────────────────
+        // ── Crop overlay buttons ──────────────────────────────────────────
+        findViewById<Button>(R.id.btnCropCancel).setOnClickListener {
+            hideCropOverlay()
+        }
+
+        findViewById<Button>(R.id.btnCropConfirm).setOnClickListener {
+            // Grab the crop rect now — before the overlay is hidden —
+            // then hide the UI and trigger a PixelCopy on the next frame.
+            pendingCropRect = cropOverlay.getCropRect()
+            hideCropOverlay()
+            captureNextFrame = true
+        }
+
+        // ── Model loading ─────────────────────────────────────────────────
         lifecycleScope.launch { loadModel(modelPath) }
 
-        // ── Thumbnail capture — fires after Filament renders each frame ───
-        // We wait for the flag rather than capturing immediately so the
-        // bitmap is never black (surface is guaranteed live inside onFrame).
+        // ── Frame callback — PixelCopy only on a live surface ─────────────
         sceneView.onFrame = { _ ->
             if (captureNextFrame) {
                 captureNextFrame = false
@@ -135,12 +133,27 @@ class ModelPreviewActivity : AppCompatActivity() {
         setupTouchListener()
     }
 
-    // -------------------------------------------------------------------------
-    // Model loading
-    // -------------------------------------------------------------------------
+    // ── Crop overlay visibility ───────────────────────────────────────────
+
+    private fun showCropOverlay() {
+        cropOverlay.visibility     = View.VISIBLE
+        cropConfirmBar.visibility  = View.VISIBLE
+        normalButtonBar.visibility = View.GONE
+        // Disable orbit/zoom while the crop UI is up
+        sceneView.setOnTouchListener(null)
+    }
+
+    private fun hideCropOverlay() {
+        cropOverlay.visibility     = View.GONE
+        cropConfirmBar.visibility  = View.GONE
+        normalButtonBar.visibility = View.VISIBLE
+        setupTouchListener()
+    }
+
+    // ── Model loading ─────────────────────────────────────────────────────
+
     private suspend fun loadModel(modelPath: String) {
         try {
-            Log.d(TAG, "Loading model: $modelPath")
             val instance = sceneView.modelLoader.createModelInstance(modelPath)
             val node = ModelNode(
                 modelInstance = instance,
@@ -152,7 +165,6 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
             sceneView.addChildNode(node)
             modelNode = node
-            Log.d(TAG, "Model loaded successfully")
             updateCamera()
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model: $modelPath", e)
@@ -162,10 +174,14 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Thumbnail capture
-    // Called from inside onFrame so the SurfaceView surface is guaranteed live.
-    // -------------------------------------------------------------------------
+    // ── Thumbnail capture ─────────────────────────────────────────────────
+
+    /**
+     * Stored when the user taps "Save Thumbnail" in the crop UI.
+     * In view pixels — converted to bitmap pixels inside [cropBitmap].
+     */
+    private var pendingCropRect: RectF? = null
+
     private fun captureAndSaveThumbnail() {
         val w = sceneView.width.takeIf  { it > 0 } ?: return
         val h = sceneView.height.takeIf { it > 0 } ?: return
@@ -175,7 +191,11 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         PixelCopy.request(sceneView, bitmap, { result ->
             if (result == PixelCopy.SUCCESS) {
-                saveThumbnailToDisk(bitmap)
+                val cropped = pendingCropRect
+                    ?.let { cropBitmap(bitmap, it, w, h) }
+                    ?: bitmap          // fallback: save full frame
+                pendingCropRect = null
+                saveThumbnailToDisk(cropped)
             } else {
                 runOnUiThread {
                     Toast.makeText(this, "Capture failed (code $result)", Toast.LENGTH_SHORT).show()
@@ -185,28 +205,30 @@ class ModelPreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * Crops [bitmap] to a centered square so the thumbnail always shows
-     * the middle of the screen rather than the bottom edge of the model.
+     * Converts the crop rect from view-pixel space to bitmap-pixel space
+     * (they may differ on high-density screens) then crops the bitmap.
      */
-    private fun cropCentered(bitmap: Bitmap): Bitmap {
-        val side   = minOf(bitmap.width, bitmap.height)
-        val x      = (bitmap.width - side) / 2
-        // Shift the crop window upward by 15% of the screen height so the
-        // model head is included. Increase VERTICAL_OFFSET_FACTOR to move
-        // further up, decrease to move back toward centre.
-        val VERTICAL_OFFSET_FACTOR = 0.1f
-        val y      = ((bitmap.height - side) / 2 - bitmap.height * VERTICAL_OFFSET_FACTOR)
-            .toInt().coerceIn(0, bitmap.height - side)
-        return Bitmap.createBitmap(bitmap, x, y, side, side)
+    private fun cropBitmap(bitmap: Bitmap, viewRect: RectF, viewW: Int, viewH: Int): Bitmap {
+        val scaleX = bitmap.width.toFloat()  / viewW
+        val scaleY = bitmap.height.toFloat() / viewH
+
+        val left   = (viewRect.left   * scaleX).roundToInt().coerceIn(0, bitmap.width)
+        val top    = (viewRect.top    * scaleY).roundToInt().coerceIn(0, bitmap.height)
+        val right  = (viewRect.right  * scaleX).roundToInt().coerceIn(0, bitmap.width)
+        val bottom = (viewRect.bottom * scaleY).roundToInt().coerceIn(0, bitmap.height)
+
+        val cropW = (right  - left).coerceAtLeast(1)
+        val cropH = (bottom - top ).coerceAtLeast(1)
+
+        return Bitmap.createBitmap(bitmap, left, top, cropW, cropH)
     }
 
     private fun saveThumbnailToDisk(bitmap: Bitmap) {
         try {
-            val cropped = cropCentered(bitmap)
             val file = File(filesDir, "thumbnails/$profileKey.png")
             file.parentFile?.mkdirs()
             FileOutputStream(file).use { out ->
-                cropped.compress(Bitmap.CompressFormat.PNG, 100, out)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
             }
             runOnUiThread {
                 Toast.makeText(this, "Thumbnail saved!", Toast.LENGTH_SHORT).show()
@@ -220,9 +242,8 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Camera — spherical coords, always looking at origin
-    // -------------------------------------------------------------------------
+    // ── Camera ────────────────────────────────────────────────────────────
+
     private fun updateCamera() {
         val elevRad = Math.toRadians(camElevDeg).toFloat()
         val azimRad = Math.toRadians(camAzimDeg).toFloat()
@@ -237,9 +258,8 @@ class ModelPreviewActivity : AppCompatActivity() {
         )
     }
 
-    // -------------------------------------------------------------------------
-    // Touch — 1 finger orbit, 2 finger zoom
-    // -------------------------------------------------------------------------
+    // ── Touch — 1 finger orbit, 2 finger zoom ─────────────────────────────
+
     private fun setupTouchListener() {
         sceneView.setOnTouchListener { _, event ->
             when (event.actionMasked) {
