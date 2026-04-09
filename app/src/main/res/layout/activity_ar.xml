@@ -34,9 +34,9 @@
             android:layout_marginTop="8dp"
             android:layout_marginStart="8dp"
             android:src="@drawable/ic_arrow_back_color_invert"
-            android:background="@android:color/transparent"
+            android:background="?attr/selectableItemBackgroundBorderless"
             android:scaleType="centerInside"
-            android:contentDescription="Go back"/>
+            android:contentDescription="Back"/>
 
         <ImageButton
             android:id="@+id/btnLibrary"

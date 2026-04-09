@@ -112,7 +112,7 @@ class ARActivity : AppCompatActivity() {
         arSceneView.lifecycle = lifecycle
 
         lifecycleScope.launch {
-            val env = arSceneView.environmentLoader.loadHDREnvironment("environment.hdr")
+            val env = arSceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
             arSceneView.indirectLight = env?.indirectLight
             arSceneView.skybox        = env?.skybox
         }

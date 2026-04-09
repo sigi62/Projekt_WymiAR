@@ -9,7 +9,8 @@
     android:layout_height="match_parent"
     android:background="#DCDCDC">
 
-    <!-- SceneView surface – fills the whole screen -->
+    <!-- ARSceneView in non-AR mode: gives us proper Filament + HDR lighting
+         without needing a camera feed or plane detection. -->
     <io.github.sceneview.SceneView
         android:id="@+id/previewSceneView"
         android:layout_width="match_parent"
@@ -34,9 +35,9 @@
         android:orientation="horizontal"
         android:gravity="center"
         android:layout_marginBottom="32dp"
-        android:paddingHorizontal="24dp">
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
 
-        <!-- "Open in AR" button -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnOpenInAR"
             android:layout_width="0dp"
@@ -45,7 +46,6 @@
             android:layout_marginEnd="8dp"
             android:text="Open in AR" />
 
-        <!-- "Take Screenshot" button – saves as thumbnail -->
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnTakeScreenshot"
             android:layout_width="0dp"

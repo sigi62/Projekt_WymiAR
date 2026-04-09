@@ -1,13 +1,7 @@
 package com.example.pracazaliczeniowa
 
-import android.graphics.Bitmap
-import android.graphics.Color
-import android.graphics.PixelFormat
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import android.view.PixelCopy
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -15,22 +9,22 @@ import androidx.lifecycle.lifecycleScope
 import io.github.sceneview.SceneView
 import io.github.sceneview.node.ModelNode
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.FileOutputStream
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
- * Full-screen 3D model preview on a grey void background.
+ * Full-screen 3D model preview — no AR, grey void background.
  *
- * Features:
- *  - Starts at an isometric-style angle (camera elevated + offset, looking at origin)
- *  - Rotate by single-finger swipe (Y-axis)
- *  - Scale by pinch
- *  - "Set Thumbnail" button: captures the current view via PixelCopy and saves it
- *    to filesDir/thumbnails/<profileKey>.png, then shows a confirmation toast.
+ * Uses plain SceneView (same Filament pipeline as ARSceneView, no AR session).
+ * Layout XML must declare the view as io.github.sceneview.SceneView.
  *
- * Launch extras:
+ * One-finger drag  → orbit camera (azimuth + elevation)
+ * Two-finger pinch → zoom (camera distance)
+ *
+ * Extras:
  *  - EXTRA_MODEL_PATH  (String) – asset path, e.g. "models/cat.glb"
- *  - EXTRA_PROFILE_KEY (String) – used as the thumbnail filename, e.g. "cat"
+ *  - EXTRA_PROFILE_KEY (String) – reserved for thumbnail use
  */
 class ModelPreviewActivity : AppCompatActivity() {
 
@@ -38,116 +32,135 @@ class ModelPreviewActivity : AppCompatActivity() {
         const val EXTRA_MODEL_PATH  = "extra_model_path"
         const val EXTRA_PROFILE_KEY = "extra_profile_key"
 
-        // Match the grey used by ThumbnailCaptureHelper so the background is consistent
-        private val GREY_VOID_COLOR = Color.rgb(220, 220, 220)
-
-        // Starting isometric camera position (same angle as ThumbnailCaptureHelper)
-        private val CAM_POS = io.github.sceneview.math.Position(1f, 1f, 1f)
-        private val ORIGIN  = io.github.sceneview.math.Position(0f, 0f, 0f)
-
         private const val TAG = "ModelPreviewActivity"
+
+        private const val CAM_DIST_INIT     = 2.5f
+        private const val CAM_ELEV_DEG_INIT = 35.0
+        private const val CAM_AZIM_DEG_INIT = 45.0
+
+        private const val CAM_DIST_MIN = 0.5f
+        private const val CAM_DIST_MAX = 10f
+        private const val CAM_ELEV_MIN = -89.0
+        private const val CAM_ELEV_MAX =  89.0
     }
 
     private lateinit var sceneView: SceneView
     private var modelNode: ModelNode? = null
 
-    // Touch handling
+    private var camDist    = CAM_DIST_INIT
+    private var camElevDeg = CAM_ELEV_DEG_INIT
+    private var camAzimDeg = CAM_AZIM_DEG_INIT
+
     private var lastTouchX       = 0f
     private var lastTouchY       = 0f
     private var initialPinchDist = 0f
-    private var initialScale     = 1f
+    private var initialCamDist   = 0f
     private var isTwoFinger      = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_model_preview)
 
-        val modelPath  = intent.getStringExtra(EXTRA_MODEL_PATH)  ?: return
-        val profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: return
+        val modelPath = intent.getStringExtra(EXTRA_MODEL_PATH) ?: run {
+            Log.e(TAG, "No model path provided")
+            finish()
+            return
+        }
 
         sceneView = findViewById(R.id.previewSceneView)
-        sceneView.setBackgroundColor(GREY_VOID_COLOR)
-        sceneView.skybox = null
-        sceneView.holder?.setFormat(PixelFormat.OPAQUE)
 
+        // ── Grey void ─────────────────────────────────────────────────────
+        // No skybox → Filament clears to the window/view background colour.
+        // The view background is set to #808080 in the layout XML (or below).
+        sceneView.skybox = null
+
+        // ── Lighting ──────────────────────────────────────────────────────
+        // SceneView 2.x ships a built-in default environment (KTX IBL + a
+        // directional main light node).  Loading our HDR on top of that gives
+        // the same quality as ARActivity while keeping the main light in place.
+        lifecycleScope.launch {
+            try {
+                // loadHDREnvironment returns an Environment that contains
+                // both indirectLight (IBL) and optionally a skybox.
+                // We only take the indirectLight — skybox stays null (grey void).
+                val env = sceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
+                if (env != null) {
+                    sceneView.environment = env.apply {
+                        // Swap the skybox out so the background stays grey
+                        sceneView.skybox = null
+                    }
+                    Log.d(TAG, "HDR environment loaded")
+                } else {
+                    Log.w(TAG, "loadHDREnvironment returned null — using SceneView default lighting")
+                }
+            } catch (e: Exception) {
+                // If environment.hdr is missing or fails, SceneView's built-in
+                // default lighting is still active — model will still be visible.
+                Log.w(TAG, "Could not load environment.hdr: ${e.message}")
+            }
+        }
+
+        // ── Buttons ───────────────────────────────────────────────────────
         findViewById<ImageButton>(R.id.btnPreviewBack).setOnClickListener { finish() }
 
         findViewById<android.widget.Button>(R.id.btnOpenInAR).setOnClickListener {
-            // TODO: launch AR activity here
+            // TODO: launch ARActivity with modelPath
         }
 
-        findViewById<android.widget.Button>(R.id.btnTakeScreenshot).setOnClickListener {
-            captureAndSaveThumbnail(profileKey)
-        }
+        // btnTakeScreenshot — thumbnail logic intentionally omitted for now
 
+        // ── Load model ────────────────────────────────────────────────────
         lifecycleScope.launch {
-            try {
-                val instance = sceneView.modelLoader.createModelInstance(modelPath)
-                val node = ModelNode(
-                    modelInstance = instance,
-                    scaleToUnits  = 1.0f,
-                    centerOrigin  = ORIGIN
-                ).also {
-                    it.isScaleEditable    = false
-                    it.isRotationEditable = false
-                    // Start at the same 45° Y rotation used for auto-thumbnails
-                    it.rotation = io.github.sceneview.math.Rotation(0f, 45f, 0f)
-                }
-                sceneView.addChildNode(node)
-                modelNode = node
-
-                // Isometric-style camera: elevated and offset, looking at origin
-                sceneView.cameraNode.position = CAM_POS
-                sceneView.cameraNode.lookAt(ORIGIN)
-
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to load model: $modelPath", e)
-                Toast.makeText(this@ModelPreviewActivity,
-                    "Could not load model", Toast.LENGTH_SHORT).show()
-            }
+            loadModel(modelPath)
         }
 
         setupTouchListener()
     }
 
-    // -----------------------------------------------------------------------
-    // Thumbnail capture
-    // -----------------------------------------------------------------------
-
-    private fun captureAndSaveThumbnail(profileKey: String) {
-        val bitmap = Bitmap.createBitmap(
-            sceneView.width.takeIf { it > 0 } ?: 256,
-            sceneView.height.takeIf { it > 0 } ?: 256,
-            Bitmap.Config.ARGB_8888
-        )
-
-        PixelCopy.request(sceneView, bitmap, { result ->
-            if (result == PixelCopy.SUCCESS) {
-                try {
-                    val file = File(filesDir, "thumbnails/$profileKey.png")
-                    file.parentFile?.mkdirs()
-                    FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                    runOnUiThread {
-                        Toast.makeText(this, "Thumbnail saved!", Toast.LENGTH_SHORT).show()
-                    }
-                } catch (e: Exception) {
-                    Log.e(TAG, "Failed to save thumbnail for $profileKey", e)
-                    runOnUiThread {
-                        Toast.makeText(this, "Failed to save thumbnail", Toast.LENGTH_SHORT).show()
-                    }
-                }
-            } else {
-                runOnUiThread {
-                    Toast.makeText(this, "Capture failed (code $result)", Toast.LENGTH_SHORT).show()
-                }
+    private suspend fun loadModel(modelPath: String) {
+        try {
+            Log.d(TAG, "Loading model: $modelPath")
+            val instance = sceneView.modelLoader.createModelInstance(modelPath)
+            val node = ModelNode(
+                modelInstance = instance,
+                scaleToUnits  = 1.0f,
+                centerOrigin  = io.github.sceneview.math.Position(0f, 0f, 0f)
+            ).apply {
+                isScaleEditable    = false
+                isRotationEditable = false
             }
-        }, Handler(Looper.getMainLooper()))
+            sceneView.addChildNode(node)
+            modelNode = node
+            Log.d(TAG, "Model loaded successfully")
+            updateCamera()
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load model: $modelPath", e)
+            runOnUiThread {
+                Toast.makeText(this, "Could not load model: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
-    // -----------------------------------------------------------------------
-    // Gesture handling – single finger = rotate Y, two fingers = pinch scale
-    // -----------------------------------------------------------------------
+    // -------------------------------------------------------------------------
+    // Camera — spherical coords, always looking at origin
+    // -------------------------------------------------------------------------
+    private fun updateCamera() {
+        val elevRad = Math.toRadians(camElevDeg).toFloat()
+        val azimRad = Math.toRadians(camAzimDeg).toFloat()
+        val x = camDist * cos(elevRad) * sin(azimRad)
+        val y = camDist * sin(elevRad)
+        val z = camDist * cos(elevRad) * cos(azimRad)
 
+        sceneView.cameraNode.position =
+            io.github.sceneview.math.Position(x, y, z)
+        sceneView.cameraNode.lookAt(
+            io.github.sceneview.math.Position(0f, 0f, 0f)
+        )
+    }
+
+    // -------------------------------------------------------------------------
+    // Touch — 1 finger orbit, 2 finger zoom
+    // -------------------------------------------------------------------------
     private fun setupTouchListener() {
         sceneView.setOnTouchListener { _, event ->
             when (event.actionMasked) {
@@ -160,33 +173,31 @@ class ModelPreviewActivity : AppCompatActivity() {
                     if (event.pointerCount == 2) {
                         isTwoFinger      = true
                         initialPinchDist = fingerSpacing(event)
-                        initialScale     = modelNode?.scale?.x ?: 1f
+                        initialCamDist   = camDist
                     }
                 }
                 android.view.MotionEvent.ACTION_POINTER_UP -> {
                     isTwoFinger = false
+                    lastTouchX  = event.getX(0)
+                    lastTouchY  = event.getY(0)
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
-                    val node = modelNode ?: return@setOnTouchListener true
-
                     if (isTwoFinger && event.pointerCount >= 2) {
                         val dist = fingerSpacing(event)
                         if (initialPinchDist > 0f) {
-                            val factor   = dist / initialPinchDist
-                            val newScale = (initialScale * factor).coerceIn(0.1f, 5f)
-                            node.scale   = io.github.sceneview.math.Scale(newScale)
+                            camDist = (initialCamDist * initialPinchDist / dist)
+                                .coerceIn(CAM_DIST_MIN, CAM_DIST_MAX)
+                            updateCamera()
                         }
                     } else {
-                        val dx          = event.x - lastTouchX
-                        val sensitivity = 0.4f
-                        val currentRot  = node.rotation
-                        node.rotation   = io.github.sceneview.math.Rotation(
-                            currentRot.x,
-                            currentRot.y + dx * sensitivity,
-                            currentRot.z
-                        )
-                        lastTouchX = event.x
-                        lastTouchY = event.y
+                        val dx = event.x - lastTouchX
+                        val dy = event.y - lastTouchY
+                        camAzimDeg -= dx * 0.3
+                        camElevDeg  = (camElevDeg + dy * 0.3)
+                            .coerceIn(CAM_ELEV_MIN, CAM_ELEV_MAX)
+                        lastTouchX  = event.x
+                        lastTouchY  = event.y
+                        updateCamera()
                     }
                 }
             }
@@ -194,14 +205,10 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
     }
 
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
-
     private fun fingerSpacing(event: android.view.MotionEvent): Float {
         val x = event.getX(0) - event.getX(1)
         val y = event.getY(0) - event.getY(1)
-        return kotlin.math.sqrt(x * x + y * y)
+        return sqrt(x * x + y * y)
     }
 
     override fun onDestroy() {
