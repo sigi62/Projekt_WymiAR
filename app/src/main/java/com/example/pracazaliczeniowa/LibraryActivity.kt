@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.pracazaliczeniowa.Helpers.ModelItem
 import com.example.pracazaliczeniowa.Helpers.ModelLibraryAdapter
 import com.example.pracazaliczeniowa.Helpers.ProfileManager
-import com.example.pracazaliczeniowa.Helpers.ThumbnailCaptureHelper
 
 class LibraryActivity : AppCompatActivity() {
 
@@ -27,13 +26,16 @@ class LibraryActivity : AppCompatActivity() {
         if (result.resultCode == Activity.RESULT_OK) recreate()
     }
 
-    private var selectedModelKey: String? = null // Track selection
+    private var selectedModelKey: String? = null
 
-    private val arLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+    private val arLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
         adapter.notifyDataSetChanged()
     }
 
-    // Refresh the grid when returning from the preview (thumbnails may have changed)
+    // Refresh the grid when returning from ModelPreviewActivity
+    // (the user may have saved a new thumbnail)
     private val previewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
@@ -67,31 +69,30 @@ class LibraryActivity : AppCompatActivity() {
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
         adapter = ModelLibraryAdapter(
-            items = models,
-            savedProfiles = savedProfiles,
-            selectedKey = selectedModelKey
-        ) { selectedModel ->
-            selectedModelKey = selectedModel.profileKey
-            adapter.updateSelection(selectedModelKey)
+            items          = models,
+            savedProfiles  = savedProfiles,
+            selectedKey    = selectedModelKey,
+            onItemClick    = { selectedModel ->
+                selectedModelKey = selectedModel.profileKey
+                adapter.updateSelection(selectedModelKey)
 
-            val intent = Intent(this, ARActivity::class.java).apply {
-                putExtra("extra_model_path", selectedModel.modelPath)
+                val intent = Intent(this, ARActivity::class.java).apply {
+                    putExtra("extra_model_path", selectedModel.modelPath)
+                }
+                arLauncher.launch(intent)
+            },
+            onPreviewClick = { selectedModel ->
+                val intent = Intent(this, ModelPreviewActivity::class.java).apply {
+                    putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH, selectedModel.modelPath)
+                    putExtra(ModelPreviewActivity.EXTRA_PROFILE_KEY, selectedModel.profileKey)
+                }
+                previewLauncher.launch(intent)
             }
-            arLauncher.launch(intent)
-        }
+        )
 
         recyclerView.adapter = adapter
-
-        // Pre-cache thumbnails for any models that don't have one yet.
-        // The hidden SceneView renders each model off-screen at a fixed
-        // isometric angle and saves a 256×256 PNG to filesDir/thumbnails/.
-        // FIX: onEachDone refreshes the grid as each thumbnail is captured,
-        // so cards swap from placeholder to real thumbnail one by one.
-        ThumbnailCaptureHelper(
-            context    = this,
-            models     = models,
-            onEachDone = { runOnUiThread { adapter.notifyDataSetChanged() } },
-            onAllDone  = { runOnUiThread { adapter.notifyDataSetChanged() } }
-        ).start()
+        // No background thumbnail capture needed — pre-installed models use their
+        // bundled drawable fallback, and user-added models get thumbnails via the
+        // "Preview → Set Thumbnail" flow in ModelPreviewActivity.
     }
 }

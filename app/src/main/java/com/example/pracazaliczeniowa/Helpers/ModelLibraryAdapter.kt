@@ -5,12 +5,12 @@ import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.PopupMenu
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
-import com.example.pracazaliczeniowa.Helpers.ModelItem
 import java.io.File
-
 import com.example.pracazaliczeniowa.R
 
 class ModelLibraryAdapter(
@@ -18,14 +18,16 @@ class ModelLibraryAdapter(
     /** Set of profileKeys that already have a saved JSON profile. */
     private val savedProfiles: Set<String>,
     private var selectedKey: String? = null,
-    private val onItemClick: (ModelItem) -> Unit
+    private val onItemClick: (ModelItem) -> Unit,
+    /** Called when the user taps "Preview" in the three-dots menu. */
+    private val onPreviewClick: (ModelItem) -> Unit
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
 
-
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val thumbnail: ImageView  = view.findViewById(R.id.imgModelThumbnail)
-        val name: TextView        = view.findViewById(R.id.tvModelName)
-        val savedBadge: TextView  = view.findViewById(R.id.tvSavedBadge)
+        val thumbnail: ImageView   = view.findViewById(R.id.imgModelThumbnail)
+        val name: TextView         = view.findViewById(R.id.tvModelName)
+        val savedBadge: TextView   = view.findViewById(R.id.tvSavedBadge)
+        val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
@@ -39,14 +41,12 @@ class ModelLibraryAdapter(
         val context = holder.itemView.context
 
         // ── Selection highlight ──────────────────────────────────────────────
-        // FIX: was holder.itemView.rootView (= the window's DecorView), now correctly targets the card
         holder.itemView.setBackgroundColor(
             if (item.profileKey == selectedKey) Color.parseColor("#330000FF")
             else Color.TRANSPARENT
         )
 
         // ── Thumbnail ───────────────────────────────────────────────────────
-        // FIX: removed early `return` that was skipping name, badge, and click listener
         holder.thumbnail.setImageDrawable(null)
 
         val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
@@ -64,7 +64,31 @@ class ModelLibraryAdapter(
         holder.savedBadge.visibility =
             if (item.profileKey in savedProfiles) View.VISIBLE else View.GONE
 
-        // ── Click ───────────────────────────────────────────────────────────
+        // ── Three-dots menu ─────────────────────────────────────────────────
+        holder.btnOptions.setOnClickListener { anchor ->
+            PopupMenu(context, anchor).apply {
+                menu.add(0, MENU_PREVIEW,  0, "Preview")
+                menu.add(0, MENU_DELETE_THUMB, 1, "Delete thumbnail")
+                    .isEnabled = cached.exists() // only meaningful if a thumbnail exists
+
+                setOnMenuItemClickListener { menuItem ->
+                    when (menuItem.itemId) {
+                        MENU_PREVIEW -> {
+                            onPreviewClick(item)
+                            true
+                        }
+                        MENU_DELETE_THUMB -> {
+                            // TODO: implement delete thumbnail logic
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                show()
+            }
+        }
+
+        // ── Card click → launch AR ───────────────────────────────────────────
         holder.itemView.setOnClickListener { onItemClick(item) }
     }
 
@@ -74,4 +98,9 @@ class ModelLibraryAdapter(
     }
 
     override fun getItemCount() = items.size
+
+    companion object {
+        private const val MENU_PREVIEW      = 1
+        private const val MENU_DELETE_THUMB = 2
+    }
 }
