@@ -10,7 +10,7 @@
     android:layout_height="wrap_content"
     android:layout_margin="8dp"
     app:cardCornerRadius="12dp"
-    app:cardBackgroundColor="#1E1E1E"
+    app:cardBackgroundColor="@color/card_background"
     app:cardElevation="4dp">
 
     <LinearLayout
@@ -26,14 +26,14 @@
             android:layout_height="120dp"
             android:scaleType="centerCrop"
             android:contentDescription="Model thumbnail"
-            android:background="#2A2A2A"/>
+            android:background="@color/card_image_background"/>
 
         <!-- Model name -->
         <TextView
             android:id="@+id/tvModelName"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_primary"
             android:textSize="14sp"
             android:textStyle="bold"
             android:paddingTop="8dp"
@@ -47,7 +47,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:text="✓ Saved"
-            android:textColor="#4CAF50"
+            android:textColor="@color/text_primary"
             android:textSize="11sp"
             android:paddingBottom="4dp"
             android:visibility="gone"/>

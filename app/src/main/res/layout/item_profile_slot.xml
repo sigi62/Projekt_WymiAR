@@ -20,7 +20,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:textColor="@android:color/white"
+        android:textColor="@color/text_primary"
         android:textSize="14sp"
         android:maxLines="1"
         android:ellipsize="end"/>
@@ -35,8 +35,8 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:layout_marginStart="4dp"
-        android:backgroundTint="#555555"
-        android:textColor="@android:color/white"/>
+        android:backgroundTint="@color/background_tint"
+        android:textColor="@color/text_secondary"/>
 
     <!-- Load button -->
     <Button
@@ -48,8 +48,8 @@
         android:paddingStart="8dp"
         android:paddingEnd="8dp"
         android:layout_marginStart="4dp"
-        android:backgroundTint="#2196F3"
-        android:textColor="@android:color/white"/>
+        android:backgroundTint="@color/button_background"
+        android:textColor="@color/button_text"/>
 
     <!-- Delete button (hidden for Default slot) -->
     <ImageButton
@@ -57,9 +57,9 @@
         android:layout_width="36dp"
         android:layout_height="36dp"
         android:layout_marginStart="4dp"
-        android:src="@android:drawable/ic_menu_delete"
+        android:src="@drawable/ic_delete"
         android:backgroundTint="@android:color/transparent"
-        android:tint="#F44336"
+        android:tint="@color/icon_tint"
         android:contentDescription="Delete profile"
         android:visibility="gone"/>
 

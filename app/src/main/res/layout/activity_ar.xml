@@ -21,18 +21,36 @@
         android:background="@android:color/transparent" />
 
     <!-- ── Settings button – top-start ─────────────────────────────────── -->
-    <ImageButton
-        android:id="@+id/btnSettings"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_marginTop="16dp"
-        android:layout_marginStart="16dp"
-        android:src="@drawable/ic_settings"
-        android:background="@drawable/rounded_button"
-        android:scaleType="centerInside"
-        android:padding="10dp"
-        android:contentDescription="Settings"/>
+        android:orientation="vertical">
+
+        <ImageButton
+            android:id="@+id/btnLibrary"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_arrow_back_color_invert"
+            android:background="@android:color/transparent"
+            android:scaleType="centerInside"
+            android:contentDescription="Go back"/>
+
+        <ImageButton
+            android:id="@+id/btnLibrary"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_gravity="top|start"
+            android:src="@drawable/ic_library"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="Model Library"/>
+    </LinearLayout>
 
     <!-- ── Unit toggle – top-end ────────────────────────────────────────── -->
     <LinearLayout
@@ -40,14 +58,25 @@
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
+        android:layout_marginEnd="10dp"
         android:orientation="horizontal">
+
+        <ImageButton
+            android:id="@+id/btnSettings"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_settings"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="Settings"/>
 
         <Button
             android:id="@+id/btnUnit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="cm"
+            android:visibility="gone"
             android:background="#88000000"
             android:textColor="#FFFFFF" />
 
@@ -97,8 +126,8 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="8dp"
             android:text="Point at a surface to place model"
-            android:textColor="#FFFFFF"
-            android:background="#88000000"
+            android:textColor="@color/AR_text_color"
+            android:background="@color/AR_text_background"
             android:padding="8dp"
             android:textSize="14sp" />
 
@@ -107,7 +136,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingTop="10dp"
-            android:background="#AA000000"/>
+            android:background="@color/AR_layout_background"/>
 
     </LinearLayout>
 
