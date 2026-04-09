@@ -1,7 +1,12 @@
 package com.example.pracazaliczeniowa
 
+import android.graphics.Bitmap
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.PixelCopy
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
@@ -9,6 +14,8 @@ import androidx.lifecycle.lifecycleScope
 import io.github.sceneview.SceneView
 import io.github.sceneview.node.ModelNode
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 import kotlin.math.cos
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -16,15 +23,17 @@ import kotlin.math.sqrt
 /**
  * Full-screen 3D model preview — no AR, grey void background.
  *
- * Uses plain SceneView (same Filament pipeline as ARSceneView, no AR session).
- * Layout XML must declare the view as io.github.sceneview.SceneView.
+ * Layout XML must declare R.id.previewSceneView as io.github.sceneview.SceneView.
  *
  * One-finger drag  → orbit camera (azimuth + elevation)
  * Two-finger pinch → zoom (camera distance)
+ * "Set Thumbnail"  → captures the current frame via PixelCopy and saves it to
+ *                    filesDir/thumbnails/<profileKey>.png, which is the same
+ *                    path ModelLibraryAdapter reads from.
  *
  * Extras:
  *  - EXTRA_MODEL_PATH  (String) – asset path, e.g. "models/cat.glb"
- *  - EXTRA_PROFILE_KEY (String) – reserved for thumbnail use
+ *  - EXTRA_PROFILE_KEY (String) – thumbnail filename key, e.g. "cat"
  */
 class ModelPreviewActivity : AppCompatActivity() {
 
@@ -46,6 +55,14 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     private lateinit var sceneView: SceneView
     private var modelNode: ModelNode? = null
+    private lateinit var profileKey: String
+
+    /**
+     * Flipped to true by the "Set Thumbnail" button.
+     * Consumed inside the onFrame callback so PixelCopy always sees a
+     * fully-rendered, non-black surface.
+     */
+    private var captureNextFrame = false
 
     private var camDist    = CAM_DIST_INIT
     private var camElevDeg = CAM_ELEV_DEG_INIT
@@ -66,36 +83,26 @@ class ModelPreviewActivity : AppCompatActivity() {
             finish()
             return
         }
+        profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run {
+            Log.e(TAG, "No profile key provided")
+            finish()
+            return
+        }
 
         sceneView = findViewById(R.id.previewSceneView)
 
         // ── Grey void ─────────────────────────────────────────────────────
-        // No skybox → Filament clears to the window/view background colour.
-        // The view background is set to #808080 in the layout XML (or below).
         sceneView.skybox = null
 
         // ── Lighting ──────────────────────────────────────────────────────
-        // SceneView 2.x ships a built-in default environment (KTX IBL + a
-        // directional main light node).  Loading our HDR on top of that gives
-        // the same quality as ARActivity while keeping the main light in place.
         lifecycleScope.launch {
             try {
-                // loadHDREnvironment returns an Environment that contains
-                // both indirectLight (IBL) and optionally a skybox.
-                // We only take the indirectLight — skybox stays null (grey void).
                 val env = sceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
                 if (env != null) {
-                    sceneView.environment = env.apply {
-                        // Swap the skybox out so the background stays grey
-                        sceneView.skybox = null
-                    }
+                    sceneView.environment = env.apply { sceneView.skybox = null }
                     Log.d(TAG, "HDR environment loaded")
-                } else {
-                    Log.w(TAG, "loadHDREnvironment returned null — using SceneView default lighting")
                 }
             } catch (e: Exception) {
-                // If environment.hdr is missing or fails, SceneView's built-in
-                // default lighting is still active — model will still be visible.
                 Log.w(TAG, "Could not load environment.hdr: ${e.message}")
             }
         }
@@ -103,20 +110,34 @@ class ModelPreviewActivity : AppCompatActivity() {
         // ── Buttons ───────────────────────────────────────────────────────
         findViewById<ImageButton>(R.id.btnPreviewBack).setOnClickListener { finish() }
 
-        findViewById<android.widget.Button>(R.id.btnOpenInAR).setOnClickListener {
+        findViewById<Button>(R.id.btnOpenInAR).setOnClickListener {
             // TODO: launch ARActivity with modelPath
         }
 
-        // btnTakeScreenshot — thumbnail logic intentionally omitted for now
+        findViewById<Button>(R.id.btnTakeScreenshot).setOnClickListener {
+            captureNextFrame = true
+            Toast.makeText(this, "Capturing…", Toast.LENGTH_SHORT).show()
+        }
 
         // ── Load model ────────────────────────────────────────────────────
-        lifecycleScope.launch {
-            loadModel(modelPath)
+        lifecycleScope.launch { loadModel(modelPath) }
+
+        // ── Thumbnail capture — fires after Filament renders each frame ───
+        // We wait for the flag rather than capturing immediately so the
+        // bitmap is never black (surface is guaranteed live inside onFrame).
+        sceneView.onFrame = { _ ->
+            if (captureNextFrame) {
+                captureNextFrame = false
+                captureAndSaveThumbnail()
+            }
         }
 
         setupTouchListener()
     }
 
+    // -------------------------------------------------------------------------
+    // Model loading
+    // -------------------------------------------------------------------------
     private suspend fun loadModel(modelPath: String) {
         try {
             Log.d(TAG, "Loading model: $modelPath")
@@ -137,6 +158,64 @@ class ModelPreviewActivity : AppCompatActivity() {
             Log.e(TAG, "Failed to load model: $modelPath", e)
             runOnUiThread {
                 Toast.makeText(this, "Could not load model: ${e.message}", Toast.LENGTH_LONG).show()
+            }
+        }
+    }
+
+    // -------------------------------------------------------------------------
+    // Thumbnail capture
+    // Called from inside onFrame so the SurfaceView surface is guaranteed live.
+    // -------------------------------------------------------------------------
+    private fun captureAndSaveThumbnail() {
+        val w = sceneView.width.takeIf  { it > 0 } ?: return
+        val h = sceneView.height.takeIf { it > 0 } ?: return
+
+        val bitmap  = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+        val handler = Handler(Looper.getMainLooper())
+
+        PixelCopy.request(sceneView, bitmap, { result ->
+            if (result == PixelCopy.SUCCESS) {
+                saveThumbnailToDisk(bitmap)
+            } else {
+                runOnUiThread {
+                    Toast.makeText(this, "Capture failed (code $result)", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }, handler)
+    }
+
+    /**
+     * Crops [bitmap] to a centered square so the thumbnail always shows
+     * the middle of the screen rather than the bottom edge of the model.
+     */
+    private fun cropCentered(bitmap: Bitmap): Bitmap {
+        val side   = minOf(bitmap.width, bitmap.height)
+        val x      = (bitmap.width - side) / 2
+        // Shift the crop window upward by 15% of the screen height so the
+        // model head is included. Increase VERTICAL_OFFSET_FACTOR to move
+        // further up, decrease to move back toward centre.
+        val VERTICAL_OFFSET_FACTOR = 0.1f
+        val y      = ((bitmap.height - side) / 2 - bitmap.height * VERTICAL_OFFSET_FACTOR)
+            .toInt().coerceIn(0, bitmap.height - side)
+        return Bitmap.createBitmap(bitmap, x, y, side, side)
+    }
+
+    private fun saveThumbnailToDisk(bitmap: Bitmap) {
+        try {
+            val cropped = cropCentered(bitmap)
+            val file = File(filesDir, "thumbnails/$profileKey.png")
+            file.parentFile?.mkdirs()
+            FileOutputStream(file).use { out ->
+                cropped.compress(Bitmap.CompressFormat.PNG, 100, out)
+            }
+            runOnUiThread {
+                Toast.makeText(this, "Thumbnail saved!", Toast.LENGTH_SHORT).show()
+            }
+            Log.d(TAG, "Thumbnail saved: ${file.absolutePath}")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to save thumbnail for $profileKey", e)
+            runOnUiThread {
+                Toast.makeText(this, "Failed to save thumbnail", Toast.LENGTH_SHORT).show()
             }
         }
     }

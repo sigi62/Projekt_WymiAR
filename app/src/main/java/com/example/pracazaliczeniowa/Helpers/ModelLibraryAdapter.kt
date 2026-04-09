@@ -9,6 +9,9 @@ import android.widget.ImageButton
 import android.widget.ImageView
 import android.widget.PopupMenu
 import android.widget.TextView
+import android.widget.Toast
+import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
 import com.example.pracazaliczeniowa.R
@@ -24,9 +27,9 @@ class ModelLibraryAdapter(
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val thumbnail: ImageView   = view.findViewById(R.id.imgModelThumbnail)
-        val name: TextView         = view.findViewById(R.id.tvModelName)
-        val savedBadge: TextView   = view.findViewById(R.id.tvSavedBadge)
+        val thumbnail: ImageView    = view.findViewById(R.id.imgModelThumbnail)
+        val name: TextView          = view.findViewById(R.id.tvModelName)
+        val savedBadge: TextView    = view.findViewById(R.id.tvSavedBadge)
         val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
     }
 
@@ -41,21 +44,15 @@ class ModelLibraryAdapter(
         val context = holder.itemView.context
 
         // ── Selection highlight ──────────────────────────────────────────────
-        holder.itemView.setBackgroundColor(
-            if (item.profileKey == selectedKey) Color.parseColor("#330000FF")
-            else Color.TRANSPARENT
-        )
-
-        // ── Thumbnail ───────────────────────────────────────────────────────
-        holder.thumbnail.setImageDrawable(null)
-
-        val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
-        val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
-        when {
-            bmp != null               -> holder.thumbnail.setImageBitmap(bmp)
-            item.thumbnailRes != null -> holder.thumbnail.setImageResource(item.thumbnailRes)
-            else                      -> holder.thumbnail.setImageResource(R.drawable.ic_model_placeholder)
+        val backgroundColor = if (item.profileKey == selectedKey) {
+            ContextCompat.getColor(context, R.color.card_highlight)
+        } else {
+            ContextCompat.getColor(context, R.color.card_background)
         }
+
+        (holder.itemView as CardView).setCardBackgroundColor(backgroundColor)
+        // ── Thumbnail ───────────────────────────────────────────────────────
+        bindThumbnail(holder.thumbnail, item, context.filesDir)
 
         // ── Name ────────────────────────────────────────────────────────────
         holder.name.text = item.name
@@ -66,10 +63,11 @@ class ModelLibraryAdapter(
 
         // ── Three-dots menu ─────────────────────────────────────────────────
         holder.btnOptions.setOnClickListener { anchor ->
+            val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
             PopupMenu(context, anchor).apply {
-                menu.add(0, MENU_PREVIEW,  0, "Preview")
+                menu.add(0, MENU_PREVIEW,      0, "Preview")
                 menu.add(0, MENU_DELETE_THUMB, 1, "Delete thumbnail")
-                    .isEnabled = cached.exists() // only meaningful if a thumbnail exists
+                    .isEnabled = cached.exists()
 
                 setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
@@ -78,7 +76,7 @@ class ModelLibraryAdapter(
                             true
                         }
                         MENU_DELETE_THUMB -> {
-                            // TODO: implement delete thumbnail logic
+                            deleteThumbnail(cached, item, holder)
                             true
                         }
                         else -> false
@@ -91,6 +89,47 @@ class ModelLibraryAdapter(
         // ── Card click → launch AR ───────────────────────────────────────────
         holder.itemView.setOnClickListener { onItemClick(item) }
     }
+
+    // -------------------------------------------------------------------------
+    // Thumbnail helpers
+    // -------------------------------------------------------------------------
+
+    /**
+     * Loads the thumbnail for [item] into [imageView], checking the on-disk
+     * cache first, then the bundled drawable, then the generic placeholder.
+     * Extracted so both onBindViewHolder and deleteThumbnail can call it.
+     */
+    private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: java.io.File) {
+        imageView.setImageDrawable(null)
+        val cached = File(filesDir, "thumbnails/${item.profileKey}.png")
+        val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
+        when {
+            bmp != null               -> imageView.setImageBitmap(bmp)
+            item.thumbnailRes != null -> imageView.setImageResource(item.thumbnailRes)
+            else                      -> imageView.setImageResource(R.drawable.ic_model_placeholder)
+        }
+    }
+
+    /**
+     * Deletes the cached thumbnail PNG for [item], then immediately refreshes
+     * the card in-place (no full notifyDataSetChanged needed).
+     */
+    private fun deleteThumbnail(
+        cached: File,
+        item: ModelItem,
+        holder: ViewHolder
+    ) {
+        val context = holder.itemView.context
+        if (cached.delete()) {
+            // Refresh just this card's thumbnail back to the fallback drawable
+            bindThumbnail(holder.thumbnail, item, context.filesDir)
+            Toast.makeText(context, "Thumbnail deleted", Toast.LENGTH_SHORT).show()
+        } else {
+            Toast.makeText(context, "Could not delete thumbnail", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // -------------------------------------------------------------------------
 
     fun updateSelection(key: String?) {
         this.selectedKey = key
