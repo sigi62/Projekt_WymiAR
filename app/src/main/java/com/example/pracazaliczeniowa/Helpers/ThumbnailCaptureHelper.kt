@@ -21,6 +21,9 @@ import java.io.FileOutputStream
 class ThumbnailCaptureHelper(
     private val context: Context,
     private val models: List<ModelItem>,
+    // FIX: added onEachDone so the grid refreshes after every individual capture,
+    // giving the "pops in as ready" effect instead of waiting for all to finish
+    private val onEachDone: () -> Unit = {},
     private val onAllDone: () -> Unit
 ) {
     companion object {
@@ -103,6 +106,8 @@ class ThumbnailCaptureHelper(
                 val file = File(context.filesDir, "thumbnails/$profileKey.png")
                 file.parentFile?.mkdirs()
                 FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                // FIX: notify after each successful capture so the card updates immediately
+                handler.post { onEachDone() }
             }
             onDone()
         }, handler)

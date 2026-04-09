@@ -66,46 +66,32 @@ class LibraryActivity : AppCompatActivity() {
         recyclerView = findViewById(R.id.rvModelLibrary)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
-
         adapter = ModelLibraryAdapter(
             items = models,
             savedProfiles = savedProfiles,
-            selectedKey = selectedModelKey // Pass selection to adapter
+            selectedKey = selectedModelKey
         ) { selectedModel ->
             selectedModelKey = selectedModel.profileKey
-            adapter.updateSelection(selectedModelKey) // Highlighting logic
+            adapter.updateSelection(selectedModelKey)
 
             val intent = Intent(this, ARActivity::class.java).apply {
                 putExtra("extra_model_path", selectedModel.modelPath)
             }
             arLauncher.launch(intent)
         }
-        //Preview adapter
-//        adapter = ModelLibraryAdapter(
-//            items         = models,
-//            savedProfiles = savedProfiles
-//        ) { selectedModel ->
-//            val intent = Intent(this, ModelPreviewActivity::class.java).apply {
-//                putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH, selectedModel.modelPath)
-//            }
-//            previewLauncher.launch(intent)
-//        }
 
         recyclerView.adapter = adapter
 
         // Pre-cache thumbnails for any models that don't have one yet.
         // The hidden SceneView renders each model off-screen at a fixed
         // isometric angle and saves a 256×256 PNG to filesDir/thumbnails/.
-        // The adapter is refreshed automatically when all captures finish.
-        // In LibraryActivity.kt
+        // FIX: onEachDone refreshes the grid as each thumbnail is captured,
+        // so cards swap from placeholder to real thumbnail one by one.
         ThumbnailCaptureHelper(
-            context   = this,
-            models    = models,
-            onAllDone = {
-                runOnUiThread {
-                    adapter.notifyDataSetChanged()
-                }
-            }
+            context    = this,
+            models     = models,
+            onEachDone = { runOnUiThread { adapter.notifyDataSetChanged() } },
+            onAllDone  = { runOnUiThread { adapter.notifyDataSetChanged() } }
         ).start()
     }
 }

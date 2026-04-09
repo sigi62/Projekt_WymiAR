@@ -79,4 +79,8 @@ class DefaultModelNode(
     fun scaleToUnits(f: Float) {
         this.scale = Float3(f)
     }
+
+    fun getWrapperSceneview(): ARSceneView {
+        return sceneView
+    }
 }

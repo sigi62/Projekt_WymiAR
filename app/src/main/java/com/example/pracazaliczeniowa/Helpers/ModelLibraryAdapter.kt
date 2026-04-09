@@ -36,39 +36,25 @@ class ModelLibraryAdapter(
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item    = items[position]
-
-        if (item.profileKey == selectedKey) {
-            holder.itemView.rootView.setBackgroundColor(Color.parseColor("#330000FF"))
-        } else {
-            holder.itemView.rootView.setBackgroundColor(Color.TRANSPARENT)
-        }
         val context = holder.itemView.context
 
-        holder.thumbnail.setImageDrawable(null)
+        // ── Selection highlight ──────────────────────────────────────────────
+        // FIX: was holder.itemView.rootView (= the window's DecorView), now correctly targets the card
+        holder.itemView.setBackgroundColor(
+            if (item.profileKey == selectedKey) Color.parseColor("#330000FF")
+            else Color.TRANSPARENT
+        )
 
         // ── Thumbnail ───────────────────────────────────────────────────────
-        // Priority 1: cached PNG captured from ModelPreviewActivity
-        val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
-        when {
-            cached.exists() -> {
-                val bmp = BitmapFactory.decodeFile(cached.absolutePath)
-                if (bmp != null) {
-                    holder.thumbnail.setImageBitmap(bmp)
-                    return
-                } else {
-                    // Corrupt file – fall through to resource fallback
-                    setFallbackThumbnail(holder.thumbnail, item)
-                }
-            }
-            // Priority 2: drawable resource supplied in ModelItem
-            item.thumbnailRes != null -> {
-                holder.thumbnail.setImageResource(item.thumbnailRes)
-            }
-            // Priority 3: generic placeholder
-            else -> {
-                holder.thumbnail.setImageResource(R.drawable.ic_model_placeholder)
-            }
+        // FIX: removed early `return` that was skipping name, badge, and click listener
+        holder.thumbnail.setImageDrawable(null)
 
+        val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
+        val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
+        when {
+            bmp != null               -> holder.thumbnail.setImageBitmap(bmp)
+            item.thumbnailRes != null -> holder.thumbnail.setImageResource(item.thumbnailRes)
+            else                      -> holder.thumbnail.setImageResource(R.drawable.ic_model_placeholder)
         }
 
         // ── Name ────────────────────────────────────────────────────────────
@@ -87,17 +73,5 @@ class ModelLibraryAdapter(
         notifyDataSetChanged()
     }
 
-
     override fun getItemCount() = items.size
-
-    // -----------------------------------------------------------------------
-    // Helpers
-    // -----------------------------------------------------------------------
-    private fun setFallbackThumbnail(imageView: ImageView, item: ModelItem) {
-        if (item.thumbnailRes != null) {
-            imageView.setImageResource(item.thumbnailRes)
-        } else {
-            imageView.setImageResource(R.drawable.ic_model_placeholder)
-        }
-    }
 }
