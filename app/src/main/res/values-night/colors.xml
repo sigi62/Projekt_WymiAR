@@ -16,7 +16,7 @@
     <color name="profile_layout_background">#404040</color>
     <color name="profile_text_background">#3B3B3B</color>
 
-    <color name="card_background">#121212</color>
+    <color name="card_background">#303030</color>
     <color name="card_image_background">#636363</color>
     <color name="card_highlight">#003DD6</color>
     <color name="card_text_background">#2B2B2B</color>
