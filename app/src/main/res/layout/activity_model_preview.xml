@@ -8,7 +8,8 @@
     <io.github.sceneview.SceneView
         android:id="@+id/previewSceneView"
         android:layout_width="match_parent"
-        android:layout_height="match_parent" />
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
 
     <!-- Back button (top-left) -->
     <ImageButton
@@ -19,7 +20,7 @@
         android:layout_margin="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="Back"
-        android:src="@drawable/ic_arrow_back_color_invert"/>
+        android:src="@drawable/ic_arrow_back_white"/>
 
     <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────
          Sits above the SceneView. The darkened surround is drawn by

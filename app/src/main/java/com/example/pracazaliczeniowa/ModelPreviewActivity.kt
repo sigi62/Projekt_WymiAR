@@ -1,6 +1,7 @@
 package com.example.pracazaliczeniowa
 
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.graphics.RectF
 import android.os.Bundle
 import android.os.Handler
@@ -41,6 +42,17 @@ class ModelPreviewActivity : AppCompatActivity() {
         private const val CAM_DIST_MAX = 10f
         private const val CAM_ELEV_MIN = -89.0
         private const val CAM_ELEV_MAX =  89.0
+
+        /**
+         * The thumbnail is displayed in item_model_card.xml as a 120 dp tall
+         * ImageView with scaleType="centerCrop". We save at exactly this logical
+         * size so the image is never upscaled and disk usage stays small.
+         *
+         * Width is set equal to height so it's square — the card will
+         * centerCrop it to fill whatever width the grid column provides.
+         */
+        private const val THUMB_PX     = 360   // ~120 dp × 3 (xxhdpi)
+        private const val THUMB_QUALITY = 85    // JPEG quality — good balance of size/sharpness
     }
 
     private lateinit var sceneView:       SceneView
@@ -80,15 +92,32 @@ class ModelPreviewActivity : AppCompatActivity() {
         normalButtonBar = findViewById(R.id.normalButtonBar)
         cropConfirmBar  = findViewById(R.id.cropConfirmBar)
 
-        // ── Grey void ─────────────────────────────────────────────────────
+        // ── Grey void — kill the skybox immediately so there is never a flash
+        //    of the default street HDR while the environment file loads.
         sceneView.skybox = null
 
-        // ── Lighting ──────────────────────────────────────────────────────
+        // Tell the Filament renderer to clear to our grey instead of black.
+        // This is what actually stops the black-flash: the clear colour is what
+        // you see between frames and before the first model frame is rendered.
+        sceneView.renderer.clearOptions = sceneView.renderer.clearOptions.apply {
+            clear = true
+            // #DCDCDC → sRGB floats
+            clearColor[0] = 0.863f  // R
+            clearColor[1] = 0.863f  // G
+            clearColor[2] = 0.863f  // B
+            clearColor[3] = 1.0f    // A
+        }
+
+        // ── Lighting — load IBL but explicitly suppress its skybox so the
+        //    background stays our plain grey FrameLayout colour (#DCDCDC). ─
         lifecycleScope.launch {
             try {
                 val env = sceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
                 if (env != null) {
-                    sceneView.environment = env.apply { sceneView.skybox = null }
+                    sceneView.environment = env
+                    // Re-assert null here — loadHDREnvironment may set the skybox
+                    // as a side-effect; clearing it gives us the grey void look.
+                    sceneView.skybox = null
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Could not load environment.hdr: ${e.message}")
@@ -195,7 +224,9 @@ class ModelPreviewActivity : AppCompatActivity() {
                     ?.let { cropBitmap(bitmap, it, w, h) }
                     ?: bitmap          // fallback: save full frame
                 pendingCropRect = null
-                saveThumbnailToDisk(cropped)
+                // Scale down to card-slot size then save as JPEG
+                val thumb = scaledForCard(cropped)
+                saveThumbnailToDisk(thumb)
             } else {
                 runOnUiThread {
                     Toast.makeText(this, "Capture failed (code $result)", Toast.LENGTH_SHORT).show()
@@ -223,12 +254,39 @@ class ModelPreviewActivity : AppCompatActivity() {
         return Bitmap.createBitmap(bitmap, left, top, cropW, cropH)
     }
 
+    /**
+     * Scales [src] to a [THUMB_PX] × [THUMB_PX] square so it fits the card's
+     * 120 dp ImageView exactly at xxhdpi without upscaling.
+     *
+     * The bitmap is first centre-cropped to a square (matching the card's
+     * centerCrop scaleType) then resized — this way what the user sees in the
+     * crop overlay is exactly what ends up in the card.
+     */
+    private fun scaledForCard(src: Bitmap): Bitmap {
+        // 1. Centre-crop to square
+        val side   = minOf(src.width, src.height)
+        val startX = (src.width  - side) / 2
+        val startY = (src.height - side) / 2
+        val square = Bitmap.createBitmap(src, startX, startY, side, side)
+
+        // 2. Scale to target thumbnail size
+        if (square.width == THUMB_PX && square.height == THUMB_PX) return square
+        val scaled = Bitmap.createScaledBitmap(square, THUMB_PX, THUMB_PX, true)
+        if (scaled !== square) square.recycle()
+        return scaled
+    }
+
+    /**
+     * Saves [bitmap] as a JPEG thumbnail for the current profile.
+     * JPEG at quality [THUMB_QUALITY] keeps the file small (~20–40 KB)
+     * while preserving enough detail for the 120 dp card slot.
+     */
     private fun saveThumbnailToDisk(bitmap: Bitmap) {
         try {
-            val file = File(filesDir, "thumbnails/$profileKey.png")
+            val file = File(filesDir, "thumbnails/$profileKey.jpg")
             file.parentFile?.mkdirs()
             FileOutputStream(file).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out)
+                bitmap.compress(Bitmap.CompressFormat.JPEG, THUMB_QUALITY, out)
             }
             runOnUiThread {
                 Toast.makeText(this, "Thumbnail saved!", Toast.LENGTH_SHORT).show()
@@ -277,8 +335,8 @@ class ModelPreviewActivity : AppCompatActivity() {
                 }
                 android.view.MotionEvent.ACTION_POINTER_UP -> {
                     isTwoFinger = false
-                    lastTouchX  = event.getX(0)
-                    lastTouchY  = event.getY(0)
+                    lastTouchX  = event.x
+                    lastTouchY  = event.y
                 }
                 android.view.MotionEvent.ACTION_MOVE -> {
                     if (isTwoFinger && event.pointerCount >= 2) {

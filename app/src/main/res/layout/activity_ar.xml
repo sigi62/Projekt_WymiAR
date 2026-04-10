@@ -33,7 +33,7 @@
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
             android:layout_marginStart="8dp"
-            android:src="@drawable/ic_arrow_back_color_invert"
+            android:src="@drawable/ic_arrow_back_white"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:scaleType="centerInside"
             android:contentDescription="Back"/>

@@ -63,7 +63,7 @@ class ModelLibraryAdapter(
 
         // ── Three-dots menu ─────────────────────────────────────────────────
         holder.btnOptions.setOnClickListener { anchor ->
-            val cached = File(context.filesDir, "thumbnails/${item.profileKey}.png")
+            val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
             PopupMenu(context, anchor).apply {
                 menu.add(0, MENU_PREVIEW,      0, "Preview")
                 menu.add(0, MENU_DELETE_THUMB, 1, "Delete thumbnail")
@@ -101,7 +101,7 @@ class ModelLibraryAdapter(
      */
     private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: java.io.File) {
         imageView.setImageDrawable(null)
-        val cached = File(filesDir, "thumbnails/${item.profileKey}.png")
+        val cached = File(filesDir, "thumbnails/${item.profileKey}.jpg")
         val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
         when {
             bmp != null               -> imageView.setImageBitmap(bmp)
