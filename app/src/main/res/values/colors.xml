@@ -17,13 +17,14 @@
 
     <color name="card_background">#CCCCCC</color>
     <color name="card_image_background">#D1D1D1</color>
-    <color name="card_highlight">#40C3FF</color>
+    <color name="card_highlight">#099CDE</color>
     <color name="card_text_background">#FFFFFF</color>
 
     <color name="button_background">#3BA1F7</color>
     <color name="button_text">#FFFFFF</color>
 
     <color name="edit_text_hint">#938F99</color>
+    <color name="MP_background_color">#DCDCDC</color>
 
     <color name="icon_tint">#000000</color>
     <color name="icon_invert_tint">#FFFFFF</color>

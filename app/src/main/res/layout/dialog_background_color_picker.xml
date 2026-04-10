@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    res/layout/dialog_background_picker.xml
+    Bottom-sheet for choosing the SceneView background.
+    Modes: HDR skybox  |  Solid colour (preset swatches + custom picker)
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="16dp"
+    android:paddingBottom="32dp">
+
+    <!-- Drag handle -->
+    <View
+        android:layout_width="40dp"
+        android:layout_height="4dp"
+        android:layout_gravity="center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:background="@color/background_tint"
+        android:backgroundTint="@color/accent"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Background"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:textColor="@color/text_primary"
+        android:layout_marginBottom="16dp"/>
+
+    <!-- ── Mode selector row ───────────────────────────────────────────── -->
+    <RadioGroup
+        android:id="@+id/rgBackgroundMode"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="20dp">
+
+        <RadioButton
+            android:id="@+id/rbModeVoid"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="Solid colour"
+            android:textColor="@color/text_primary"/>
+
+        <RadioButton
+            android:id="@+id/rbModeHdr"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="HDR skybox"
+            android:textColor="@color/text_primary"/>
+
+    </RadioGroup>
+
+    <!-- ── Colour picker section (shown only in Solid colour mode) ──────── -->
+    <LinearLayout
+        android:id="@+id/layoutColourPicker"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Colour"
+            android:textSize="13sp"
+            android:textColor="@color/text_primary"
+            android:layout_marginBottom="10dp"/>
+
+        <!-- Preset swatches row -->
+        <LinearLayout
+            android:id="@+id/swatchRow"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="start"
+            android:layout_marginBottom="12dp">
+
+            <!-- Swatches are added programmatically so we can share the
+                 selection-ring logic without duplicating XML. -->
+
+        </LinearLayout>
+
+        <!-- Current colour preview + "Custom…" button -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <View
+                android:id="@+id/vCurrentColour"
+                android:layout_width="40dp"
+                android:layout_height="40dp"
+                android:layout_marginEnd="12dp"
+                android:background="@drawable/bg_color_patch_rect"/>
+
+            <Button
+                android:id="@+id/btnCustomColour"
+                style="@style/Widget.AppCompat.Button.Borderless"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Custom colour…"
+                android:textColor="@color/text_primary"
+                android:textSize="13sp"/>
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+</LinearLayout>

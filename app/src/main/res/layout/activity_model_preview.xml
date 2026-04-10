@@ -22,6 +22,18 @@
         android:contentDescription="Back"
         android:src="@drawable/ic_arrow_back_white"/>
 
+    <!-- Background picker button (top-right) — always visible, hides during crop -->
+    <ImageButton
+        android:id="@+id/btnBackground"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Change background"
+        android:src="@drawable/ic_settings"
+        android:tint="@android:color/white"/>
+
     <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────
          Sits above the SceneView. The darkened surround is drawn by
          CropOverlayView; this container just holds the confirm/cancel row. -->
