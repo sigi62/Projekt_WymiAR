@@ -156,14 +156,16 @@ class CropOverlayView @JvmOverloads constructor(
                 if (isPinching && event.pointerCount >= 2) {
                     val dist  = fingerSpacing(event)
                     if (pinchStartDist > 0f) {
-                        val scale     = dist / pinchStartDist
-                        val newWidth  = (pinchStartWidth  * scale).coerceAtLeast(minSizePx)
-                        val newHeight = (pinchStartHeight * scale).coerceAtLeast(minSizePx)
+                        val scale   = dist / pinchStartDist
+                        // Use a single side length (square) derived from the
+                        // smaller start dimension so it can never go non-square.
+                        val newSide = (min(pinchStartWidth, pinchStartHeight) * scale)
+                            .coerceAtLeast(minSizePx)
                         resizeCropAroundCenter(
                             cx        = pinchCenterX,
                             cy        = pinchCenterY,
-                            newWidth  = newWidth,
-                            newHeight = newHeight
+                            newWidth  = newSide,
+                            newHeight = newSide
                         )
                     }
                 } else if (isDragging) {
@@ -209,22 +211,27 @@ class CropOverlayView @JvmOverloads constructor(
     /**
      * Resize the crop rect to [newWidth] × [newHeight], keeping it centred on
      * ([cx], [cy]), then clamp the whole rect to stay inside the view.
+     *
+     * The rect is always kept square: the smaller of width/height is used as
+     * the side length, then further clamped so the square fits inside the view.
      */
     private fun resizeCropAroundCenter(cx: Float, cy: Float, newWidth: Float, newHeight: Float) {
-        // Clamp the size so it can't exceed the view
-        val w = min(newWidth,  width.toFloat())
-        val h = min(newHeight, height.toFloat())
+        // Enforce square: use the smaller dimension, then cap at the smaller
+        // view side so the square can never exceed the screen in either axis.
+        val maxSide = min(width.toFloat(), height.toFloat())
+        val side    = min(min(newWidth, newHeight), maxSide).coerceAtLeast(minSizePx)
+        val half    = side / 2f
 
-        var left   = cx - w / 2f
-        var top    = cy - h / 2f
-        var right  = cx + w / 2f
-        var bottom = cy + h / 2f
+        var left   = cx - half
+        var top    = cy - half
+        var right  = cx + half
+        var bottom = cy + half
 
         // Slide to stay inside the screen
-        if (left  < 0f)           { right  -= left;        left   = 0f }
-        if (top   < 0f)           { bottom -= top;         top    = 0f }
-        if (right  > width)       { left   -= right  - width;  right  = width.toFloat() }
-        if (bottom > height)      { top    -= bottom - height; bottom = height.toFloat() }
+        if (left   < 0f)     { right  -= left;            left   = 0f           }
+        if (top    < 0f)     { bottom -= top;             top    = 0f           }
+        if (right  > width)  { left   -= right  - width;  right  = width.toFloat()  }
+        if (bottom > height) { top    -= bottom - height; bottom = height.toFloat() }
 
         cropRect.set(left, top, right, bottom)
         invalidate()

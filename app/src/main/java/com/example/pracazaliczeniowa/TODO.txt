@@ -26,9 +26,7 @@
   IDEAS
 
   1. Thumbnails for auto models are pre-made
-  2. Thumbnail capture scale doesn't go beyond bonds
-  3. Thumbnail colorpicker whites the color?
-  4. Thumbnail studio crash - buildPlanes()
+  2. Thumbnail background UI smooth
 
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
  

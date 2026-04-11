@@ -108,6 +108,22 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var initialCamDist = 0f
     private var isTwoFinger = false
 
+    // Filament's clearColor is in LINEAR colour space. Android Color values
+    // (and everything produced by the HSV colour picker) are sRGB. Without
+    // converting, the background appears washed-out / too bright because
+    // Filament treats the raw sRGB byte as if it were already linear.
+    //
+    // IEC 61966-2-1 piecewise sRGB -> linear formula:
+    private fun srgbToLinear(channel: Int): Float {
+        val c = channel / 255f
+        return if (c <= 0.04045f) c / 12.92f
+        else Math.pow((c + 0.055) / 1.055, 2.4).toFloat()
+    }
+
+    private fun @receiver:ColorInt Int.linearR() = srgbToLinear(this.red)
+    private fun @receiver:ColorInt Int.linearG() = srgbToLinear(this.green)
+    private fun @receiver:ColorInt Int.linearB() = srgbToLinear(this.blue)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         Log.d(TAG, "onCreate: start")
@@ -179,9 +195,9 @@ class ModelPreviewActivity : AppCompatActivity() {
                 window.decorView.setBackgroundColor(mode.color)
                 sceneView.renderer.clearOptions = sceneView.renderer.clearOptions.apply {
                     clear = true
-                    clearColor[0] = mode.color.red   / 255f
-                    clearColor[1] = mode.color.green / 255f
-                    clearColor[2] = mode.color.blue  / 255f
+                    clearColor[0] = mode.color.linearR()
+                    clearColor[1] = mode.color.linearG()
+                    clearColor[2] = mode.color.linearB()
                     clearColor[3] = 1f
                 }
             }
@@ -190,9 +206,9 @@ class ModelPreviewActivity : AppCompatActivity() {
                 window.decorView.setBackgroundColor(STUDIO_PLANE_COLOR)
                 sceneView.renderer.clearOptions = sceneView.renderer.clearOptions.apply {
                     clear = true
-                    clearColor[0] = STUDIO_PLANE_COLOR.red   / 255f
-                    clearColor[1] = STUDIO_PLANE_COLOR.green / 255f
-                    clearColor[2] = STUDIO_PLANE_COLOR.blue  / 255f
+                    clearColor[0] = STUDIO_PLANE_COLOR.linearR()
+                    clearColor[1] = STUDIO_PLANE_COLOR.linearG()
+                    clearColor[2] = STUDIO_PLANE_COLOR.linearB()
                     clearColor[3] = 1f
                 }
                 buildStudioPlanes()
@@ -314,25 +330,43 @@ class ModelPreviewActivity : AppCompatActivity() {
         val wg = STUDIO_WALL_COLOR.green / 255f
         val wb = STUDIO_WALL_COLOR.blue  / 255f
 
-        // Flat quad on XZ plane (floor)
+        val floorY = -0.55f
+        val wallZ  = -1.8f
+
+        // Floor quad on the XZ plane.
+        // Verts are listed CCW when viewed from ABOVE (+Y) so the front face
+        // points upward — toward the camera and the model.
+        //   3----0
+        //   |  / |   viewed from above, this winds counter-clockwise
+        //   | /  |
+        //   2----1
         val floorVerts = floatArrayOf(
-            -3f, 0f, -3f,
-            3f, 0f, -3f,
-            3f, 0f,  3f,
-            -3f, 0f,  3f
+            -3f, floorY,  3f,   // 0 front-left
+            3f, floorY,  3f,   // 1 front-right
+            3f, floorY, -3f,   // 2 back-right
+            -3f, floorY, -3f    // 3 back-left
         )
-        // Flat quad on XY plane (back wall)
+
+        // Wall quad on the XY plane.
+        // Verts are listed CCW when viewed from the FRONT (-Z looking toward +Z)
+        // so the front face points toward the camera (toward -Z).
+        //   3----2
+        //   |  / |   viewed from front, CCW
+        //   | /  |
+        //   0----1
         val wallVerts = floatArrayOf(
-            -3f, -2f, 0f,
-            3f, -2f, 0f,
-            3f,  2f, 0f,
-            -3f,  2f, 0f
+            -3f, floorY, wallZ,  // 0 bottom-left
+            3f, floorY, wallZ,  // 1 bottom-right
+            3f,  3f,    wallZ,  // 2 top-right
+            -3f,  3f,    wallZ   // 3 top-left
         )
+
+        // CCW winding: tri1 = 0,1,2  tri2 = 0,2,3
         val indices = shortArrayOf(0, 1, 2, 0, 2, 3)
 
         studioFloorNode = buildPlaneNode(
             engine, floorVerts, indices, fr, fg, fb,
-            Position(0f, -0.55f, 0f), Rotation(0f, 0f, 0f), "floor"
+            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "floor"
         )?.also {
             Log.d(TAG, "buildStudioPlanes: floor node built, adding to scene")
             sceneView.addChildNode(it)
@@ -340,7 +374,7 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         studioWallNode = buildPlaneNode(
             engine, wallVerts, indices, wr, wg, wb,
-            Position(0f, 2.0f, -1.8f), Rotation(0f, 0f, 0f), "wall"
+            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "wall"
         )?.also {
             Log.d(TAG, "buildStudioPlanes: wall node built, adding to scene")
             sceneView.addChildNode(it)
@@ -382,7 +416,19 @@ class ModelPreviewActivity : AppCompatActivity() {
             val vertCount = vertices.size / 3
 
             // ------------------------------------------------------------------
-            // 1. Vertex buffer — POSITION in slot 0, TANGENTS (normals) in slot 1
+            // 1. Vertex buffer — POSITION (slot 0) + TANGENTS as FLOAT4 (slot 1).
+            //
+            // Filament's TANGENTS attribute MUST be FLOAT4 — it stores a unit
+            // quaternion (x,y,z,w) that encodes the full tangent frame including
+            // the normal. Supplying FLOAT3 or omitting it causes the default
+            // normal (0,0,1 in view space) to be used, making the surface appear
+            // white/fully-lit regardless of the actual geometry orientation.
+            //
+            // For a flat plane with normal N, the minimal valid tangent quaternion
+            // is the shortest rotation from (0,0,1) to N. For a floor (N=0,1,0)
+            // that is a 90° rotation around X: q = (sin45°, 0, 0, cos45°).
+            // We pass the same quaternion for every vertex since the plane is flat.
+            // The w sign encodes bitangent handedness — positive = right-handed.
             // ------------------------------------------------------------------
             val vBuf = VertexBuffer.Builder()
                 .vertexCount(vertCount)
@@ -392,13 +438,8 @@ class ModelPreviewActivity : AppCompatActivity() {
                     VertexBuffer.AttributeType.FLOAT3, 0, 12
                 )
                 .attribute(
-                    // Filament uses TANGENTS for normal/tangent/bitangent packed as
-                    // a quaternion or plain float3; for a flat unlit-style surface
-                    // supplying raw FLOAT3 normals in this slot is accepted by the
-                    // default material and prevents the driver from crashing when
-                    // shadow maps are active.
                     VertexBuffer.VertexAttribute.TANGENTS, 1,
-                    VertexBuffer.AttributeType.FLOAT3, 0, 12
+                    VertexBuffer.AttributeType.FLOAT4, 0, 16
                 )
                 .build(engine)
             Log.d(TAG, "buildPlaneNode[$label]: VertexBuffer built OK")
@@ -408,13 +449,27 @@ class ModelPreviewActivity : AppCompatActivity() {
                 .apply { vertices.forEach { putFloat(it) }; flip() }
             vBuf.setBufferAt(engine, 0, vData)
 
-            // All normals pointing straight up (+Y) — adequate for a simple
-            // floor/wall that just needs to receive shadows without artefacts.
-            val normals = FloatArray(vertCount * 3) { i -> if (i % 3 == 1) 1f else 0f }
-            val nData = ByteBuffer.allocateDirect(normals.size * 4)
+            // Compute the face normal from the first triangle so the quaternion
+            // is correct for both the floor (normal = +Y) and the wall (normal = +Z).
+            // Cross product of two edges gives the face normal.
+            val ax = vertices[3] - vertices[0]; val ay = vertices[4]  - vertices[1]; val az = vertices[5]  - vertices[2]
+            val bx = vertices[6] - vertices[0]; val by = vertices[7]  - vertices[1]; val bz = vertices[8]  - vertices[2]
+            var nx = ay * bz - az * by;         var ny = az * bx - ax * bz;         var nz = ax * by - ay * bx
+            val nlen = kotlin.math.sqrt(nx*nx + ny*ny + nz*nz).coerceAtLeast(1e-6f)
+            nx /= nlen; ny /= nlen; nz /= nlen
+            Log.d(TAG, "buildPlaneNode[$label]: face normal = ($nx, $ny, $nz)")
+
+            // Shortest-arc quaternion from reference (0,0,1) to computed normal.
+            // q = (cross(ref, n) , 1 + dot(ref, n)).normalised
+            // ref = (0, 0, 1): cross = (ny*1-nz*0, nz*0-nx*1, nx*0-ny*0) = (ny, -nx, 0), dot = nz
+            var qx = ny; var qy = -nx; var qz = 0f; var qw = 1f + nz
+            val qlen = kotlin.math.sqrt(qx*qx + qy*qy + qz*qz + qw*qw).coerceAtLeast(1e-6f)
+            qx /= qlen; qy /= qlen; qz /= qlen; qw /= qlen
+
+            val tData = ByteBuffer.allocateDirect(vertCount * 16)
                 .order(ByteOrder.nativeOrder())
-                .apply { normals.forEach { putFloat(it) }; flip() }
-            vBuf.setBufferAt(engine, 1, nData)
+                .apply { repeat(vertCount) { putFloat(qx); putFloat(qy); putFloat(qz); putFloat(qw) }; flip() }
+            vBuf.setBufferAt(engine, 1, tData)
 
             // ------------------------------------------------------------------
             // 2. Index buffer
@@ -485,7 +540,10 @@ class ModelPreviewActivity : AppCompatActivity() {
                     (maxX - minX) / 2f, (maxY - minY) / 2f, (maxZ - minZ) / 2f    // half-extent
                 ))
                 .culling(false)
+                // Valid FLOAT4 tangent quaternions are now supplied so shadow
+                // maps work correctly. Floor receives shadows from the model.
                 .receiveShadows(true)
+                .castShadows(false)
                 .build(engine, node.entity)
             Log.d(TAG, "buildPlaneNode[$label]: RenderableManager built OK")
 
