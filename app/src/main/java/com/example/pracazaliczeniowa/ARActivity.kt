@@ -29,6 +29,7 @@ import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
+import com.google.ar.core.Config
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import io.github.sceneview.node.Node
 
@@ -110,6 +111,14 @@ class ARActivity : AppCompatActivity() {
 
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
+
+        arSceneView.configureSession { session, config ->
+            config.planeFindingMode   = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+            config.focusMode          = Config.FocusMode.FIXED
+            config.updateMode         = Config.UpdateMode.LATEST_CAMERA_IMAGE
+            config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
+        }
+
 
         lifecycleScope.launch {
             val env = arSceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
