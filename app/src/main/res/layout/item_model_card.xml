@@ -60,17 +60,41 @@
 
         </LinearLayout>
 
-        <!-- "✓ Saved" profile badge – hidden by default, shown by adapter -->
-        <TextView
-            android:id="@+id/tvSavedBadge"
+        <!-- Badge row: "✓ Saved" and "Imported" sit side by side, centred -->
+        <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
-            android:text="✓ Saved"
-            android:textColor="@color/text_primary"
-            android:textSize="11sp"
-            android:paddingBottom="4dp"
-            android:visibility="gone"/>
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingBottom="4dp">
+
+            <!-- "✓ Saved" profile badge – shown by adapter when a profile exists -->
+            <TextView
+                android:id="@+id/tvSavedBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="✓ Saved"
+                android:textColor="@color/text_primary"
+                android:textSize="11sp"
+                android:visibility="gone"/>
+
+            <!-- Spacer between badges (only visible when both are shown) -->
+            <Space
+                android:layout_width="6dp"
+                android:layout_height="1dp"/>
+
+            <!-- "Imported" badge – shown for user-imported models only -->
+            <TextView
+                android:id="@+id/tvImportedBadge"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="↓ Imported"
+                android:textColor="@color/text_secondary"
+                android:textSize="11sp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
 
     </LinearLayout>
 

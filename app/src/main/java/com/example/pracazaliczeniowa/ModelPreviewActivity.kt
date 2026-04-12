@@ -55,8 +55,9 @@ class ModelPreviewActivity : AppCompatActivity() {
     }
 
     companion object {
-        const val EXTRA_MODEL_PATH = "extra_model_path"
-        const val EXTRA_PROFILE_KEY = "extra_profile_key"
+        const val EXTRA_MODEL_PATH    = "extra_model_path"
+        const val EXTRA_MODEL_IS_ASSET = "extra_model_is_asset"
+        const val EXTRA_PROFILE_KEY   = "extra_profile_key"
         private const val TAG = "ModelPreviewActivity"
         private const val CAM_DIST_INIT = 2.5f
         private const val CAM_ELEV_DEG_INIT = 35.0
@@ -133,11 +134,12 @@ class ModelPreviewActivity : AppCompatActivity() {
             Log.e(TAG, "onCreate: EXTRA_MODEL_PATH is null — finishing")
             finish(); return
         }
+        val modelIsAsset = intent.getBooleanExtra(EXTRA_MODEL_IS_ASSET, true)
         profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run {
             Log.e(TAG, "onCreate: EXTRA_PROFILE_KEY is null — finishing")
             finish(); return
         }
-        Log.d(TAG, "onCreate: modelPath=$modelPath  profileKey=$profileKey")
+        Log.d(TAG, "onCreate: modelPath=$modelPath  isAsset=$modelIsAsset  profileKey=$profileKey")
 
         sceneView        = findViewById(R.id.previewSceneView)
         cropOverlay      = findViewById(R.id.cropOverlay)
@@ -170,7 +172,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             captureNextFrame = true
         }
 
-        lifecycleScope.launch { loadModel(modelPath) }
+        lifecycleScope.launch { loadModel(modelPath, modelIsAsset) }
         sceneView.onFrame = { if (captureNextFrame) { captureNextFrame = false; captureAndSaveThumbnail() } }
         setupTouchListener()
         Log.d(TAG, "onCreate: complete")
@@ -587,10 +589,16 @@ class ModelPreviewActivity : AppCompatActivity() {
     // Model loading
     // -------------------------------------------------------------------------
 
-    private suspend fun loadModel(path: String) {
-        Log.d(TAG, "loadModel: path=$path")
+    private suspend fun loadModel(path: String, isAsset: Boolean = true) {
+        Log.d(TAG, "loadModel: path=$path  isAsset=$isAsset")
         try {
-            val instance = sceneView.modelLoader.createModelInstance(path)
+            val instance = if (isAsset) {
+                sceneView.modelLoader.createModelInstance(path)
+            } else {
+                sceneView.modelLoader.createModelInstance(
+                    java.io.File(path).toURI().toString()
+                )
+            }
             if (instance == null) {
                 Log.e(TAG, "loadModel: createModelInstance returned null for path=$path")
                 return

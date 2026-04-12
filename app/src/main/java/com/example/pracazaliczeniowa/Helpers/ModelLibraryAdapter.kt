@@ -1,7 +1,6 @@
 package com.example.pracazaliczeniowa.Helpers
 
 import android.graphics.BitmapFactory
-import android.graphics.Color
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -17,19 +16,27 @@ import java.io.File
 import com.example.pracazaliczeniowa.R
 
 class ModelLibraryAdapter(
-    private val items: List<ModelItem>,
+    items: List<ModelItem>,
     /** Set of profileKeys that already have a saved JSON profile. */
     private val savedProfiles: Set<String>,
     private var selectedKey: String? = null,
     private val onItemClick: (ModelItem) -> Unit,
     /** Called when the user taps "Preview" in the three-dots menu. */
-    private val onPreviewClick: (ModelItem) -> Unit
+    private val onPreviewClick: (ModelItem) -> Unit,
+    /**
+     * Called when the user confirms "Delete model" for a user-imported item.
+     * Never called for bundled asset models.
+     */
+    private val onDeleteImported: (ModelItem) -> Unit
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
+
+    private val items: MutableList<ModelItem> = items.toMutableList()
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val thumbnail: ImageView    = view.findViewById(R.id.imgModelThumbnail)
         val name: TextView          = view.findViewById(R.id.tvModelName)
         val savedBadge: TextView    = view.findViewById(R.id.tvSavedBadge)
+        val importedBadge: TextView = view.findViewById(R.id.tvImportedBadge)
         val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
     }
 
@@ -49,8 +56,8 @@ class ModelLibraryAdapter(
         } else {
             ContextCompat.getColor(context, R.color.card_background)
         }
-
         (holder.itemView as CardView).setCardBackgroundColor(backgroundColor)
+
         // ── Thumbnail ───────────────────────────────────────────────────────
         bindThumbnail(holder.thumbnail, item, context.filesDir)
 
@@ -61,13 +68,21 @@ class ModelLibraryAdapter(
         holder.savedBadge.visibility =
             if (item.profileKey in savedProfiles) View.VISIBLE else View.GONE
 
+        // ── "Imported" badge ─────────────────────────────────────────────────
+        holder.importedBadge.visibility =
+            if (!item.isAsset) View.VISIBLE else View.GONE
+
         // ── Three-dots menu ─────────────────────────────────────────────────
         holder.btnOptions.setOnClickListener { anchor ->
             val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
             PopupMenu(context, anchor).apply {
-                menu.add(0, MENU_PREVIEW,      0, "Preview")
-                menu.add(0, MENU_DELETE_THUMB, 1, "Delete thumbnail")
+                menu.add(0, MENU_PREVIEW,       0, "Preview")
+                menu.add(0, MENU_DELETE_THUMB,  1, "Delete thumbnail")
                     .isEnabled = cached.exists()
+                // "Delete model" only shown for user-imported files
+                if (!item.isAsset) {
+                    menu.add(0, MENU_DELETE_MODEL, 2, "Delete model")
+                }
 
                 setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
@@ -77,6 +92,10 @@ class ModelLibraryAdapter(
                         }
                         MENU_DELETE_THUMB -> {
                             deleteThumbnail(cached, item, holder)
+                            true
+                        }
+                        MENU_DELETE_MODEL -> {
+                            confirmDeleteModel(context, item)
                             true
                         }
                         else -> false
@@ -90,14 +109,29 @@ class ModelLibraryAdapter(
         holder.itemView.setOnClickListener { onItemClick(item) }
     }
 
-    // -------------------------------------------------------------------------
-    // Thumbnail helpers
-    // -------------------------------------------------------------------------
+    // ── Public update helpers ─────────────────────────────────────────────────
+
+    fun updateSelection(key: String?) {
+        this.selectedKey = key
+        notifyDataSetChanged()
+    }
+
+    /** Replaces the full item list and refreshes the grid. */
+    fun updateItems(newItems: List<ModelItem>) {
+        items.clear()
+        items.addAll(newItems)
+        notifyDataSetChanged()
+    }
+
+    override fun getItemCount() = items.size
+
+    // ── Thumbnail helpers ─────────────────────────────────────────────────────
 
     /**
-     * Loads the thumbnail for [item] into [imageView], checking the on-disk
-     * cache first, then the bundled drawable, then the generic placeholder.
-     * Extracted so both onBindViewHolder and deleteThumbnail can call it.
+     * Loads the thumbnail for [item] into [imageView]:
+     *  1. On-disk cached JPEG (saved via "Set Thumbnail" in ModelPreviewActivity)
+     *  2. Bundled drawable resource (asset models only)
+     *  3. Generic placeholder
      */
     private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: java.io.File) {
         imageView.setImageDrawable(null)
@@ -110,18 +144,9 @@ class ModelLibraryAdapter(
         }
     }
 
-    /**
-     * Deletes the cached thumbnail PNG for [item], then immediately refreshes
-     * the card in-place (no full notifyDataSetChanged needed).
-     */
-    private fun deleteThumbnail(
-        cached: File,
-        item: ModelItem,
-        holder: ViewHolder
-    ) {
+    private fun deleteThumbnail(cached: File, item: ModelItem, holder: ViewHolder) {
         val context = holder.itemView.context
         if (cached.delete()) {
-            // Refresh just this card's thumbnail back to the fallback drawable
             bindThumbnail(holder.thumbnail, item, context.filesDir)
             Toast.makeText(context, "Thumbnail deleted", Toast.LENGTH_SHORT).show()
         } else {
@@ -129,17 +154,20 @@ class ModelLibraryAdapter(
         }
     }
 
-    // -------------------------------------------------------------------------
-
-    fun updateSelection(key: String?) {
-        this.selectedKey = key
-        notifyDataSetChanged()
+    private fun confirmDeleteModel(context: android.content.Context, item: ModelItem) {
+        android.app.AlertDialog.Builder(context)
+            .setTitle("Delete ${item.name}?")
+        .setMessage("The model file will be permanently removed from your library. Saved profiles for this model will remain.")
+            .setPositiveButton("Delete") { _, _ -> onDeleteImported(item) }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
-    override fun getItemCount() = items.size
+    // ── Constants ─────────────────────────────────────────────────────────────
 
     companion object {
-        private const val MENU_PREVIEW      = 1
-        private const val MENU_DELETE_THUMB = 2
+        private const val MENU_PREVIEW       = 1
+        private const val MENU_DELETE_THUMB  = 2
+        private const val MENU_DELETE_MODEL  = 3
     }
 }

@@ -2,24 +2,25 @@
 
   IMPLEMENTATION:
 
-  Add Library to choose models from
   Add imports
 
-  Add a toggle effect to MeasureTape
-  Add a toggle effect to wireframe mode too ?? Button type special for selected?
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
   More UI changes
-  BETTER PLANE DETECTING
-  3D MODE
+
+
 
 
   BUGS / FIXES
 
+1. Import - file not found
   2. Rotation Handle not a ring
-  3. Deselecting model doesn't work  while tapping on selected???
+  3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
   5. Profiles not loading in?
+  5.5 Default Profile apply correctly at start
   6. Model Cards delay before AR loads
+  7 Add a toggle effect to MeasureTape
+  8 Add a toggle effect to wireframe mode too ?? Button type special for selected?
 
 
   IDEAS

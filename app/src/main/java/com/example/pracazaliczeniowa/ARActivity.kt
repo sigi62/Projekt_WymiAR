@@ -54,7 +54,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var unitButton: Button
     private lateinit var settingsButton: ImageButton
 
-    // ── Dimension HUD views ──────────────────────────────────────────
+    // ── Dimension HUD views ──────────────────────────────────────────────────
     private lateinit var dimensionHud: View
     private lateinit var dimW: TextView
     private lateinit var dimH: TextView
@@ -64,32 +64,38 @@ class ARActivity : AppCompatActivity() {
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
 
     private val placedMeasureNodes = mutableListOf<AnchorNode>()
-    private val placedModelNodes = mutableListOf<AnchorNode>()
+    private val placedModelNodes   = mutableListOf<AnchorNode>()
 
-    private val models = mutableListOf<DefaultModelNode>()
+    private val models         = mutableListOf<DefaultModelNode>()
     private var selectedModel: SelectedModelNode? = null
 
     private var measurePointA: Float3? = null
     private var measurePointB: Float3? = null
 
-    private var isDragging = false
-    private var isPinching = false
-    private var isRotating = false
+    private var isDragging   = false
+    private var isPinching   = false
+    private var isRotating   = false
 
-    private var initialPinchDistance = 0f
-    private var touchStartPos = android.graphics.PointF()
-    private val MOVE_THRESHOLD = 20f
-    private var initialTouchAngle = 0f
-    private var initialModelRotationY = 0f
+    private var initialPinchDistance    = 0f
+    private var touchStartPos           = android.graphics.PointF()
+    private val MOVE_THRESHOLD          = 20f
+    private var initialTouchAngle       = 0f
+    private var initialModelRotationY   = 0f
 
-    private var activeModelPath: String = "models/cat.glb"
+    /**
+     * Path of the active model.
+     * May be an asset-relative path ("models/cat.glb") or an absolute path
+     * ("/data/.../models/cat.glb") depending on [activeModelIsAsset].
+     */
+    private var activeModelPath: String    = "models/cat.glb"
+    private var activeModelIsAsset: Boolean = true
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
 
-        activeModelPath = intent.getStringExtra(LibraryActivity.EXTRA_MODEL_PATH)
-            ?: "models/cat.glb"
+        activeModelPath    = intent.getStringExtra(LibraryActivity.EXTRA_MODEL_PATH)    ?: "models/cat.glb"
+        activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, true)
 
         profileManager = ProfileManager(this)
 
@@ -102,7 +108,7 @@ class ARActivity : AppCompatActivity() {
         unitButton            = findViewById(R.id.btnUnit)
         settingsButton        = findViewById(R.id.btnSettings)
 
-        // ── Dimension HUD ────────────────────────────────────────────
+        // ── Dimension HUD ────────────────────────────────────────────────────
         dimensionHud = findViewById(R.id.dimensionHud)
         dimW = dimensionHud.findViewById(R.id.dimensionW)
         dimH = dimensionHud.findViewById(R.id.dimensionH)
@@ -130,11 +136,11 @@ class ARActivity : AppCompatActivity() {
             arSceneView.skybox        = env?.skybox
         }
 
-        modelControls.onSaveRequested = { showProfileDialog() }
+        modelControls.onSaveRequested   = { showProfileDialog() }
         modelControls.onDeleteRequested = { deleteSelectedModel() }
 
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
+        modelControls.visibility      = View.GONE
+        wireframeModeButton.visibility = View.GONE
 
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
@@ -161,7 +167,6 @@ class ARActivity : AppCompatActivity() {
                 statusText.text = String.format("Distance: %.1f %s", value, suffix)
             }
 
-            // Refresh HUD labels when unit changes (if wireframe is visible)
             if (dimensionHud.visibility == View.VISIBLE) {
                 selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
             }
@@ -174,7 +179,7 @@ class ARActivity : AppCompatActivity() {
             val y = motionEvent.y
 
             val nodeHit = hitResult?.node
-            val arHit = arSceneView.hitTestAR(x, y, setOf(Plane.Type.HORIZONTAL_UPWARD_FACING))
+            val arHit   = arSceneView.hitTestAR(x, y, setOf(Plane.Type.HORIZONTAL_UPWARD_FACING))
             val selected = selectedModel
 
             when (motionEvent.actionMasked) {
@@ -203,6 +208,7 @@ class ARActivity : AppCompatActivity() {
                 MotionEvent.ACTION_POINTER_UP -> {
                     isPinching = false
                 }
+
                 MotionEvent.ACTION_MOVE -> {
                     if (isRotating && selected != null) {
                         val dx = motionEvent.x - touchStartPos.x
@@ -220,7 +226,6 @@ class ARActivity : AppCompatActivity() {
                             val scaleFactor = currentDist / initialPinchDistance
                             selected.applyPinchScale(scaleFactor)
                             modelControls.updateScaleFromGesture(scaleFactor)
-                            // Live-update the HUD while pinching
                             if (dimensionHud.visibility == View.VISIBLE) {
                                 selected.getDimensionOverlay()
                                     ?.let { updateDimensionHud(it.getDimensions()) }
@@ -292,9 +297,8 @@ class ARActivity : AppCompatActivity() {
         modelControls.applySettings(AppSettings(this))
     }
 
-    // ---------------------------------------------------------------
-    // Measure tool toggle
-    // ---------------------------------------------------------------
+    // ── Measure tool ─────────────────────────────────────────────────────────
+
     private fun toggleMeasureTool() {
         isMeasureToolActive = !isMeasureToolActive
         if (!isMeasureToolActive) {
@@ -305,14 +309,30 @@ class ARActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Model placement
-    // ---------------------------------------------------------------
+    // ── Model placement ───────────────────────────────────────────────────────
+
     private fun placeModel(hitResult: HitResult) {
         statusText.text = "Loading model…"
 
         lifecycleScope.launch {
-            val modelInstance = arSceneView.modelLoader.createModelInstance(activeModelPath)
+
+            val file = java.io.File(activeModelPath)
+            Log.d("AR_DEBUG", "Loading path: ${activeModelPath}")
+            Log.d("AR_DEBUG", "File exists: ${file.exists()}")
+            Log.d("AR_DEBUG", "File length: ${file.length()}")
+            // ── Key distinction: asset path vs absolute file path ─────────────
+            val modelInstance = if (activeModelIsAsset) {
+                arSceneView.modelLoader.createModelInstance(activeModelPath)
+            } else {
+                // FIX: SceneView's modelLoader can often take the raw absolute path string.
+                // If it requires a URI, ensure it has the file:/// prefix manually or
+                // use Uri.fromFile(File).toString() which is more reliable on Android.
+                val file = java.io.File(activeModelPath)
+                if (!file.exists()) {
+                    log("ERROR: File not found at $activeModelPath")
+                }
+                arSceneView.modelLoader.createModelInstance("file://${file.absolutePath}")
+            }
 
             val node = DefaultModelNode(
                 modelPath             = activeModelPath,
@@ -341,6 +361,8 @@ class ARActivity : AppCompatActivity() {
         }
     }
 
+    // ── Selection ─────────────────────────────────────────────────────────────
+
     private fun selectModel(defaultNode: DefaultModelNode) {
         log("SELECT MODEL CALLED")
 
@@ -352,9 +374,7 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-        // Hide HUD for previous model
         dimensionHud.visibility = View.GONE
-
         models.remove(defaultNode)
 
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
@@ -362,13 +382,12 @@ class ARActivity : AppCompatActivity() {
 
         if (wrapped != null) {
             modelControls.bindToNode(wrapped)
-            modelControls.visibility       = View.VISIBLE
-            wireframeModeButton.visibility  = View.VISIBLE
+            modelControls.visibility      = View.VISIBLE
+            wireframeModeButton.visibility = View.VISIBLE
 
             wireframeModeButton.setOnClickListener {
                 val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
                 if (isNowVisible) {
-                    // Show HUD and populate with current dimensions
                     wrapped.getDimensionOverlay()?.let { overlay ->
                         updateDimensionHud(overlay.getDimensions())
                     }
@@ -390,19 +409,14 @@ class ARActivity : AppCompatActivity() {
             models.add(returnedNode)
         }
         selectedModel = null
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
-        dimensionHud.visibility         = View.GONE
+        modelControls.visibility      = View.GONE
+        wireframeModeButton.visibility = View.GONE
+        dimensionHud.visibility        = View.GONE
         statusText.text = "Model deselected"
     }
 
-    // ---------------------------------------------------------------
-    // Dimension HUD helper
-    // ---------------------------------------------------------------
-    /**
-     * Populates the bottom-start HUD with current W / H / D values
-     * formatted according to the active [unit].
-     */
+    // ── Dimension HUD ─────────────────────────────────────────────────────────
+
     private fun updateDimensionHud(dims: Triple<Float, Float, Float>) {
         val (w, h, d) = dims
         val (wVal, suffix) = unit.convert(w)
@@ -412,6 +426,8 @@ class ARActivity : AppCompatActivity() {
         dimH.text = "H: ${"%.1f".format(hVal)} $suffix"
         dimD.text = "D: ${"%.1f".format(dVal)} $suffix"
     }
+
+    // ── Measure points ────────────────────────────────────────────────────────
 
     private fun placeMeasurePoint(hitResult: HitResult) {
         val pose  = hitResult.hitPose
@@ -449,6 +465,8 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.clear()
     }
 
+    // ── Profile dialog ────────────────────────────────────────────────────────
+
     private fun showProfileDialog() {
         val selected  = selectedModel ?: return
         val wrapped   = selected.getWrappedNode() ?: return
@@ -471,7 +489,6 @@ class ARActivity : AppCompatActivity() {
             selected.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             selected.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             modelControls.bindToNode(selected)
-            // Re-populate HUD after profile load (scale may have changed)
             if (dimensionHud.visibility == View.VISIBLE) {
                 selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
             }
@@ -481,6 +498,8 @@ class ARActivity : AppCompatActivity() {
 
         dialog.show(supportFragmentManager, "ProfilePickerDialog")
     }
+
+    // ── Delete model from scene ───────────────────────────────────────────────
 
     private fun deleteSelectedModel() {
         val selected   = selectedModel ?: return
@@ -493,16 +512,15 @@ class ARActivity : AppCompatActivity() {
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
-        dimensionHud.visibility         = View.GONE
+        modelControls.visibility      = View.GONE
+        wireframeModeButton.visibility = View.GONE
+        dimensionHud.visibility        = View.GONE
 
         statusText.text = "deleted model $modelName"
     }
 
-    // ---------------------------------------------------------------
-    // Helpers
-    // ---------------------------------------------------------------
+    // ── Math helpers ──────────────────────────────────────────────────────────
+
     private fun distanceMeters(a: Float3, b: Float3): Float {
         val dx = a.x - b.x
         val dy = a.y - b.y

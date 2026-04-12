@@ -7,6 +7,7 @@
 -->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="horizontal"
@@ -23,7 +24,7 @@
         android:textColor="@color/text_primary"
         android:textSize="14sp"
         android:maxLines="1"
-        android:ellipsize="end"/>
+        android:ellipsize="end" />
 
     <!-- Overwrite / Save button -->
     <Button
@@ -36,7 +37,7 @@
         android:paddingEnd="8dp"
         android:layout_marginStart="4dp"
         android:backgroundTint="@color/background_tint"
-        android:textColor="@color/text_secondary"/>
+        android:textColor="@color/text_secondary" />
 
     <!-- Load button -->
     <Button
@@ -49,7 +50,7 @@
         android:paddingEnd="8dp"
         android:layout_marginStart="4dp"
         android:backgroundTint="@color/button_background"
-        android:textColor="@color/button_text"/>
+        android:textColor="@color/button_text" />
 
     <!-- Delete button (hidden for Default slot) -->
     <ImageButton
@@ -59,8 +60,8 @@
         android:layout_marginStart="4dp"
         android:src="@drawable/ic_delete"
         android:backgroundTint="@android:color/transparent"
-        android:tint="@color/icon_tint"
         android:contentDescription="Delete profile"
-        android:visibility="gone"/>
+        android:visibility="gone"
+        app:tint="@color/icon_tint" />
 
 </LinearLayout>
