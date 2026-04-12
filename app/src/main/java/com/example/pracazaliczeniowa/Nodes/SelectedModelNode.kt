@@ -27,6 +27,9 @@ class SelectedModelNode(
 
     fun getWrappedNode(): DefaultModelNode? = wrappedNode
 
+    /** Exposes the overlay so the Activity can read dimensions for the HUD. */
+    fun getDimensionOverlay(): DimensionOverlayNode? = dimensionOverlay
+
     fun unwrap(): DefaultModelNode? {
         val child = wrappedNode ?: return null
         val currentAnchor = this.parent ?: return null
@@ -72,10 +75,7 @@ class SelectedModelNode(
         hideDimensions()
         dimensionOverlay = DimensionOverlayNode(
             engine = engine,
-            modelLoader = sceneView.modelLoader,
             materialLoader = sceneView.materialLoader,
-            context = sceneView.context,
-            viewAttachmentManager = viewAttachmentManager,
             targetNode = node
         )
         this.addChildNode(dimensionOverlay!!)
@@ -89,7 +89,6 @@ class SelectedModelNode(
     }
 
     fun applyPinchScale(factor: Float) {
-        // Amplify the raw pinch ratio so small finger movements feel responsive
         val amplified = 1f + (factor - 1f) * PINCH_SENSITIVITY
         val newScale = (initialPinchScale * amplified).coerceIn(0.01f, 10f)
         wrappedNode?.scale = Float3(newScale)
@@ -121,12 +120,18 @@ class SelectedModelNode(
         refreshRingScale()
     }
 
-    fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
-        val target = wrappedNode ?: return
-        if (isDimensionsVisible) hideDimensions()
-        else {
+    /**
+     * Toggles the dimension wireframe overlay on/off.
+     * Returns true if the overlay is now visible, false if it was just hidden.
+     */
+    fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager): Boolean {
+        val target = wrappedNode ?: return false
+        return if (isDimensionsVisible) {
+            hideDimensions()
+            false
+        } else {
             showDimensions(target, sceneView, viewAttachmentManager)
-            isDimensionsVisible = true
+            true
         }
     }
 
@@ -152,8 +157,8 @@ class SelectedModelNode(
 
         rotationHandle = CylinderNode(
             engine = engine,
-            radius = 1f,      // unit radius – real size set via Node.scale
-            height = 0.0001f,  // 5 mm: as thin as a disc can be
+            radius = 1f,
+            height = 0.0001f,
             materialInstance = sceneView.materialLoader.createColorInstance(
                 Color.White.copy(alpha = 0.5f)
             )
@@ -173,7 +178,6 @@ class SelectedModelNode(
         val outerR = computeOuterRadius(target)
         val yOff   = computeYOffset(target)
 
-        // Y stays 1f so the 5 mm height is never distorted by XZ scaling
         handle.scale    = Float3(outerR, 1f, outerR)
         handle.position = Float3(0f, yOff, 0f)
     }
@@ -208,10 +212,6 @@ class SelectedModelNode(
     }
 
     companion object {
-        /**
-         * Multiplier applied to the raw pinch ratio delta.
-         * 1.0 = 1:1 (original feel), 2.0 = twice as fast.
-         */
         const val PINCH_SENSITIVITY = 2.0f
     }
 }

@@ -52,7 +52,13 @@ class ARActivity : AppCompatActivity() {
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var unitButton: Button
-    private lateinit var settingsButton: ImageButton   // ← NEW
+    private lateinit var settingsButton: ImageButton
+
+    // ── Dimension HUD views ──────────────────────────────────────────
+    private lateinit var dimensionHud: View
+    private lateinit var dimW: TextView
+    private lateinit var dimH: TextView
+    private lateinit var dimD: TextView
 
     private var isMeasureToolActive: Boolean = false
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
@@ -76,17 +82,12 @@ class ARActivity : AppCompatActivity() {
     private var initialTouchAngle = 0f
     private var initialModelRotationY = 0f
 
-    // ---------------------------------------------------------------
-    // Active model path – set from LibraryActivity via Intent extra.
-    // Falls back to cat.glb so the app still works if launched directly.
-    // ---------------------------------------------------------------
     private var activeModelPath: String = "models/cat.glb"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
 
-        // Read the model path chosen in LibraryActivity
         activeModelPath = intent.getStringExtra(LibraryActivity.EXTRA_MODEL_PATH)
             ?: "models/cat.glb"
 
@@ -99,12 +100,16 @@ class ARActivity : AppCompatActivity() {
         measureModeButton     = findViewById(R.id.btnMeasureTapeModeToggle)
         wireframeModeButton   = findViewById(R.id.btnWireframeToggle)
         unitButton            = findViewById(R.id.btnUnit)
-        settingsButton        = findViewById(R.id.btnSettings)       // ← NEW
+        settingsButton        = findViewById(R.id.btnSettings)
 
-        // ── Apply saved overlay defaults before any node is bound ───────
+        // ── Dimension HUD ────────────────────────────────────────────
+        dimensionHud = findViewById(R.id.dimensionHud)
+        dimW = dimensionHud.findViewById(R.id.dimensionW)
+        dimH = dimensionHud.findViewById(R.id.dimensionH)
+        dimD = dimensionHud.findViewById(R.id.dimensionD)
+
         modelControls.applySettings(AppSettings(this))
 
-        // ── Settings button ─────────────────────────────────────────────
         settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
@@ -113,12 +118,11 @@ class ARActivity : AppCompatActivity() {
         arSceneView.lifecycle = lifecycle
 
         arSceneView.configureSession { session, config ->
-            config.planeFindingMode   = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-            config.focusMode          = Config.FocusMode.FIXED
-            config.updateMode         = Config.UpdateMode.LATEST_CAMERA_IMAGE
+            config.planeFindingMode    = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+            config.focusMode           = Config.FocusMode.FIXED
+            config.updateMode          = Config.UpdateMode.LATEST_CAMERA_IMAGE
             config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
         }
-
 
         lifecycleScope.launch {
             val env = arSceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
@@ -126,22 +130,16 @@ class ARActivity : AppCompatActivity() {
             arSceneView.skybox        = env?.skybox
         }
 
-        modelControls.onSaveRequested = {
-            showProfileDialog()
-        }
-        modelControls.onDeleteRequested = {
-            deleteSelectedModel()
-        }
+        modelControls.onSaveRequested = { showProfileDialog() }
+        modelControls.onDeleteRequested = { deleteSelectedModel() }
 
-        modelControls.visibility     = View.GONE
-        wireframeModeButton.visibility = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
 
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
-        measureModeButton.setOnClickListener {
-            toggleMeasureTool()
-        }
+        measureModeButton.setOnClickListener { toggleMeasureTool() }
 
         unitButton.setOnClickListener {
             unit = when (unit) {
@@ -149,13 +147,11 @@ class ARActivity : AppCompatActivity() {
                 DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
                 DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
             }
-
             unitButton.text = when (unit) {
                 DistanceUnit.METERS      -> "m"
                 DistanceUnit.CENTIMETERS -> "cm"
                 DistanceUnit.MILLIMETERS -> "mm"
             }
-
             measureOverlay.setUnit(unit)
             modelControls.updateUnit(unit)
 
@@ -164,9 +160,13 @@ class ARActivity : AppCompatActivity() {
                 val (value, suffix) = unit.convert(dist)
                 statusText.text = String.format("Distance: %.1f %s", value, suffix)
             }
+
+            // Refresh HUD labels when unit changes (if wireframe is visible)
+            if (dimensionHud.visibility == View.VISIBLE) {
+                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+            }
         }
 
-        // Show which model is active
         statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
 
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
@@ -220,6 +220,11 @@ class ARActivity : AppCompatActivity() {
                             val scaleFactor = currentDist / initialPinchDistance
                             selected.applyPinchScale(scaleFactor)
                             modelControls.updateScaleFromGesture(scaleFactor)
+                            // Live-update the HUD while pinching
+                            if (dimensionHud.visibility == View.VISIBLE) {
+                                selected.getDimensionOverlay()
+                                    ?.let { updateDimensionHud(it.getDimensions()) }
+                            }
                         }
                         return@onTouchEvent true
                     }
@@ -281,10 +286,6 @@ class ARActivity : AppCompatActivity() {
         }
     }
 
-    // ---------------------------------------------------------------
-    // Re-apply settings when returning from SettingsActivity so that
-    // the next model placement picks up any changed defaults.
-    // ---------------------------------------------------------------
     override fun onResume() {
         super.onResume()
         viewAttachmentManager.onResume()
@@ -321,7 +322,6 @@ class ARActivity : AppCompatActivity() {
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            // Auto-apply the default profile if one has been saved
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
                 node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
@@ -352,6 +352,9 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
+        // Hide HUD for previous model
+        dimensionHud.visibility = View.GONE
+
         models.remove(defaultNode)
 
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
@@ -359,12 +362,22 @@ class ARActivity : AppCompatActivity() {
 
         if (wrapped != null) {
             modelControls.bindToNode(wrapped)
-            modelControls.visibility      = View.VISIBLE
-            wireframeModeButton.visibility = View.VISIBLE
+            modelControls.visibility       = View.VISIBLE
+            wireframeModeButton.visibility  = View.VISIBLE
 
             wireframeModeButton.setOnClickListener {
-                wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
-                statusText.text = "Toggled dimensions"
+                val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
+                if (isNowVisible) {
+                    // Show HUD and populate with current dimensions
+                    wrapped.getDimensionOverlay()?.let { overlay ->
+                        updateDimensionHud(overlay.getDimensions())
+                    }
+                    dimensionHud.visibility = View.VISIBLE
+                    statusText.text = "Dimensions shown"
+                } else {
+                    dimensionHud.visibility = View.GONE
+                    statusText.text = "Dimensions hidden"
+                }
             }
         }
 
@@ -377,9 +390,27 @@ class ARActivity : AppCompatActivity() {
             models.add(returnedNode)
         }
         selectedModel = null
-        modelControls.visibility      = View.GONE
-        wireframeModeButton.visibility = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
+        dimensionHud.visibility         = View.GONE
         statusText.text = "Model deselected"
+    }
+
+    // ---------------------------------------------------------------
+    // Dimension HUD helper
+    // ---------------------------------------------------------------
+    /**
+     * Populates the bottom-start HUD with current W / H / D values
+     * formatted according to the active [unit].
+     */
+    private fun updateDimensionHud(dims: Triple<Float, Float, Float>) {
+        val (w, h, d) = dims
+        val (wVal, suffix) = unit.convert(w)
+        val (hVal, _)      = unit.convert(h)
+        val (dVal, _)      = unit.convert(d)
+        dimW.text = "W: ${"%.1f".format(wVal)} $suffix"
+        dimH.text = "H: ${"%.1f".format(hVal)} $suffix"
+        dimD.text = "D: ${"%.1f".format(dVal)} $suffix"
     }
 
     private fun placeMeasurePoint(hitResult: HitResult) {
@@ -418,7 +449,6 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.clear()
     }
 
-    /** Opens the profile picker dialog for the currently selected model. */
     private fun showProfileDialog() {
         val selected  = selectedModel ?: return
         val wrapped   = selected.getWrappedNode() ?: return
@@ -428,9 +458,9 @@ class ARActivity : AppCompatActivity() {
 
         dialog.getCurrentProfile = {
             ModelProfile(
-                scaleX = wrapped.scale.x,
-                scaleY = wrapped.scale.y,
-                scaleZ = wrapped.scale.z,
+                scaleX    = wrapped.scale.x,
+                scaleY    = wrapped.scale.y,
+                scaleZ    = wrapped.scale.z,
                 rotationX = wrapped.rotation.x,
                 rotationY = wrapped.rotation.y,
                 rotationZ = wrapped.rotation.z
@@ -441,6 +471,10 @@ class ARActivity : AppCompatActivity() {
             selected.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             selected.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             modelControls.bindToNode(selected)
+            // Re-populate HUD after profile load (scale may have changed)
+            if (dimensionHud.visibility == View.VISIBLE) {
+                selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+            }
         }
 
         dialog.onStatusUpdate = { message -> statusText.text = message }
@@ -459,8 +493,9 @@ class ARActivity : AppCompatActivity() {
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
-        modelControls.visibility      = View.GONE
-        wireframeModeButton.visibility = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
+        dimensionHud.visibility         = View.GONE
 
         statusText.text = "deleted model $modelName"
     }

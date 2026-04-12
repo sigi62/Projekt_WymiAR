@@ -2,8 +2,8 @@
 <!--
     activity_ar.xml
     ───────────────
-    Added a ⚙ settings ImageButton to the top-start corner so it is always
-    reachable without conflicting with the existing top-end controls.
+    Added dimensionHud (include of view_model_dimension_label) in the
+    bottom-start corner, above the model-controls strip.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -112,7 +112,13 @@
 
     </LinearLayout>
 
-    <!-- ── Status text + model controls – bottom ────────────────────────── -->
+    <!-- ── Dimension HUD – bottom-start, above controls ────────────────── -->
+    <!--
+        layout_marginBottom is set to 0 here; the HUD sits *inside* the same
+        bottom LinearLayout as modelControls so it stacks naturally above it.
+    -->
+
+    <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -130,6 +136,17 @@
             android:background="@color/AR_text_background"
             android:padding="8dp"
             android:textSize="14sp" />
+
+        <!-- Dimension HUD anchored to start, sits above the controls bar -->
+        <include
+            android:id="@+id/dimensionHud"
+            layout="@layout/view_model_dimension_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
 
         <com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
             android:id="@+id/modelControls"
