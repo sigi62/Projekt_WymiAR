@@ -30,27 +30,43 @@ object ModelImportManager {
      *         could not be read, is not a .glb, or the copy failed.
      */
     fun importFromUri(context: Context, uri: Uri): ModelItem? {
-        val fileName = resolveFileName(context, uri) ?: return null
-        if (!fileName.endsWith(".glb", ignoreCase = true)) return null
+        val fileName = resolveFileName(context, uri) ?: run {
+            log("Import FAILED: could not resolve filename from URI: $uri")
+            return null
+        }
+        if (!fileName.endsWith(".glb", ignoreCase = true)) {
+            log("Import FAILED: not a .glb file: $fileName")
+            return null
+        }
 
         val modelsDir = File(context.filesDir, MODELS_DIR).also { it.mkdirs() }
-        val dest      = File(modelsDir, fileName)
+        val dest = File(modelsDir, fileName).canonicalFile
 
         return try {
-            context.contentResolver.openInputStream(uri)?.use { input ->
+            val stream = context.contentResolver.openInputStream(uri)
+            if (stream == null) {
+                log("Import FAILED: openInputStream returned null for URI: $uri")
+                return null
+            }
+            stream.use { input ->
                 dest.outputStream().use { output ->
                     val bytesCopied = input.copyTo(output)
-                    log("Import successful: $bytesCopied bytes copied to ${dest.absolutePath}")
+                    log("Bytes copied: $bytesCopied to ${dest.absolutePath}")
+                    if (bytesCopied == 0L) {
+                        log("Import FAILED: 0 bytes copied — source stream was empty")
+                        dest.delete()
+                        return null
+                    }
                 }
-            } ?: return null
+            }
+            // verify the file actually landed
+            if (!dest.exists() || dest.length() == 0L) {
+                log("Import FAILED: destination file missing or empty after copy")
+                return null
+            }
 
             val displayName = fileName.substringBeforeLast('.')
-            ModelItem(
-                name         = displayName,
-                modelPath    = dest.absolutePath,
-                thumbnailRes = null,
-                isAsset      = false
-            )
+            ModelItem(name = displayName, modelPath = dest.absolutePath, thumbnailRes = null, isAsset = false)
         } catch (e: Exception) {
             log("Import FAILED: ${e.message}")
             dest.delete()
@@ -71,7 +87,7 @@ object ModelImportManager {
             ?.map { file ->
                 ModelItem(
                     name         = file.nameWithoutExtension,
-                    modelPath    = file.absolutePath,
+                    modelPath    = file.canonicalPath,
                     thumbnailRes = null,
                     isAsset      = false
                 )
@@ -90,6 +106,25 @@ object ModelImportManager {
         return !file.exists() || file.delete()
     }
 
+    fun verifyImport(context: Context, item: ModelItem): Boolean {
+        if (item.isAsset) return true
+        val file = File(item.modelPath)
+
+        val exists = file.exists()
+        val readable = file.canRead()
+        val size = file.length()
+        val isGlb = file.extension.equals("glb", ignoreCase = true)
+
+        log("=== Import Verification ===")
+        log("Path:     ${file.absolutePath}")
+        log("Exists:   $exists")
+        log("Readable: $readable")
+        log("Size:     $size bytes")
+        log("Is .glb:  $isGlb")
+        log("==========================")
+
+        return exists && readable && size > 0 && isGlb
+    }
     // ── Private helpers ───────────────────────────────────────────────────────
 
     private fun resolveFileName(context: Context, uri: Uri): String? {

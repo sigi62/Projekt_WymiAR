@@ -15,7 +15,10 @@ import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.nio.ByteBuffer
 import kotlin.math.sqrt
 import android.util.Log
 import com.example.pracazaliczeniowa.Helpers.AppSettings
@@ -32,6 +35,7 @@ import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.google.ar.core.Config
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import io.github.sceneview.node.Node
+import java.io.File
 
 
 fun log(msg: String) {
@@ -316,22 +320,24 @@ class ARActivity : AppCompatActivity() {
 
         lifecycleScope.launch {
 
-            val file = java.io.File(activeModelPath)
-            Log.d("AR_DEBUG", "Loading path: ${activeModelPath}")
-            Log.d("AR_DEBUG", "File exists: ${file.exists()}")
-            Log.d("AR_DEBUG", "File length: ${file.length()}")
+            log("Loading path: $activeModelPath  isAsset: $activeModelIsAsset")
+
             // ── Key distinction: asset path vs absolute file path ─────────────
+
             val modelInstance = if (activeModelIsAsset) {
                 arSceneView.modelLoader.createModelInstance(activeModelPath)
             } else {
-                // FIX: SceneView's modelLoader can often take the raw absolute path string.
-                // If it requires a URI, ensure it has the file:/// prefix manually or
-                // use Uri.fromFile(File).toString() which is more reliable on Android.
-                val file = java.io.File(activeModelPath)
+                val file = File(activeModelPath)
                 if (!file.exists()) {
                     log("ERROR: File not found at $activeModelPath")
+                    statusText.text = "Error: model file not found"
+                    return@launch
                 }
-                arSceneView.modelLoader.createModelInstance("file://${file.absolutePath}")
+                log("Loading imported model via ByteBuffer: $activeModelPath")
+                val bytes = withContext(Dispatchers.IO) { file.readBytes() }
+                arSceneView.modelLoader.createModelInstance(
+                    buffer = ByteBuffer.wrap(bytes)
+                )
             }
 
             val node = DefaultModelNode(

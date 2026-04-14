@@ -13,7 +13,6 @@
 
   BUGS / FIXES
 
-1. Import - file not found
   2. Rotation Handle not a ring
   3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
   5. Profiles not loading in?
@@ -26,7 +25,7 @@
   IDEAS
 
   1. Thumbnails for auto models are pre-made
-  2. Thumbnail background UI smooth
+  2. Thumbnail background studio - fix studio walls too big + color pick input issue
 
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
  

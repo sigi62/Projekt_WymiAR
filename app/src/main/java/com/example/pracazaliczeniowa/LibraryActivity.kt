@@ -46,13 +46,19 @@ class LibraryActivity : AppCompatActivity() {
 
     // File picker for importing .glb models
     private val importLauncher = registerForActivityResult(
-        ActivityResultContracts.GetContent()
+        ActivityResultContracts.OpenDocument()
     ) { uri ->
         if (uri == null) return@registerForActivityResult
 
-        val imported = ModelImportManager.importFromUri(this, uri)
-        if (imported == null) {
+        val imported = ModelImportManager.importFromUri(this, uri) ?: run {
             Toast.makeText(this, "Import failed – please select a valid .glb file", Toast.LENGTH_LONG).show()
+            return@registerForActivityResult
+        }
+
+// verify before adding to library
+        if (!ModelImportManager.verifyImport(this, imported)) {
+            Toast.makeText(this, "File imported but may be corrupted", Toast.LENGTH_LONG).show()
+            ModelImportManager.deleteImported(this, imported)
             return@registerForActivityResult
         }
 
@@ -96,14 +102,17 @@ class LibraryActivity : AppCompatActivity() {
 
         // Import button – opens the system file picker filtered to .glb
         findViewById<ImageButton>(R.id.btnImportModel).setOnClickListener {
-            importLauncher.launch("*/*")   // use "*/*" for broadest compat;
+            importLauncher.launch(arrayOf("*/*"))  // use "*/*" for broadest compat;
             // the user should pick a .glb file
         }
 
         // Build the combined model list
+
         allModels.clear()
         allModels.addAll(bundledModels)
-        allModels.addAll(ModelImportManager.loadImported(this))
+        allModels.addAll(ModelImportManager.loadImported(this).also { imports ->
+            imports.forEach { ModelImportManager.verifyImport(this, it) }
+        })
 
         val profileManager = ProfileManager(this)
         val savedProfiles = allModels
@@ -156,4 +165,5 @@ class LibraryActivity : AppCompatActivity() {
             Toast.makeText(this, "Could not delete ${item.name}", Toast.LENGTH_SHORT).show()
         }
     }
+
 }
