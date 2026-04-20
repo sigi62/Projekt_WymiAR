@@ -17,6 +17,10 @@
   3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
   5. Profiles not loading in?
   5.5 Default Profile apply correctly at start
+
+
+  9. Thumbnail background studio - fix studio walls too big + backwall color pick changes void color
+
   6. Model Cards delay before AR loads
   7 Add a toggle effect to MeasureTape
   8 Add a toggle effect to wireframe mode too ?? Button type special for selected?
@@ -25,7 +29,6 @@
   IDEAS
 
   1. Thumbnails for auto models are pre-made
-  2. Thumbnail background studio - fix studio walls too big + color pick input issue
 
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
  

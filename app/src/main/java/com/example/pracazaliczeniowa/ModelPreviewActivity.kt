@@ -1,5 +1,6 @@
 package com.example.pracazaliczeniowa
 
+import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RectF
@@ -78,6 +79,14 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         private val DEFAULT_VOID_COLOR = Color.parseColor("#DCDCDC")
 
+        // SharedPreferences
+        private const val PREFS_NAME            = "model_preview_prefs"
+        private const val KEY_BG_MODE           = "bg_mode"          // "hdr" | "void" | "studio"
+        private const val KEY_VOID_COLOR        = "void_color"
+        private const val KEY_STUDIO_FLOOR      = "studio_floor_color"
+        private const val KEY_STUDIO_BACK_WALL  = "studio_back_wall_color"
+        private const val KEY_STUDIO_SIDE_WALL  = "studio_side_wall_color"
+
         private val PRESET_COLORS = listOf(
             Color.parseColor("#DCDCDC"),
             Color.parseColor("#1A1A2E"),
@@ -98,15 +107,18 @@ class ModelPreviewActivity : AppCompatActivity() {
     private lateinit var profileKey: String
     private var currentBgMode: BgMode = BgMode.SolidColour(DEFAULT_VOID_COLOR)
 
+    private lateinit var prefs: SharedPreferences
+
     // --- Studio nodes ---
     private var studioFloorNode:    Node? = null
     private var studioBackWallNode: Node? = null
     private var studioSideWallNode: Node? = null
 
     // --- Studio surface colours (persisted across sheet open/close) ---
-    @ColorInt private var studioFloorColor    = Color.parseColor("#E8E8E8")
-    @ColorInt private var studioBackWallColor = Color.parseColor("#F5F5F5")
-    @ColorInt private var studioSideWallColor = Color.parseColor("#F0F0F0")
+    // Three distinct shades of gray: light floor, mid back wall, slightly darker side wall
+    @ColorInt private var studioFloorColor    = Color.parseColor("#C8C8C8")
+    @ColorInt private var studioBackWallColor = Color.parseColor("#E0E0E0")
+    @ColorInt private var studioSideWallColor = Color.parseColor("#B0B0B0")
 
     // Approximate bounding-sphere radius of the loaded model (default 1 m).
     // Updated in loadModel() once the model node exists.
@@ -174,6 +186,18 @@ class ModelPreviewActivity : AppCompatActivity() {
         cropConfirmBar   = findViewById(R.id.cropConfirmBar)
         btnBackground    = findViewById(R.id.btnBackground)
 
+        // Restore persisted colors and bg mode
+        prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+        studioFloorColor    = prefs.getInt(KEY_STUDIO_FLOOR,     Color.parseColor("#C8C8C8"))
+        studioBackWallColor = prefs.getInt(KEY_STUDIO_BACK_WALL, Color.parseColor("#E0E0E0"))
+        studioSideWallColor = prefs.getInt(KEY_STUDIO_SIDE_WALL, Color.parseColor("#B0B0B0"))
+        val savedVoidColor  = prefs.getInt(KEY_VOID_COLOR, DEFAULT_VOID_COLOR)
+        currentBgMode = when (prefs.getString(KEY_BG_MODE, "void")) {
+            "hdr"    -> BgMode.Hdr
+            "studio" -> BgMode.Studio
+            else     -> BgMode.SolidColour(savedVoidColor)
+        }
+
         applyBackground(currentBgMode)
 
         lifecycleScope.launch {
@@ -230,12 +254,14 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
             is BgMode.Studio -> {
                 sceneView.skybox = null
-                window.decorView.setBackgroundColor(studioFloorColor)
+                // Use the back-wall color for the clear color so the infinite void
+                // behind and above the walls blends naturally instead of showing the floor tint.
+                window.decorView.setBackgroundColor(studioBackWallColor)
                 sceneView.renderer.clearOptions = sceneView.renderer.clearOptions.apply {
                     clear = true
-                    clearColor[0] = studioFloorColor.linearR()
-                    clearColor[1] = studioFloorColor.linearG()
-                    clearColor[2] = studioFloorColor.linearB()
+                    clearColor[0] = studioBackWallColor.linearR()
+                    clearColor[1] = studioBackWallColor.linearG()
+                    clearColor[2] = studioBackWallColor.linearB()
                     clearColor[3] = 1f
                 }
                 buildStudioPlanes()
@@ -306,16 +332,20 @@ class ModelPreviewActivity : AppCompatActivity() {
                     layoutColour.visibility = View.GONE
                     layoutStudio.visibility = View.GONE
                     applyBackground(BgMode.Hdr)
+                    prefs.edit().putString(KEY_BG_MODE, "hdr").apply()
                 }
                 R.id.rbModeStudio -> {
                     layoutColour.visibility = View.GONE
                     layoutStudio.visibility = View.VISIBLE
                     applyBackground(BgMode.Studio)
+                    prefs.edit().putString(KEY_BG_MODE, "studio").apply()
                 }
                 R.id.rbModeVoid   -> {
                     layoutColour.visibility = View.VISIBLE
                     layoutStudio.visibility = View.GONE
                     applyBackground(BgMode.SolidColour(pickedColor))
+                    prefs.edit().putString(KEY_BG_MODE, "void")
+                        .putInt(KEY_VOID_COLOR, pickedColor).apply()
                 }
             }
         }
@@ -326,6 +356,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             updateColourPreview(vCurrentColour, color)
             refreshSwatchRings(swatchRow, color, resources.displayMetrics.density)
             applyBackground(BgMode.SolidColour(color))
+            prefs.edit().putInt(KEY_VOID_COLOR, color).apply()
         }
 
         // Preset swatches
@@ -346,6 +377,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                     updateColourPreview(vCurrentColour, presetColor)
                     refreshSwatchRings(swatchRow, presetColor, dp)
                     applyBackground(BgMode.SolidColour(presetColor))
+                    prefs.edit().putInt(KEY_VOID_COLOR, presetColor).apply()
                 }
             }
             swatchRow.addView(swatch)
@@ -357,6 +389,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                 studioFloorColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.FLOOR, newColor)
+                prefs.edit().putInt(KEY_STUDIO_FLOOR, newColor).apply()
             }
         }
         dotBackWall.setOnClickListener {
@@ -364,6 +397,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                 studioBackWallColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.BACK_WALL, newColor)
+                prefs.edit().putInt(KEY_STUDIO_BACK_WALL, newColor).apply()
             }
         }
         dotSideWall.setOnClickListener {
@@ -371,6 +405,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                 studioSideWallColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.SIDE_WALL, newColor)
+                prefs.edit().putInt(KEY_STUDIO_SIDE_WALL, newColor).apply()
             }
         }
 
@@ -465,35 +500,24 @@ class ModelPreviewActivity : AppCompatActivity() {
     }
 
     /**
-     * Updates the color of a specific studio surface's material instance live,
-     * without rebuilding any geometry or re-adding nodes to the scene.
+     * Updates the color of a specific studio surface and rebuilds the studio planes.
+     *
+     * The previous implementation attempted a live material-parameter update via
+     * mat.setParameter("baseColorFactor", ...). SceneView's createColorInstance wraps
+     * a default material whose parameter name does not match that string, so the call
+     * always threw, landed in the catch block, and called applyBackground(BgMode.Studio)
+     * while the MaterialInstance was still tracked in studioMats — causing Filament to
+     * crash when removeStudioPlanes then tried to destroyMaterialInstance on a resource
+     * that the RenderableManager still held. The fix is to simply update the cached
+     * color fields (already done by the caller) and do one clean rebuild.
      */
     private fun applyStudioSurfaceColor(target: SurfaceTarget, @ColorInt color: Int) {
         if (currentBgMode !is BgMode.Studio) return
-        val mat = when (target) {
-            SurfaceTarget.FLOOR     -> floorMatInstance
-            SurfaceTarget.BACK_WALL -> backWallMatInstance
-            SurfaceTarget.SIDE_WALL -> sideWallMatInstance
-        }
-        if (mat != null) {
-            // Update the existing material instance color — no geometry rebuild
-            try {
-                mat.setParameter(
-                    "baseColorFactor",
-                    com.google.android.filament.Colors.RgbaType.SRGB,
-                    color.red / 255f, color.green / 255f, color.blue / 255f, 1f
-                )
-                Log.d(TAG, "applyStudioSurfaceColor: $target updated live")
-            } catch (e: Exception) {
-                // Some material types use a different parameter name — fall back to
-                // a full rebuild only if the live update fails
-                Log.w(TAG, "applyStudioSurfaceColor: live tint failed, rebuilding — ${e.message}")
-                applyBackground(BgMode.Studio)
-            }
-        } else {
-            // No node yet (e.g. build failed) — try a full rebuild
-            applyBackground(BgMode.Studio)
-        }
+        // studioFloorColor / studioBackWallColor / studioSideWallColor have already
+        // been updated by the caller. A full rebuild is the only reliable path because
+        // SceneView's material-instance API does not expose a stable parameter name for
+        // tinting a plain colour material without reflection or internal access.
+        applyBackground(BgMode.Studio)
     }
 
     private fun refreshSwatchRings(row: LinearLayout, @ColorInt selected: Int, dp: Float) {
@@ -620,32 +644,14 @@ class ModelPreviewActivity : AppCompatActivity() {
 
             val vBuf = VertexBuffer.Builder()
                 .vertexCount(vertCount)
-                .bufferCount(2)
+                .bufferCount(1)
                 .attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12)
-                .attribute(VertexBuffer.VertexAttribute.TANGENTS, 1, VertexBuffer.AttributeType.FLOAT4, 0, 16)
                 .build(engine)
 
             val vData = ByteBuffer.allocateDirect(vertices.size * 4)
                 .order(ByteOrder.nativeOrder())
                 .apply { vertices.forEach { putFloat(it) }; flip() }
             vBuf.setBufferAt(engine, 0, vData)
-
-            // Compute face normal from the first triangle
-            val ax = vertices[3] - vertices[0]; val ay = vertices[4]  - vertices[1]; val az = vertices[5]  - vertices[2]
-            val bx = vertices[6] - vertices[0]; val by = vertices[7]  - vertices[1]; val bz = vertices[8]  - vertices[2]
-            var nx = ay * bz - az * by;         var ny = az * bx - ax * bz;         var nz = ax * by - ay * bx
-            val nlen = sqrt(nx*nx + ny*ny + nz*nz).coerceAtLeast(1e-6f)
-            nx /= nlen; ny /= nlen; nz /= nlen
-
-            // Shortest-arc quaternion from (0,0,1) to computed normal
-            var qx = ny; var qy = -nx; var qz = 0f; var qw = 1f + nz
-            val qlen = sqrt(qx*qx + qy*qy + qz*qz + qw*qw).coerceAtLeast(1e-6f)
-            qx /= qlen; qy /= qlen; qz /= qlen; qw /= qlen
-
-            val tData = ByteBuffer.allocateDirect(vertCount * 16)
-                .order(ByteOrder.nativeOrder())
-                .apply { repeat(vertCount) { putFloat(qx); putFloat(qy); putFloat(qz); putFloat(qw) }; flip() }
-            vBuf.setBufferAt(engine, 1, tData)
 
             val iBuf = IndexBuffer.Builder()
                 .indexCount(indices.size)
