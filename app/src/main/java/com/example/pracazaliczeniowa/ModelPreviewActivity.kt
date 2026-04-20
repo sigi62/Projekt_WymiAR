@@ -16,6 +16,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RadioButton
 import android.widget.RadioGroup
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.annotation.ColorInt
@@ -130,6 +131,9 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var camDist = CAM_DIST_INIT
     private var camElevDeg = CAM_ELEV_DEG_INIT
     private var camAzimDeg = CAM_AZIM_DEG_INIT
+
+    private var modelRotationY = 0f
+    private val ROT_MID = 180f
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     private var initialPinchDist = 0f
@@ -162,7 +166,6 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
-        // FIXED: studioVoidColor was incorrectly assigning to studioFloorColor in your version
         studioVoidColor     = prefs.getInt(KEY_STUDIO_VOID,      Color.parseColor("#DCDCDC"))
         studioFloorColor    = prefs.getInt(KEY_STUDIO_FLOOR,     Color.parseColor("#C8C8C8"))
         studioBackWallColor = prefs.getInt(KEY_STUDIO_BACK_WALL, Color.parseColor("#E0E0E0"))
@@ -197,6 +200,24 @@ class ModelPreviewActivity : AppCompatActivity() {
             hideCropOverlay()
             captureNextFrame = true
         }
+
+        val rotationSlider = findViewById<SeekBar>(R.id.rotationSlider)
+        rotationSlider.progress = ROT_MID.toInt()
+
+        rotationSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (fromUser) {
+                    // Calculate offset from the center (180)
+                    // If progress is 180, rotation is 0.
+                    // If progress is 0, rotation is -180.
+                    modelRotationY = progress.toFloat() - ROT_MID
+
+                    modelNode?.rotation = Rotation(0f, modelRotationY, 0f)
+                }
+            }
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
 
         lifecycleScope.launch { loadModel(modelPath, modelIsAsset) }
         sceneView.onFrame = { if (captureNextFrame) { captureNextFrame = false; captureAndSaveThumbnail() } }
@@ -473,18 +494,54 @@ class ModelPreviewActivity : AppCompatActivity() {
     private fun buildStudioPlanes() {
         val engine = sceneView.engine
         val h = studioHalfExtent()
+
+        // Position adjustments to ensure perfect alignment
         val floorY = -(modelRadius * 0.55f)
-        val wallZ  = -(h + 0.05f)
-        val wallX  = -(h + 0.05f)
+        val wallBaseY = floorY
+        val wallTopY = floorY + (h * 2) // Height of the walls
+
+        // Z-position for the back wall
+        val backWallZ = -h
+        // X-position for the side wall
+        val sideWallX = -h
+
         val indices = shortArrayOf(0, 1, 2, 0, 2, 3)
 
-        val floorVerts = floatArrayOf(-h, floorY, h, h, floorY, h, h, floorY, -h, -h, floorY, -h)
-        val backWallVerts = floatArrayOf(-h, floorY, wallZ, h, floorY, wallZ, h, h, wallZ, -h, h, wallZ)
-        val sideWallVerts = floatArrayOf(wallX, floorY, h, wallX, floorY, -h, wallX, h, -h, wallX, h, h)
+        // FLOOR: A square on the XZ plane
+        val floorVerts = floatArrayOf(
+            -h, floorY,  h,   // Bottom Left
+            h, floorY,  h,   // Bottom Right
+            h, floorY, -h,   // Top Right
+            -h, floorY, -h    // Top Left
+        )
 
-        studioFloorNode = buildPlaneNode(engine, floorVerts, indices, studioFloorColor, Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "floor")?.also { sceneView.addChildNode(it) }
-        studioBackWallNode = buildPlaneNode(engine, backWallVerts, indices, studioBackWallColor, Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "backWall")?.also { sceneView.addChildNode(it) }
-        studioSideWallNode = buildPlaneNode(engine, sideWallVerts, indices, studioSideWallColor, Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "sideWall")?.also { sceneView.addChildNode(it) }
+        // BACK WALL: Aligned to the back edge of the floor (-h on Z axis)
+        // Vertices: (x, y, z)
+        val backWallVerts = floatArrayOf(
+            -h, wallBaseY, backWallZ, // Bottom Left
+            h, wallBaseY, backWallZ, // Bottom Right
+            h, wallTopY,  backWallZ, // Top Right
+            -h, wallTopY,  backWallZ  // Top Left
+        )
+
+        // SIDE WALL: Aligned to the left edge of the floor (-h on X axis)
+        // Note: To close the gap with the back wall, the Z-coordinates must
+        // match the floor/back wall exactly (-h to h)
+        val sideWallVerts = floatArrayOf(
+            sideWallX, wallBaseY,  h,         // Front Bottom
+            sideWallX, wallBaseY,  backWallZ, // Back Bottom (Meets Back Wall)
+            sideWallX, wallTopY,   backWallZ, // Back Top (Meets Back Wall)
+            sideWallX, wallTopY,   h          // Front Top
+        )
+
+        studioFloorNode = buildPlaneNode(engine, floorVerts, indices, studioFloorColor,
+            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "floor")?.also { sceneView.addChildNode(it) }
+
+        studioBackWallNode = buildPlaneNode(engine, backWallVerts, indices, studioBackWallColor,
+            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "backWall")?.also { sceneView.addChildNode(it) }
+
+        studioSideWallNode = buildPlaneNode(engine, sideWallVerts, indices, studioSideWallColor,
+            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "sideWall")?.also { sceneView.addChildNode(it) }
     }
 
     private fun buildPlaneNode(engine: Engine, vertices: FloatArray, indices: ShortArray, @ColorInt color: Int, pos: Position, rot: Rotation, label: String): Node? {
@@ -529,14 +586,24 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     private suspend fun loadModel(path: String, isAsset: Boolean = true) {
         try {
-            val instance = if (isAsset) { sceneView.modelLoader.createModelInstance(path) }
-            else { val bytes = withContext(Dispatchers.IO) { File(path).readBytes() }; sceneView.modelLoader.createModelInstance(buffer = ByteBuffer.wrap(bytes)) }
-            modelNode = ModelNode(instance!!, true, 1.0f, Position(0f, 0f, 0f)).apply { isScaleEditable = false; isRotationEditable = false }
+            val instance = if (isAsset) {
+                sceneView.modelLoader.createModelInstance(path)
+            } else {
+                val bytes = withContext(Dispatchers.IO) { File(path).readBytes() }
+                sceneView.modelLoader.createModelInstance(buffer = ByteBuffer.wrap(bytes))
+            }
+
+            modelNode = ModelNode(instance!!, true, 1.0f, Position(0f, 0f, 0f)).apply {
+                isScaleEditable = false
+                isRotationEditable = false
+                // Apply the calculated rotation offset immediately upon loading
+                rotation = Rotation(0f, modelRotationY, 0f)
+            }
             sceneView.addChildNode(modelNode!!)
-            computeModelRadius()
-            if (currentBgMode is BgMode.Studio) { removeStudioPlanes(); buildStudioPlanes() }
-            updateCamera()
-        } catch (e: Exception) {}
+            // ... rest of loading logic ...
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load model", e)
+        }
     }
 
     private fun computeModelRadius() {

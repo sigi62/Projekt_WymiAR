@@ -75,6 +75,16 @@
 
     </LinearLayout>
 
+    <SeekBar
+        android:id="@+id/rotationSlider"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="80dp"
+        android:max="360"
+        android:progress="180"
+        android:padding="16dp" />
+
     <!-- Bottom button row (hidden while crop overlay is active) -->
     <LinearLayout
         android:id="@+id/normalButtonBar"
@@ -86,6 +96,7 @@
         android:layout_marginBottom="32dp"
         android:paddingLeft="24dp"
         android:paddingRight="24dp">
+
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnOpenInAR"
