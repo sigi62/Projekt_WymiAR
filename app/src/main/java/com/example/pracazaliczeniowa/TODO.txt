@@ -31,4 +31,57 @@
   1. Thumbnails for auto models are pre-made
 
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
- 
+
+
+replace modeimportManager.importFromUri call to this
+
+// In LibraryActivity (or wherever your file picker result lands)
+lifecycleScope.launch {
+    when (val result = ConversionManager.importFile(this@LibraryActivity, uri)) {
+
+        is ConversionManager.ImportResult.Success -> {
+            // exactly what you do now after ModelImportManager.importFromUri
+            refreshModelList()
+        }
+
+        is ConversionManager.ImportResult.NeedsModule -> {
+            // Show dialog: "OBJ/STL support requires a 2MB download. Proceed?"
+            showDownloadConverterDialog(uri)
+        }
+
+        is ConversionManager.ImportResult.Failure -> {
+            Toast.makeText(this@LibraryActivity, result.reason, Toast.LENGTH_SHORT).show()
+        }
+    }
+}
+
+private fun showDownloadConverterDialog(pendingUri: Uri) {
+    AlertDialog.Builder(this)
+        .setTitle("Additional download needed")
+        .setMessage("OBJ and STL support requires a one-time 2MB download. Download now?")
+        .setPositiveButton("Download") { _, _ ->
+            ConversionManager.requestModuleInstall(this) { success ->
+                if (success) {
+                    // Retry the import now that the module is installed
+                    lifecycleScope.launch {
+                        val retry = ConversionManager.importFile(this@LibraryActivity, pendingUri)
+                        if (retry is ConversionManager.ImportResult.Success) refreshModelList()
+                    }
+                } else {
+                    Toast.makeText(this, "Download failed. Check your connection.", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+        .setNegativeButton("Cancel", null)
+        .show()
+}
+
+and file picker intent to accept .obj and .stl
+
+// In your file picker launcher setup
+val mimeTypes = arrayOf("model/obj", "model/stl", "model/gltf-binary", "*/*")
+val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+    addCategory(Intent.CATEGORY_OPENABLE)
+    type = "*/*"
+    putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
+}

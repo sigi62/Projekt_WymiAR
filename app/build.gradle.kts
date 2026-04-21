@@ -2,15 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("org.jetbrains.kotlin.plugin.serialization") // Add this line
+    id("org.jetbrains.kotlin.plugin.serialization")
 }
 
 android {
     namespace = "com.example.pracazaliczeniowa"
-    compileSdk {
+    compileSdk = 35
+ /*   {
+
         version = release(36)
     }
-
+*/
     defaultConfig {
         applicationId = "com.example.pracazaliczeniowa"
         minSdk = 25
@@ -30,6 +32,8 @@ android {
             )
         }
     }
+    dynamicFeatures += setOf(":converter")
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
@@ -59,6 +63,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
+    implementation("com.google.android.play:feature-delivery-ktx:2.1.0")
 
     implementation("io.github.sceneview:arsceneview:2.3.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")
