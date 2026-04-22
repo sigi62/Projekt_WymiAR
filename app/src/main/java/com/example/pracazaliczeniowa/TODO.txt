@@ -32,7 +32,7 @@
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
-    import converter complete - stl defaults to plane
+    add change name to model Library
 
     switching to laptop
 
