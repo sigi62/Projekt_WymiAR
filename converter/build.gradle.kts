@@ -4,10 +4,9 @@ plugins {
 }
 android {
     namespace = "com.example.pracazaliczeniowa.converter"
-    compileSdk = 35
-//    {
+    compileSdk = 36
 //        version = release(36)
-//    }
+//   }
 
     defaultConfig {
         minSdk = 25
@@ -23,11 +22,23 @@ android {
             abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
         }
     }
-
+    sourceSets {
+        getByName("main") {
+            jniLibs.srcDirs("src/main/jniLibs")
+        }
+    }
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")
         }
+    }
+
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
+    }
+    kotlinOptions {
+        jvmTarget = "21"
     }
 
 

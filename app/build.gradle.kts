@@ -7,12 +7,11 @@ plugins {
 
 android {
     namespace = "com.example.pracazaliczeniowa"
-    compileSdk = 35
- /*   {
+    compileSdk  = 36
+//
+//        version = release(36)
+//    }
 
-        version = release(36)
-    }
-*/
     defaultConfig {
         applicationId = "com.example.pracazaliczeniowa"
         minSdk = 25
@@ -35,11 +34,11 @@ android {
     dynamicFeatures += setOf(":converter")
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "21"
     }
 
     sourceSets {
@@ -64,6 +63,8 @@ dependencies {
     implementation(libs.androidx.compose.material3)
 
     implementation("com.google.android.play:feature-delivery-ktx:2.1.0")
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.9.0")
+
 
     implementation("io.github.sceneview:arsceneview:2.3.3")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.0")

@@ -33,6 +33,10 @@
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
+    import converter complete - stl defaults to plane
+
+
+
 replace modeimportManager.importFromUri call to this
 
 // In LibraryActivity (or wherever your file picker result lands)

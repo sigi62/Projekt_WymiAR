@@ -1,39 +1,32 @@
 package com.example.pracazaliczeniowa.converter
 
+import com.example.pracazaliczeniowa.Converter.ConverterBridge
+import com.example.pracazaliczeniowa.Converter.ConverterRegistry
 import java.io.File
 
-/**
- * Kotlin facade for the native Assimp-based converter.
- * Call [isAvailable] first — returns false if the .so hasn't been loaded yet
- * (e.g. dynamic feature module not yet installed).
- */
-object GlbConverter {
+
+
+object GlbConverter : ConverterBridge {
 
     private var nativeLoaded = false
 
     init {
         try {
-            System.loadLibrary("glbconverter")
+            System.loadLibrary("assimp")       // ← load dependency FIRST
+            System.loadLibrary("glbconverter") // ← then load your library
             nativeLoaded = true
+            ConverterRegistry.instance = this
         } catch (e: UnsatisfiedLinkError) {
-            // Module not installed yet — handled gracefully by caller
+            // log which library actually failed
+            android.util.Log.e("GlbConverter", "Failed to load native library: ${e.message}")
         }
     }
 
-    fun isAvailable(): Boolean = nativeLoaded
-
-    /**
-     * Converts an .obj or .stl file at [inputPath] to a .glb file at [outputPath].
-     * Returns true on success. Thread-safe (Assimp is re-entrant per import).
-     *
-     * Must be called on a background thread — conversion can take 100–500ms.
-     */
-    fun convertToGlb(inputPath: String, outputPath: String): Boolean {
+    override fun convertToGlb(inputPath: String, outputPath: String): Boolean {
         check(nativeLoaded) { "Native converter not loaded" }
         return nativeConvert(inputPath, outputPath)
     }
 
-    // ── JNI declarations ──────────────────────────────────────────────────────
 
     private external fun nativeConvert(inputPath: String, outputPath: String): Boolean
 }
