@@ -10,7 +10,6 @@
 
 
 
-
   BUGS / FIXES
 
   2. Rotation Handle not a ring
@@ -35,7 +34,7 @@
 
     import converter complete - stl defaults to plane
 
-
+    switching to laptop
 
 replace modeimportManager.importFromUri call to this
 
