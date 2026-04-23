@@ -202,10 +202,19 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val newProgress = (universalScaleProgress + delta).coerceIn(SCL_MIN, sclDynMax)
         universalScaleProgress = newProgress
 
+        // Keep per-axis scale in sync with universal so the UI matches
+        scaleProgress = Triple(newProgress, newProgress, newProgress)
+
         if (currentMode == "SCALE") {
             withSync {
                 sUni.progress = newProgress
                 iUni.setText(formatValue(progressToValue(newProgress)))
+                s1.progress = newProgress
+                s2.progress = newProgress
+                s3.progress = newProgress
+                i1.setText(formatValue(progressToValue(newProgress)))
+                i2.setText(formatValue(progressToValue(newProgress)))
+                i3.setText(formatValue(progressToValue(newProgress)))
             }
         }
         applyToNode()
