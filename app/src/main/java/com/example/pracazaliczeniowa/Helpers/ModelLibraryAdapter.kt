@@ -27,7 +27,15 @@ class ModelLibraryAdapter(
      * Called when the user confirms "Delete model" for a user-imported item.
      * Never called for bundled asset models.
      */
-    private val onDeleteImported: (ModelItem) -> Unit
+    private val onDeleteImported: (ModelItem) -> Unit,
+    /**
+     * Called when the user taps "Rename" for a user-imported item and submits
+     * a new name via the dialog. The host (LibraryActivity) is responsible for
+     * calling [ModelImportManager.renameModel] on a background thread and then
+     * refreshing the adapter via [updateItems].
+     * Never called for bundled asset models.
+     */
+    private val onRenameImported: (ModelItem) -> Unit
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
 
     private val items: MutableList<ModelItem> = items.toMutableList()
@@ -79,9 +87,10 @@ class ModelLibraryAdapter(
                 menu.add(0, MENU_PREVIEW,       0, "Preview")
                 menu.add(0, MENU_DELETE_THUMB,  1, "Delete thumbnail")
                     .isEnabled = cached.exists()
-                // "Delete model" only shown for user-imported files
+                // "Rename" and "Delete model" only shown for user-imported files
                 if (!item.isAsset) {
-                    menu.add(0, MENU_DELETE_MODEL, 2, "Delete model")
+                    menu.add(0, MENU_RENAME,       2, "Rename")
+                    menu.add(0, MENU_DELETE_MODEL, 3, "Delete model")
                 }
 
                 setOnMenuItemClickListener { menuItem ->
@@ -92,6 +101,10 @@ class ModelLibraryAdapter(
                         }
                         MENU_DELETE_THUMB -> {
                             deleteThumbnail(cached, item, holder)
+                            true
+                        }
+                        MENU_RENAME -> {
+                            onRenameImported(item)
                             true
                         }
                         MENU_DELETE_MODEL -> {
@@ -157,7 +170,7 @@ class ModelLibraryAdapter(
     private fun confirmDeleteModel(context: android.content.Context, item: ModelItem) {
         android.app.AlertDialog.Builder(context)
             .setTitle("Delete ${item.name}?")
-        .setMessage("The model file will be permanently removed from your library. Saved profiles for this model will remain.")
+            .setMessage("The model file will be permanently removed from your library. Saved profiles for this model will remain.")
             .setPositiveButton("Delete") { _, _ -> onDeleteImported(item) }
             .setNegativeButton("Cancel", null)
             .show()
@@ -168,6 +181,7 @@ class ModelLibraryAdapter(
     companion object {
         private const val MENU_PREVIEW       = 1
         private const val MENU_DELETE_THUMB  = 2
-        private const val MENU_DELETE_MODEL  = 3
+        private const val MENU_RENAME        = 3
+        private const val MENU_DELETE_MODEL  = 4
     }
 }

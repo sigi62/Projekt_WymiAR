@@ -4,9 +4,13 @@ import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.InputFilter
+import android.text.InputType
+import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -130,10 +134,10 @@ class LibraryActivity : AppCompatActivity() {
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
         adapter = ModelLibraryAdapter(
-            items         = allModels.toList(),
-            savedProfiles = savedProfiles,
-            selectedKey   = selectedModelKey,
-            onItemClick   = { selectedModel ->
+            items            = allModels.toList(),
+            savedProfiles    = savedProfiles,
+            selectedKey      = selectedModelKey,
+            onItemClick      = { selectedModel ->
                 selectedModelKey = selectedModel.profileKey
                 adapter.updateSelection(selectedModelKey)
                 arLauncher.launch(
@@ -143,16 +147,17 @@ class LibraryActivity : AppCompatActivity() {
                     }
                 )
             },
-            onPreviewClick = { selectedModel ->
+            onPreviewClick   = { selectedModel ->
                 previewLauncher.launch(
                     Intent(this, ModelPreviewActivity::class.java).apply {
-                        putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH,    selectedModel.modelPath)
+                        putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH,     selectedModel.modelPath)
                         putExtra(ModelPreviewActivity.EXTRA_MODEL_IS_ASSET, selectedModel.isAsset)
-                        putExtra(ModelPreviewActivity.EXTRA_PROFILE_KEY,   selectedModel.profileKey)
+                        putExtra(ModelPreviewActivity.EXTRA_PROFILE_KEY,    selectedModel.profileKey)
                     }
                 )
             },
-            onDeleteImported = { deleteImportedModel(it) }
+            onDeleteImported = { deleteImportedModel(it) },
+            onRenameImported = { showRenameDialog(it) }
         )
 
         recyclerView.adapter = adapter
@@ -239,6 +244,80 @@ class LibraryActivity : AppCompatActivity() {
 
             Toast.makeText(this@LibraryActivity,
                 "${imported.name} added to library", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+    // ── Rename flow ───────────────────────────────────────────────────────────
+
+    /**
+     * Shows an [AlertDialog] with an [EditText] pre-filled with the current
+     * model name. On confirmation, renames the file on a background thread
+     * and refreshes the grid on success.
+     */
+    private fun showRenameDialog(item: ModelItem) {
+        val input = EditText(this).apply {
+            inputType  = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+            setText(item.name)
+            selectAll()
+            // Reasonable upper bound; filesystem limits vary but 255 chars is safe
+            filters = arrayOf(InputFilter.LengthFilter(255))
+            hint    = "Model name"
+        }
+
+        AlertDialog.Builder(this)
+            .setTitle("Rename model")
+            .setView(input)
+            .setPositiveButton("Rename") { _, _ ->
+                val newName = input.text.toString()
+                renameModelAsync(item, newName)
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+
+        // Move cursor to the end and open the keyboard automatically
+        input.post {
+            input.setSelection(input.text.length)
+            val imm = getSystemService(INPUT_METHOD_SERVICE)
+                    as android.view.inputmethod.InputMethodManager
+            imm.showSoftInput(input, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+        }
+    }
+
+    /**
+     * Calls [ModelImportManager.renameModel] on an IO thread, then updates
+     * [allModels] and the adapter on the main thread.
+     */
+    private fun renameModelAsync(item: ModelItem, newName: String) {
+        lifecycleScope.launch {
+            val renamed = withContext(Dispatchers.IO) {
+                ModelImportManager.renameModel(this@LibraryActivity, item, newName)
+            }
+
+            if (renamed == null) {
+                val reason = when {
+                    newName.isBlank()       -> "Name cannot be blank."
+                    else                    -> "A model with that name may already exist."
+                }
+                Toast.makeText(this@LibraryActivity,
+                    "Rename failed. $reason", Toast.LENGTH_LONG).show()
+                return@launch
+            }
+
+            // Replace the old item in allModels with the renamed one
+            val idx = allModels.indexOfFirst { it.profileKey == item.profileKey }
+            if (idx != -1) {
+                allModels[idx] = renamed
+                adapter.updateItems(allModels.toList())
+            }
+
+            // Keep selection in sync if the renamed model was selected
+            if (selectedModelKey == item.profileKey) {
+                selectedModelKey = renamed.profileKey
+                adapter.updateSelection(selectedModelKey)
+            }
+
+            Toast.makeText(this@LibraryActivity,
+                "'${item.name}' renamed to '${renamed.name}'", Toast.LENGTH_SHORT).show()
         }
     }
 

@@ -137,6 +137,57 @@ object ModelImportManager {
         return !file.exists() || file.delete()
     }
 
+    /**
+     * Renames the .glb file on disk for [item] to [newName] (without extension).
+     *
+     * Rules:
+     * - Does nothing and returns null if [item] is a bundled asset.
+     * - Sanitises [newName]: trims whitespace, strips path separators.
+     * - Returns null if [newName] is blank after sanitising.
+     * - Returns null if a file with the new name already exists in the same
+     *   directory (to avoid silently overwriting another model).
+     * - On success returns a new [ModelItem] reflecting the updated name and path.
+     *
+     * Safe to call from a background thread (Dispatchers.IO).
+     */
+    fun renameModel(context: Context, item: ModelItem, newName: String): ModelItem? {
+        if (item.isAsset) {
+            log("Rename FAILED: cannot rename bundled asset '${item.name}'")
+            return null
+        }
+
+        val sanitised = newName.trim().replace(Regex("[/\\\\]"), "")
+        if (sanitised.isBlank()) {
+            log("Rename FAILED: new name is blank after sanitising")
+            return null
+        }
+
+        val oldFile = File(item.modelPath)
+        if (!oldFile.exists()) {
+            log("Rename FAILED: source file does not exist at ${item.modelPath}")
+            return null
+        }
+
+        val newFile = File(oldFile.parentFile, "$sanitised.glb")
+        if (newFile.exists()) {
+            log("Rename FAILED: a model named '$sanitised' already exists")
+            return null
+        }
+
+        return if (oldFile.renameTo(newFile)) {
+            log("Rename SUCCESS: '${item.name}' → '$sanitised'")
+            ModelItem(
+                name         = sanitised,
+                modelPath    = newFile.canonicalPath,
+                thumbnailRes = item.thumbnailRes,
+                isAsset      = false
+            )
+        } else {
+            log("Rename FAILED: File.renameTo returned false for '${item.name}'")
+            null
+        }
+    }
+
     /** Logs and returns true only if the file exists, is readable, non-empty, and is a .glb. */
     fun verifyImport(context: Context, item: ModelItem): Boolean {
         if (item.isAsset) return true
