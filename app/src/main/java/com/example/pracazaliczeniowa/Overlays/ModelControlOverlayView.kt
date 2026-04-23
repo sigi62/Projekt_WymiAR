@@ -149,9 +149,69 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Public API
     // -------------------------------------------------------------------------
 
+    /**
+     * Binds the overlay to [node] and seeds all sliders from the node's
+     * actual current scale and rotation, so the UI always reflects reality.
+     *
+     * This is the right call when:
+     *  • A model is first selected
+     *  • A named/default profile is loaded (ARActivity applies it to the node,
+     *    then calls bindToNode so sliders re-read the node's new state)
+     */
     fun bindToNode(node: SelectedModelNode) {
         targetNode = node
+
+        // Seed sliders from the node's actual current state so they don't
+        // misrepresent the model's scale/rotation.
+        val wrapped = node.getWrappedNode()
+        if (wrapped != null) {
+            val sx = wrapped.scale.x
+            val sy = wrapped.scale.y
+            val sz = wrapped.scale.z
+            val rx = wrapped.rotation.x
+            val ry = wrapped.rotation.y
+            val rz = wrapped.rotation.z
+
+            // Expand dynamic ranges to accommodate existing values if needed.
+            val savedMode = currentMode
+
+            currentMode = "SCALE"
+            maybeExpandRange(sx); maybeExpandRange(sy); maybeExpandRange(sz)
+            val psx = valueToProgress(sx); val psy = valueToProgress(sy); val psz = valueToProgress(sz)
+            // Use the average as the universal scale seed (they're usually equal).
+            val pUni = valueToProgress((sx + sy + sz) / 3f).coerceIn(SCL_MIN, sclDynMax)
+            scaleProgress = Triple(psx, psy, psz)
+            universalScaleProgress = pUni
+
+            currentMode = "ROTATE"
+            val prx = valueToProgress(rx); val pry = valueToProgress(ry); val prz = valueToProgress(rz)
+            rotateProgress = Triple(prx, pry, prz)
+
+            currentMode = savedMode
+        }
+
+        // Position always starts at neutral (0,0,0 offset) on fresh selection.
+        positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+
         setupUI()
+    }
+
+    /**
+     * Resets all sliders to neutral (scale 1×, rotation 0°, position 0).
+     *
+     * Call this after saving a profile so the saved values become the new
+     * baseline — any further slider movement is relative to zero again.
+     * The node's physical scale/rotation are NOT touched; only the UI resets.
+     */
+    fun resetSlidersToNeutral() {
+        scaleProgress          = Triple(SCL_MID, SCL_MID, SCL_MID)
+        universalScaleProgress = SCL_MID
+        rotateProgress         = Triple(ROT_MID, ROT_MID, ROT_MID)
+        positionProgress       = Triple(posDynMid, posDynMid, posDynMid)
+
+        if (::s1.isInitialized) {
+            refreshSlidersForMode()
+        }
     }
 
     /**

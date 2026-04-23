@@ -366,6 +366,9 @@ class ARActivity : AppCompatActivity() {
                 viewAttachmentManager = viewAttachmentManager
             )
 
+            // Apply default profile directly to the node's scale/rotation before
+            // it is wrapped. bindToNode will then read these values and seed the
+            // sliders correctly — no double-application.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
                 node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
@@ -380,7 +383,7 @@ class ARActivity : AppCompatActivity() {
 
             log("Adding new model to models list")
             models.add(node)
-            node.setAnimationPlaying(false)   // ← force-stop after scene attachment
+            node.setAnimationPlaying(false)
 
             selectModel(node)
         }
@@ -405,6 +408,7 @@ class ARActivity : AppCompatActivity() {
 
         // Reset animation state for the newly selected model
         isAnimationPlaying = false
+        selectedModel?.setAnimationPlaying(false)
 
         dimensionHud.visibility = View.GONE
         models.remove(defaultNode)
@@ -412,15 +416,11 @@ class ARActivity : AppCompatActivity() {
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
         selectedModel = wrapped
 
-        // Change this:
-        animationToggleButton.alpha = 0.5f  // dim = stopped
-
-// To this — also reset isAnimationPlaying explicitly and stop any lingering animation:
-        isAnimationPlaying = false
-        selectedModel?.setAnimationPlaying(false)   // ← kill any auto-start from scene attachment
         animationToggleButton.alpha = 0.5f
 
         if (wrapped != null) {
+            // bindToNode seeds sliders from the node's actual scale/rotation,
+            // so a model placed with a default profile shows the right values.
             modelControls.bindToNode(wrapped)
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
@@ -530,6 +530,7 @@ class ARActivity : AppCompatActivity() {
         val dialog = ProfilePickerDialog.newInstance(modelName)
 
         dialog.getCurrentProfile = {
+            // Snapshot the node's current physical scale and rotation.
             ModelProfile(
                 scaleX    = wrapped.scale.x,
                 scaleY    = wrapped.scale.y,
@@ -540,9 +541,19 @@ class ARActivity : AppCompatActivity() {
             )
         }
 
+        dialog.onProfileSaved = {
+            // After any save (default or named), reset sliders to neutral so
+            // the saved values become the new baseline. The node's physical
+            // scale/rotation are unchanged — only the UI resets.
+            modelControls.resetSlidersToNeutral()
+            statusText.text = "Profile saved — sliders reset to neutral"
+        }
+
         dialog.onLoadProfile = { profile ->
-            selected.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-            selected.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+            // Apply the profile to the node, then rebind so sliders seed from
+            // the node's new state.
+            wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+            wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             modelControls.bindToNode(selected)
             if (dimensionHud.visibility == View.VISIBLE) {
                 selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }

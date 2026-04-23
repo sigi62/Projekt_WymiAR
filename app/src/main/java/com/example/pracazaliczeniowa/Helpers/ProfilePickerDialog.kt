@@ -25,6 +25,7 @@ import com.example.pracazaliczeniowa.R
  *
  * Attach callbacks before showing:
  *   dialog.onLoadProfile  = { profile -> … }
+ *   dialog.onProfileSaved = { … }          ← called after any save/overwrite
  *   dialog.onStatusUpdate = { message -> … }
  */
 class ProfilePickerDialog : DialogFragment() {
@@ -40,6 +41,12 @@ class ProfilePickerDialog : DialogFragment() {
     // Supplied by ARActivity before show()
     /** Called when the user taps Load on any slot. */
     var onLoadProfile:  ((ModelProfile) -> Unit)? = null
+    /**
+     * Called after any profile is saved or overwritten (default or named).
+     * Use this to reset the overlay's sliders to neutral so the saved values
+     * become the new baseline.
+     */
+    var onProfileSaved: (() -> Unit)? = null
     /** Called on save/delete to update the AR status bar. */
     var onStatusUpdate: ((String) -> Unit)? = null
     /** Must be set – provides the live scale/rotation to snapshot. */
@@ -108,6 +115,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke("Default profile saved")
+                onProfileSaved?.invoke()   // ← notify activity to reset sliders
                 buildList()   // refresh so button label updates
             }
         }
@@ -135,6 +143,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveNamed(modelName, slotName, current)
                 onStatusUpdate?.invoke("Profile \"$slotName\" updated")
+                onProfileSaved?.invoke()   // ← notify activity to reset sliders
                 buildList()
             }
         }
@@ -185,6 +194,7 @@ class ProfilePickerDialog : DialogFragment() {
                 when (profileManager.saveNamed(modelName, name, current)) {
                     ProfileSaveResult.Success -> {
                         onStatusUpdate?.invoke("Saved profile \"$name\"")
+                        onProfileSaved?.invoke()   // ← notify activity to reset sliders
                         buildList()
                     }
                     ProfileSaveResult.TooManyProfiles -> {
