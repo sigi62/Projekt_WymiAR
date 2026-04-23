@@ -55,6 +55,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var profileManager: ProfileManager
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
+    private lateinit var animationToggleButton: ImageButton
     private lateinit var unitButton: Button
     private lateinit var settingsButton: ImageButton
 
@@ -66,6 +67,11 @@ class ARActivity : AppCompatActivity() {
 
     private var isMeasureToolActive: Boolean = false
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
+
+    // ── Animation state ───────────────────────────────────────────────────────
+    // Tracks whether the currently selected model's animation is playing.
+    // Reset to false whenever a new model is selected.
+    private var isAnimationPlaying: Boolean = false
 
     private val placedMeasureNodes = mutableListOf<AnchorNode>()
     private val placedModelNodes   = mutableListOf<AnchorNode>()
@@ -109,6 +115,7 @@ class ARActivity : AppCompatActivity() {
         measureOverlay        = findViewById(R.id.measureOverlay)
         measureModeButton     = findViewById(R.id.btnMeasureTapeModeToggle)
         wireframeModeButton   = findViewById(R.id.btnWireframeToggle)
+        animationToggleButton = findViewById(R.id.btnAnimationToggle)
         unitButton            = findViewById(R.id.btnUnit)
         settingsButton        = findViewById(R.id.btnSettings)
 
@@ -143,13 +150,24 @@ class ARActivity : AppCompatActivity() {
         modelControls.onSaveRequested   = { showProfileDialog() }
         modelControls.onDeleteRequested = { deleteSelectedModel() }
 
-        modelControls.visibility      = View.GONE
-        wireframeModeButton.visibility = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
+        animationToggleButton.visibility = View.GONE
 
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
         measureModeButton.setOnClickListener { toggleMeasureTool() }
+
+        // ── Animation toggle click ────────────────────────────────────────────
+        animationToggleButton.setOnClickListener {
+            val wrapped = selectedModel ?: return@setOnClickListener
+            isAnimationPlaying = !isAnimationPlaying
+            wrapped.setAnimationPlaying(isAnimationPlaying)
+            // Tint the icon so the user knows whether animation is active
+            animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
+            statusText.text = if (isAnimationPlaying) "Animation playing" else "Animation stopped"
+        }
 
         unitButton.setOnClickListener {
             unit = when (unit) {
@@ -362,6 +380,7 @@ class ARActivity : AppCompatActivity() {
 
             log("Adding new model to models list")
             models.add(node)
+            node.setAnimationPlaying(false)   // ← force-stop after scene attachment
 
             selectModel(node)
         }
@@ -372,7 +391,11 @@ class ARActivity : AppCompatActivity() {
     private fun selectModel(defaultNode: DefaultModelNode) {
         log("SELECT MODEL CALLED")
 
+        // Stop animation on the previously selected model before switching
         selectedModel?.let { currentWrapper ->
+            if (isAnimationPlaying) {
+                currentWrapper.setAnimationPlaying(false)
+            }
             val returnedNode = currentWrapper.unwrap()
             if (returnedNode != null && !models.contains(returnedNode)) {
                 log("Adding returning model back to model list")
@@ -380,16 +403,35 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
+        // Reset animation state for the newly selected model
+        isAnimationPlaying = false
+
         dimensionHud.visibility = View.GONE
         models.remove(defaultNode)
 
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
         selectedModel = wrapped
 
+        // Change this:
+        animationToggleButton.alpha = 0.5f  // dim = stopped
+
+// To this — also reset isAnimationPlaying explicitly and stop any lingering animation:
+        isAnimationPlaying = false
+        selectedModel?.setAnimationPlaying(false)   // ← kill any auto-start from scene attachment
+        animationToggleButton.alpha = 0.5f
+
         if (wrapped != null) {
             modelControls.bindToNode(wrapped)
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
+
+            // ── Animation button: show only if this model has animations ──────
+            if (wrapped.hasAnimations()) {
+                animationToggleButton.visibility = View.VISIBLE
+                animationToggleButton.alpha      = 0.5f  // dim = stopped
+            } else {
+                animationToggleButton.visibility = View.GONE
+            }
 
             wireframeModeButton.setOnClickListener {
                 val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
@@ -410,14 +452,21 @@ class ARActivity : AppCompatActivity() {
     }
 
     private fun deselectModel() {
+        // Stop any running animation when deselecting
+        if (isAnimationPlaying) {
+            selectedModel?.setAnimationPlaying(false)
+            isAnimationPlaying = false
+        }
+
         val returnedNode = selectedModel?.unwrap()
         if (returnedNode != null && !models.contains(returnedNode)) {
             models.add(returnedNode)
         }
         selectedModel = null
-        modelControls.visibility      = View.GONE
-        wireframeModeButton.visibility = View.GONE
-        dimensionHud.visibility        = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
+        animationToggleButton.visibility = View.GONE
+        dimensionHud.visibility         = View.GONE
         statusText.text = "Model deselected"
     }
 
@@ -511,6 +560,12 @@ class ARActivity : AppCompatActivity() {
         val selected   = selectedModel ?: return
         val anchorNode = selected.parent as? AnchorNode
 
+        // Stop animation before destroying the node
+        if (isAnimationPlaying) {
+            selected.setAnimationPlaying(false)
+            isAnimationPlaying = false
+        }
+
         anchorNode?.anchor?.detach()
         anchorNode?.parent = null
 
@@ -518,9 +573,10 @@ class ARActivity : AppCompatActivity() {
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
-        modelControls.visibility      = View.GONE
-        wireframeModeButton.visibility = View.GONE
-        dimensionHud.visibility        = View.GONE
+        modelControls.visibility       = View.GONE
+        wireframeModeButton.visibility  = View.GONE
+        animationToggleButton.visibility = View.GONE
+        dimensionHud.visibility         = View.GONE
 
         statusText.text = "deleted model $modelName"
     }

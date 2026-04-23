@@ -35,6 +35,24 @@
         android:src="@drawable/ic_color_palette"
         app:tint="@android:color/white" />
 
+    <!--
+        Animation toggle — floats top-end below the background button.
+        Shown only when the loaded model has animation tracks.
+        Hidden by default; ModelPreviewActivity reveals it after loadModel().
+    -->
+    <ImageButton
+        android:id="@+id/btnAnimationToggle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="16dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="Toggle animation"
+        android:src="@drawable/ic_animation"
+        app:tint="@android:color/white"
+        android:visibility="gone" />
+
     <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────
          Sits above the SceneView. The darkened surround is drawn by
          CropOverlayView; this container just holds the confirm/cancel row. -->
@@ -96,7 +114,6 @@
         android:layout_marginBottom="32dp"
         android:paddingLeft="24dp"
         android:paddingRight="24dp">
-
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnOpenInAR"

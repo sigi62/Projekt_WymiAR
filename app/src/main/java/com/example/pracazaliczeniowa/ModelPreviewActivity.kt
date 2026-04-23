@@ -101,6 +101,7 @@ class ModelPreviewActivity : AppCompatActivity() {
     private lateinit var normalButtonBar: LinearLayout
     private lateinit var cropConfirmBar: LinearLayout
     private lateinit var btnBackground: ImageButton
+    private lateinit var btnAnimationToggle: ImageButton
 
     private var modelNode: ModelNode? = null
     private lateinit var profileKey: String
@@ -140,6 +141,10 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var initialCamDist = 0f
     private var isTwoFinger = false
 
+    // ── Animation state ───────────────────────────────────────────────────────
+    private var isAnimationPlaying: Boolean = false
+    private var pausedAnimationTime: Float = 0f   // ← add this field
+
     private fun srgbToLinear(channel: Int): Float {
         val c = channel / 255f
         return if (c <= 0.04045f) c / 12.92f
@@ -158,11 +163,12 @@ class ModelPreviewActivity : AppCompatActivity() {
         val modelIsAsset = intent.getBooleanExtra(EXTRA_MODEL_IS_ASSET, true)
         profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run { finish(); return }
 
-        sceneView        = findViewById(R.id.previewSceneView)
-        cropOverlay      = findViewById(R.id.cropOverlay)
-        normalButtonBar  = findViewById(R.id.normalButtonBar)
-        cropConfirmBar   = findViewById(R.id.cropConfirmBar)
-        btnBackground    = findViewById(R.id.btnBackground)
+        sceneView           = findViewById(R.id.previewSceneView)
+        cropOverlay         = findViewById(R.id.cropOverlay)
+        normalButtonBar     = findViewById(R.id.normalButtonBar)
+        cropConfirmBar      = findViewById(R.id.cropConfirmBar)
+        btnBackground       = findViewById(R.id.btnBackground)
+        btnAnimationToggle  = findViewById(R.id.btnAnimationToggle)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
@@ -201,17 +207,21 @@ class ModelPreviewActivity : AppCompatActivity() {
             captureNextFrame = true
         }
 
+        // ── Animation toggle ──────────────────────────────────────────────────
+        btnAnimationToggle.setOnClickListener {
+            val node = modelNode ?: return@setOnClickListener
+            isAnimationPlaying = !isAnimationPlaying
+            setPreviewAnimationPlaying(node, isAnimationPlaying)
+            btnAnimationToggle.alpha = if (isAnimationPlaying) 1.0f else 0.5f
+        }
+
         val rotationSlider = findViewById<SeekBar>(R.id.rotationSlider)
         rotationSlider.progress = ROT_MID.toInt()
 
         rotationSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    // Calculate offset from the center (180)
-                    // If progress is 180, rotation is 0.
-                    // If progress is 0, rotation is -180.
                     modelRotationY = progress.toFloat() - ROT_MID
-
                     modelNode?.rotation = Rotation(0f, modelRotationY, 0f)
                 }
             }
@@ -245,7 +255,6 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
             is BgMode.Studio -> {
                 sceneView.skybox = null
-                // FIXED: Use studioVoidColor for window and engine clear color
                 window.decorView.setBackgroundColor(studioVoidColor)
                 sceneView.renderer.clearOptions = sceneView.renderer.clearOptions.apply {
                     clear = true
@@ -495,43 +504,34 @@ class ModelPreviewActivity : AppCompatActivity() {
         val engine = sceneView.engine
         val h = studioHalfExtent()
 
-        // Position adjustments to ensure perfect alignment
         val floorY = -(modelRadius * 0.55f)
         val wallBaseY = floorY
-        val wallTopY = floorY + (h * 2) // Height of the walls
+        val wallTopY = floorY + (h * 2)
 
-        // Z-position for the back wall
         val backWallZ = -h
-        // X-position for the side wall
         val sideWallX = -h
 
         val indices = shortArrayOf(0, 1, 2, 0, 2, 3)
 
-        // FLOOR: A square on the XZ plane
         val floorVerts = floatArrayOf(
-            -h, floorY,  h,   // Bottom Left
-            h, floorY,  h,   // Bottom Right
-            h, floorY, -h,   // Top Right
-            -h, floorY, -h    // Top Left
+            -h, floorY,  h,
+            h, floorY,  h,
+            h, floorY, -h,
+            -h, floorY, -h
         )
 
-        // BACK WALL: Aligned to the back edge of the floor (-h on Z axis)
-        // Vertices: (x, y, z)
         val backWallVerts = floatArrayOf(
-            -h, wallBaseY, backWallZ, // Bottom Left
-            h, wallBaseY, backWallZ, // Bottom Right
-            h, wallTopY,  backWallZ, // Top Right
-            -h, wallTopY,  backWallZ  // Top Left
+            -h, wallBaseY, backWallZ,
+            h, wallBaseY, backWallZ,
+            h, wallTopY,  backWallZ,
+            -h, wallTopY,  backWallZ
         )
 
-        // SIDE WALL: Aligned to the left edge of the floor (-h on X axis)
-        // Note: To close the gap with the back wall, the Z-coordinates must
-        // match the floor/back wall exactly (-h to h)
         val sideWallVerts = floatArrayOf(
-            sideWallX, wallBaseY,  h,         // Front Bottom
-            sideWallX, wallBaseY,  backWallZ, // Back Bottom (Meets Back Wall)
-            sideWallX, wallTopY,   backWallZ, // Back Top (Meets Back Wall)
-            sideWallX, wallTopY,   h          // Front Top
+            sideWallX, wallBaseY,  h,
+            sideWallX, wallBaseY,  backWallZ,
+            sideWallX, wallTopY,   backWallZ,
+            sideWallX, wallTopY,   h
         )
 
         studioFloorNode = buildPlaneNode(engine, floorVerts, indices, studioFloorColor,
@@ -593,14 +593,29 @@ class ModelPreviewActivity : AppCompatActivity() {
                 sceneView.modelLoader.createModelInstance(buffer = ByteBuffer.wrap(bytes))
             }
 
-            modelNode = ModelNode(instance!!, true, 1.0f, Position(0f, 0f, 0f)).apply {
-                isScaleEditable = false
+            modelNode = ModelNode(instance!!, false, 1.0f, Position(0f, 0f, 0f)).apply {
+                isScaleEditable    = false
                 isRotationEditable = false
-                // Apply the calculated rotation offset immediately upon loading
-                rotation = Rotation(0f, modelRotationY, 0f)
+                rotation           = Rotation(0f, modelRotationY, 0f)
+                // autoAnimate is not set here — ModelNode defaults vary by SceneView version.
+                // We control playback explicitly via playAnimation / stopAnimation below.
+
+                isAnimationPlaying = false
+                pausedAnimationTime = 0f
             }
             sceneView.addChildNode(modelNode!!)
-            // ... rest of loading logic ...
+
+            // ── Show animation button only if the model has animation tracks ──
+            val animCount = modelNode!!.modelInstance.animator?.animationCount ?: 0
+            if (animCount > 0) {
+                btnAnimationToggle.visibility = View.VISIBLE
+                btnAnimationToggle.alpha      = 0.5f  // dim = stopped
+                Log.d(TAG, "Model has $animCount animation track(s) — button shown")
+            } else {
+                btnAnimationToggle.visibility = View.GONE
+                Log.d(TAG, "Model has no animations — button hidden")
+            }
+
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
         }
@@ -619,6 +634,23 @@ class ModelPreviewActivity : AppCompatActivity() {
         sceneView.cameraNode.lookAt(Position(0f, 0f, 0f))
     }
 
+    // Add this private helper:
+    private fun setPreviewAnimationPlaying(node: ModelNode, playing: Boolean) {
+        val animator = node.modelInstance.animator ?: return
+        if (playing) {
+            node.playAnimation(0)
+            // Seek to where we paused
+            animator.applyAnimation(0, pausedAnimationTime)
+            animator.updateBoneMatrices()
+        } else {
+            // Sample current time before stopping
+            pausedAnimationTime = animator.getAnimationDuration(0)
+                .let { duration -> if (duration > 0f) (System.currentTimeMillis() % (duration * 1000).toLong()) / 1000f else 0f }
+            node.stopAnimation(0)
+            animator.applyAnimation(0, pausedAnimationTime)
+            animator.updateBoneMatrices()
+        }
+    }
     private fun setupTouchListener() {
         sceneView.setOnTouchListener { _, event ->
             when (event.actionMasked) {
@@ -643,8 +675,15 @@ class ModelPreviewActivity : AppCompatActivity() {
         val x = e.getX(0) - e.getX(1); val y = e.getY(0) - e.getY(1); return sqrt(x * x + y * y)
     }
 
-    private fun showCropOverlay() { cropOverlay.visibility = View.VISIBLE; cropConfirmBar.visibility = View.VISIBLE; normalButtonBar.visibility = View.GONE; btnBackground.visibility = View.GONE; sceneView.setOnTouchListener(null) }
-    private fun hideCropOverlay() { cropOverlay.visibility = View.GONE; cropConfirmBar.visibility = View.GONE; normalButtonBar.visibility = View.VISIBLE; btnBackground.visibility = View.VISIBLE; setupTouchListener() }
+    private fun showCropOverlay() { cropOverlay.visibility = View.VISIBLE; cropConfirmBar.visibility = View.VISIBLE; normalButtonBar.visibility = View.GONE; btnBackground.visibility = View.GONE; btnAnimationToggle.visibility = View.GONE; sceneView.setOnTouchListener(null) }
+    private fun hideCropOverlay() {
+        cropOverlay.visibility = View.GONE; cropConfirmBar.visibility = View.GONE
+        normalButtonBar.visibility = View.VISIBLE; btnBackground.visibility = View.VISIBLE
+        // Restore animation button visibility based on whether model has animations
+        val animCount = modelNode?.modelInstance?.animator?.animationCount ?: 0
+        if (animCount > 0) btnAnimationToggle.visibility = View.VISIBLE
+        setupTouchListener()
+    }
 
     private var pendingCropRect: RectF? = null
     private fun captureAndSaveThumbnail() {
@@ -672,5 +711,11 @@ class ModelPreviewActivity : AppCompatActivity() {
         } catch (e: Exception) {}
     }
 
-    override fun onDestroy() { super.onDestroy(); removeStudioPlanes(); sceneView.destroy() }
+    override fun onDestroy() {
+        // Stop animation cleanly before destroying the scene
+        modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
+        super.onDestroy()
+        removeStudioPlanes()
+        sceneView.destroy()
+    }
 }

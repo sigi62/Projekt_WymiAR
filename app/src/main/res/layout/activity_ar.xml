@@ -82,7 +82,7 @@
 
     </LinearLayout>
 
-    <!-- ── Measure tape / wireframe toggles – top-end ───────────────────── -->
+    <!-- ── Measure tape / wireframe / animation toggles – top-end ───────── -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -108,15 +108,27 @@
             android:src="@drawable/ic_wireframe"
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
-            android:padding="10dp"/>
+            android:padding="10dp"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone"/>
+
+        <!--
+            Animation toggle — only shown when a model with animations is
+            selected. Hidden by default; ARActivity shows/hides it
+            inside selectModel() / deselectModel().
+        -->
+        <ImageButton
+            android:id="@+id/btnAnimationToggle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_animation"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="Toggle animation"
+            android:visibility="gone"/>
 
     </LinearLayout>
-
-    <!-- ── Dimension HUD – bottom-start, above controls ────────────────── -->
-    <!--
-        layout_marginBottom is set to 0 here; the HUD sits *inside* the same
-        bottom LinearLayout as modelControls so it stacks naturally above it.
-    -->
 
     <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout

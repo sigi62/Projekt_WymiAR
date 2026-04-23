@@ -25,6 +25,10 @@ import com.example.pracazaliczeniowa.R.layout
 /**
  * Default node for AR models.
  * Minimal UI, triggers selection when tapped.
+ *
+ * autoAnimate is set to false so models load with animation stopped.
+ * Use [setAnimationPlaying] to start/stop, and [hasAnimations] to
+ * check whether the model carries any animation tracks at all.
  */
 class DefaultModelNode(
     val modelPath: String,
@@ -34,15 +38,43 @@ class DefaultModelNode(
     private val viewAttachmentManager: ViewAttachmentManager
 ) : ModelNode(
     modelInstance = modelInstance,
-    autoAnimate = true
-)
+    autoAnimate = false          // ← default: animation stopped on load
+) {
 
-{
+
+    // ── Animation helpers ─────────────────────────────────────────────────────
+
+    /** True if the model has at least one animation track. */
+    fun hasAnimations(): Boolean =
+        (modelInstance.animator?.animationCount ?: 0) > 0
+
+    /**
+     * Starts or stops animation track 0.
+     * Safe to call even if the model has no animations — does nothing in that case.
+     */
+    private var pausedAnimationTime = 0f
+
+    fun setAnimationPlaying(playing: Boolean) {
+        if (!hasAnimations()) return
+        val animator = modelInstance.animator ?: return
+        if (playing) {
+            playAnimation(0)
+        } else {
+            pausedAnimationTime = animator.getAnimationDuration(0) // fallback
+            stopAnimation(0)
+            animator.applyAnimation(0, pausedAnimationTime)
+            animator.updateBoneMatrices()
+        }
+    }
+
+    // ── Name helper ───────────────────────────────────────────────────────────
+
     // Helper to get a clean name for the file system (e.g., "cat")
     fun getModeleName(): String {
         return modelPath.substringAfterLast("/").substringBeforeLast(".")
     }
-    fun wrapAsSelected(scope: CoroutineScope, ): SelectedModelNode? {
+
+    fun wrapAsSelected(scope: CoroutineScope): SelectedModelNode? {
         val parentNode = this.parent ?: return null
 
         // 1. Capture current world state
@@ -51,21 +83,15 @@ class DefaultModelNode(
         val worldScl = this.worldScale // Capture the actual visual scale
 
         // 2. Create wrapper at the exact same world location
-        val wrapper = SelectedModelNode(engine,scope)
+        val wrapper = SelectedModelNode(engine, scope)
 
         parentNode.addChildNode(wrapper)
-
 
         wrapper.attachNode(this)
         wrapper.worldPosition = worldPos
         wrapper.worldQuaternion = worldRot
         // Note: We keep wrapper scale at 1.0 to avoid distorting children
 
-        // 3. Move the model into the wrapper ??
-        //parentNode.removeChildNode(this)
-        //wrapper.addChildNode(this)
-
-        // change -= wrapper.attachNode(this)
         wrapper.showRotationHandle(engine, sceneView)
 
         // 4. RESET local transforms of 'this' so it sits at 0,0,0 inside wrapper

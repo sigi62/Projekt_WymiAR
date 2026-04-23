@@ -32,7 +32,6 @@
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
-    add change name to model Library
 
     switching to laptop
 

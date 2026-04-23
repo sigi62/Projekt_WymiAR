@@ -30,6 +30,21 @@ class SelectedModelNode(
     /** Exposes the overlay so the Activity can read dimensions for the HUD. */
     fun getDimensionOverlay(): DimensionOverlayNode? = dimensionOverlay
 
+    // ── Animation delegation ──────────────────────────────────────────────────
+
+    /** Delegates to the wrapped node — true if the model has animation tracks. */
+    fun hasAnimations(): Boolean = wrappedNode?.hasAnimations() ?: false
+
+    /**
+     * Delegates play/stop to the wrapped [DefaultModelNode].
+     * Safe to call when no node is attached or the model has no animations.
+     */
+    fun setAnimationPlaying(playing: Boolean) {
+        wrappedNode?.setAnimationPlaying(playing)
+    }
+
+    // ── Wrap / unwrap ─────────────────────────────────────────────────────────
+
     fun unwrap(): DefaultModelNode? {
         val child = wrappedNode ?: return null
         val currentAnchor = this.parent ?: return null
