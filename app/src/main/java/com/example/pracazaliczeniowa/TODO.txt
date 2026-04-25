@@ -13,8 +13,7 @@
 
   2. Rotation Handle not a ring
 
-  wire up back button in AR
-  Quick model change with library button in the same session
+ Library button max height + delete padding
 
 
   7 Add a toggle effect to MeasureTape

@@ -22,6 +22,9 @@ import java.nio.ByteBuffer
 import kotlin.math.sqrt
 import android.util.Log
 import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Helpers.ModelImportManager
+import com.example.pracazaliczeniowa.Helpers.ModelItem
+import com.example.pracazaliczeniowa.Helpers.ModelPickerPopup
 import com.example.pracazaliczeniowa.Helpers.ModelProfile
 import com.example.pracazaliczeniowa.Helpers.ProfileManager
 import com.example.pracazaliczeniowa.Helpers.ProfilePickerDialog
@@ -52,11 +55,14 @@ class ARActivity : AppCompatActivity() {
     private lateinit var statusText: TextView
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
+    private lateinit var modelPickerPopup: ModelPickerPopup
     private lateinit var profileManager: ProfileManager
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var animationToggleButton: ImageButton
     private lateinit var rotationRingToggleButton: ImageButton
+
+    private lateinit var btnLibrary : ImageButton
     private lateinit var unitButton: Button
     private lateinit var settingsButton: ImageButton
     private lateinit var backButton: ImageButton
@@ -113,6 +119,7 @@ class ARActivity : AppCompatActivity() {
         activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, true)
 
         profileManager = ProfileManager(this)
+        modelPickerPopup = ModelPickerPopup(this)
 
         arSceneView           = findViewById(R.id.arSceneView)
         statusText            = findViewById(R.id.statusText)
@@ -125,6 +132,7 @@ class ARActivity : AppCompatActivity() {
         rotationRingToggleButton  = findViewById(R.id.btnRotationRingToggle)
         unitButton                = findViewById(R.id.btnUnit)
         settingsButton            = findViewById(R.id.btnSettings)
+        btnLibrary                = findViewById<ImageButton>(R.id.btnLibrary)
 
         // ── Dimension HUD ────────────────────────────────────────────────────
         dimensionHud = findViewById(R.id.dimensionHud)
@@ -140,6 +148,7 @@ class ARActivity : AppCompatActivity() {
             startActivity(Intent(this, SettingsActivity::class.java))
         }
 
+        btnLibrary.setOnClickListener { showModelPicker() }
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
 
@@ -607,6 +616,22 @@ class ARActivity : AppCompatActivity() {
         dialog.show(supportFragmentManager, "ProfilePickerDialog")
     }
 
+    // ── Model-picker sheet ────────────────────────────────────────────────────
+
+    private fun showModelPicker() {
+        // We just set the listener and tell the popup to show itself
+        modelPickerPopup.onModelPicked = { picked ->
+            activeModelPath = picked.modelPath
+            activeModelIsAsset = picked.isAsset
+
+            val label = picked.modelPath.substringAfterLast('/').substringBeforeLast('.')
+            statusText.text = "Active: $label — tap a surface to place"
+        }
+
+        // Highlighting logic is handled inside based on activeModelPath
+        modelPickerPopup.show(btnLibrary, activeModelPath)
+    }
+
     // ── Delete model from scene ───────────────────────────────────────────────
 
     private fun deleteSelectedModel() {
@@ -666,9 +691,6 @@ class ARActivity : AppCompatActivity() {
         return true
     }
 
-    override fun onBackPressed() {
-        closeScene()
-    }
 
     private fun closeScene() {
         if (isClosing) return
