@@ -152,6 +152,12 @@ class ProfileManager(context: Context) {
         saveBundle(modelName, bundle.copy(named = updatedNamed))
     }
 
+    /** Clears the default profile. The model reverts to its raw scale/rotation on next placement. */
+    fun resetDefault(modelName: String) {
+        val bundle = loadBundle(modelName)
+        saveBundle(modelName, bundle.copy(default = null))
+    }
+
     /**
      * True if any profile data (default or named) exists for this model.
      * Used by LibraryActivity to show the "✓ Saved" badge.

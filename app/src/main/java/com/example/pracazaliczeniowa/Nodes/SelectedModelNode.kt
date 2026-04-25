@@ -111,6 +111,15 @@ class SelectedModelNode(
         refreshRingScale()
     }
 
+    /**
+     * Re-anchors baseScale to the node's current physical scale.
+     * Call after saving a profile + resetting sliders so that subsequent
+     * slider movement is relative to the saved scale, not the original.
+     */
+    fun syncBaseScale() {
+        baseScale = wrappedNode?.scale ?: Float3(1f)
+    }
+
     fun moveTo(pos: Float3) {
         this.worldPosition = pos
         this.initialWorldPos = pos

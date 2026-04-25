@@ -159,6 +159,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
      *    then calls bindToNode so sliders re-read the node's new state)
      */
     fun bindToNode(node: SelectedModelNode) {
+        // Cancel any in-flight debounced commits so they can't overwrite the
+        // values we're about to seed from the node's actual state.
+        if (::i1.isInitialized) listOf(i1, i2, i3, iUni).forEach { cancelCommit(it) }
         targetNode = node
 
         // Seed sliders from the node's actual current state so they don't
@@ -193,7 +196,18 @@ class ModelControlOverlayView @JvmOverloads constructor(
         // Position always starts at neutral (0,0,0 offset) on fresh selection.
         positionProgress = Triple(posDynMid, posDynMid, posDynMid)
 
-        setupUI()
+        if (::s1.isInitialized) {
+            val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
+            val modeLabel      = findViewById<TextView>(R.id.modeLabel)
+            val layoutUni      = findViewById<LinearLayout>(R.id.layoutUniversalScale)
+            if (seekBarsLayout.visibility == View.VISIBLE) {
+                modeLabel.text       = currentMode
+                layoutUni.visibility = if (currentMode == "SCALE") View.VISIBLE else View.GONE
+            }
+            refreshSlidersForMode()
+        } else {
+            setupUI()
+        }
     }
 
     /**
@@ -390,6 +404,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     private fun attachEditTextListeners(editText: EditText, onCommit: () -> Unit) {
+        // Remove accumulated TextWatchers from repeated setupUI() calls
+        editText.clearComposingText()
+
         editText.addTextChangedListener(object : android.text.TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
@@ -401,6 +418,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         editText.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
+                if (isSyncing) return@setOnFocusChangeListener
                 cancelCommit(editText)
                 onCommit()
                 dismissKeyboard(editText)

@@ -51,6 +51,7 @@ class ProfilePickerDialog : DialogFragment() {
     var onStatusUpdate: ((String) -> Unit)? = null
     /** Must be set – provides the live scale/rotation to snapshot. */
     var getCurrentProfile: (() -> ModelProfile)? = null
+    var onResetDefault: (() -> Unit)? = null
 
     private lateinit var modelName:     String
     private lateinit var profileManager: ProfileManager
@@ -104,9 +105,9 @@ class ProfilePickerDialog : DialogFragment() {
             isEnabled = hasDefault
             setOnClickListener {
                 val p = profileManager.loadDefault(modelName) ?: return@setOnClickListener
+                dismiss()
                 onLoadProfile?.invoke(p)
                 onStatusUpdate?.invoke("Loaded default profile")
-                dismiss()
             }
         }
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
@@ -133,9 +134,9 @@ class ProfilePickerDialog : DialogFragment() {
 
         row.findViewById<Button>(R.id.btnSlotLoad).setOnClickListener {
             val p = profileManager.loadNamed(modelName, slotName) ?: return@setOnClickListener
+            dismiss()
             onLoadProfile?.invoke(p)
             onStatusUpdate?.invoke("Loaded profile \"$slotName\"")
-            dismiss()
         }
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
             text = "Overwrite"

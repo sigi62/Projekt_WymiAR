@@ -6,16 +6,17 @@
 
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
-  More UI changes
+
+ Ar Plane Detection Grid texture
 
 
 
   BUGS / FIXES
 
+  1. App Crash when switching model 
   2. Rotation Handle not a ring
   3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
-  5. Profiles not loading in?
-  5.5 Default Profile apply correctly at start
+  5.5 Default Profile doesn't apply correctly to rotation . Fix  the same as scale
 
   6. Model Cards delay before AR loads
   7 Add a toggle effect to MeasureTape
@@ -31,56 +32,3 @@
 
 
     switching to laptop
-
-replace modeimportManager.importFromUri call to this
-
-// In LibraryActivity (or wherever your file picker result lands)
-lifecycleScope.launch {
-    when (val result = ConversionManager.importFile(this@LibraryActivity, uri)) {
-
-        is ConversionManager.ImportResult.Success -> {
-            // exactly what you do now after ModelImportManager.importFromUri
-            refreshModelList()
-        }
-
-        is ConversionManager.ImportResult.NeedsModule -> {
-            // Show dialog: "OBJ/STL support requires a 2MB download. Proceed?"
-            showDownloadConverterDialog(uri)
-        }
-
-        is ConversionManager.ImportResult.Failure -> {
-            Toast.makeText(this@LibraryActivity, result.reason, Toast.LENGTH_SHORT).show()
-        }
-    }
-}
-
-private fun showDownloadConverterDialog(pendingUri: Uri) {
-    AlertDialog.Builder(this)
-        .setTitle("Additional download needed")
-        .setMessage("OBJ and STL support requires a one-time 2MB download. Download now?")
-        .setPositiveButton("Download") { _, _ ->
-            ConversionManager.requestModuleInstall(this) { success ->
-                if (success) {
-                    // Retry the import now that the module is installed
-                    lifecycleScope.launch {
-                        val retry = ConversionManager.importFile(this@LibraryActivity, pendingUri)
-                        if (retry is ConversionManager.ImportResult.Success) refreshModelList()
-                    }
-                } else {
-                    Toast.makeText(this, "Download failed. Check your connection.", Toast.LENGTH_SHORT).show()
-                }
-            }
-        }
-        .setNegativeButton("Cancel", null)
-        .show()
-}
-
-and file picker intent to accept .obj and .stl
-
-// In your file picker launcher setup
-val mimeTypes = arrayOf("model/obj", "model/stl", "model/gltf-binary", "*/*")
-val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-    addCategory(Intent.CATEGORY_OPENABLE)
-    type = "*/*"
-    putExtra(Intent.EXTRA_MIME_TYPES, mimeTypes)
-}

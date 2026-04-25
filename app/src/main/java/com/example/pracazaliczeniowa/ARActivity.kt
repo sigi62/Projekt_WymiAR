@@ -369,12 +369,6 @@ class ARActivity : AppCompatActivity() {
             // Apply default profile directly to the node's scale/rotation before
             // it is wrapped. bindToNode will then read these values and seed the
             // sliders correctly — no double-application.
-            val profile = profileManager.loadDefault(node.getModeleName())
-            if (profile != null) {
-                node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-                node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
-            }
-
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
             anchorNode.addChildNode(node)
             arSceneView.addChildNode(anchorNode)
@@ -386,6 +380,19 @@ class ARActivity : AppCompatActivity() {
             node.setAnimationPlaying(false)
 
             selectModel(node)
+
+// Apply default profile AFTER selectModel() so the SelectedModelNode wrapper
+// exists, baseScale is Float3(1f), and bindToNode seeds sliders correctly.
+            val profile = profileManager.loadDefault(node.getModeleName())
+            if (profile != null) {
+                val sel = selectedModel ?: return@launch
+                val w   = sel.getWrappedNode() ?: return@launch
+                w.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+                w.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+                sel.syncBaseScale()          // anchor baseScale to the loaded scale
+                sel.refreshRingScale()        // resize rotation handle to match profile scale
+                modelControls.resetSlidersToNeutral()
+            }
         }
     }
 
@@ -542,9 +549,7 @@ class ARActivity : AppCompatActivity() {
         }
 
         dialog.onProfileSaved = {
-            // After any save (default or named), reset sliders to neutral so
-            // the saved values become the new baseline. The node's physical
-            // scale/rotation are unchanged — only the UI resets.
+            selectedModel?.syncBaseScale()
             modelControls.resetSlidersToNeutral()
             statusText.text = "Profile saved — sliders reset to neutral"
         }
@@ -554,10 +559,16 @@ class ARActivity : AppCompatActivity() {
             // the node's new state.
             wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
-            modelControls.bindToNode(selected)
+            selected.syncBaseScale()
+            selected.refreshRingScale()
+            modelControls.resetSlidersToNeutral()
             if (dimensionHud.visibility == View.VISIBLE) {
                 selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
             }
+        }
+
+        dialog.onResetDefault = {
+            statusText.text = "Default profile cleared"
         }
 
         dialog.onStatusUpdate = { message -> statusText.text = message }
