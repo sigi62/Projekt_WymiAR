@@ -56,8 +56,13 @@ class ARActivity : AppCompatActivity() {
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var animationToggleButton: ImageButton
+    private lateinit var rotationRingToggleButton: ImageButton
     private lateinit var unitButton: Button
     private lateinit var settingsButton: ImageButton
+    private lateinit var backButton: ImageButton
+
+    private var isRotationRingVisible: Boolean = true
+    private var isClosing: Boolean = false
 
     // ── Dimension HUD views ──────────────────────────────────────────────────
     private lateinit var dimensionHud: View
@@ -113,11 +118,13 @@ class ARActivity : AppCompatActivity() {
         statusText            = findViewById(R.id.statusText)
         modelControls         = findViewById(R.id.modelControls)
         measureOverlay        = findViewById(R.id.measureOverlay)
-        measureModeButton     = findViewById(R.id.btnMeasureTapeModeToggle)
-        wireframeModeButton   = findViewById(R.id.btnWireframeToggle)
-        animationToggleButton = findViewById(R.id.btnAnimationToggle)
-        unitButton            = findViewById(R.id.btnUnit)
-        settingsButton        = findViewById(R.id.btnSettings)
+        backButton                = findViewById(R.id.btnBack)
+        measureModeButton         = findViewById(R.id.btnMeasureTapeModeToggle)
+        wireframeModeButton       = findViewById(R.id.btnWireframeToggle)
+        animationToggleButton     = findViewById(R.id.btnAnimationToggle)
+        rotationRingToggleButton  = findViewById(R.id.btnRotationRingToggle)
+        unitButton                = findViewById(R.id.btnUnit)
+        settingsButton            = findViewById(R.id.btnSettings)
 
         // ── Dimension HUD ────────────────────────────────────────────────────
         dimensionHud = findViewById(R.id.dimensionHud)
@@ -126,6 +133,8 @@ class ARActivity : AppCompatActivity() {
         dimD = dimensionHud.findViewById(R.id.dimensionD)
 
         modelControls.applySettings(AppSettings(this))
+
+        backButton.setOnClickListener { closeScene() }
 
         settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -150,9 +159,10 @@ class ARActivity : AppCompatActivity() {
         modelControls.onSaveRequested   = { showProfileDialog() }
         modelControls.onDeleteRequested = { deleteSelectedModel() }
 
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
-        animationToggleButton.visibility = View.GONE
+        modelControls.visibility            = View.GONE
+        wireframeModeButton.visibility      = View.GONE
+        animationToggleButton.visibility    = View.GONE
+        rotationRingToggleButton.visibility = View.GONE
 
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
@@ -167,6 +177,21 @@ class ARActivity : AppCompatActivity() {
             // Tint the icon so the user knows whether animation is active
             animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
             statusText.text = if (isAnimationPlaying) "Animation playing" else "Animation stopped"
+        }
+
+        // ── Rotation ring toggle click ────────────────────────────────────────
+        rotationRingToggleButton.setOnClickListener {
+            val wrapped = selectedModel ?: return@setOnClickListener
+            isRotationRingVisible = !isRotationRingVisible
+            if (isRotationRingVisible) {
+                wrapped.showRotationHandle(arSceneView.engine, arSceneView)
+                rotationRingToggleButton.alpha = 1.0f
+                statusText.text = "Rotation ring shown"
+            } else {
+                wrapped.hideRotationHandle()
+                rotationRingToggleButton.alpha = 0.5f
+                statusText.text = "Rotation ring hidden"
+            }
         }
 
         unitButton.setOnClickListener {
@@ -433,6 +458,11 @@ class ARActivity : AppCompatActivity() {
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
 
+            // ── Rotation ring: show and reset to visible state ────────────────
+            isRotationRingVisible = true
+            rotationRingToggleButton.alpha      = 1.0f
+            rotationRingToggleButton.visibility = View.VISIBLE
+
             // ── Animation button: show only if this model has animations ──────
             if (wrapped.hasAnimations()) {
                 animationToggleButton.visibility = View.VISIBLE
@@ -471,10 +501,11 @@ class ARActivity : AppCompatActivity() {
             models.add(returnedNode)
         }
         selectedModel = null
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
-        animationToggleButton.visibility = View.GONE
-        dimensionHud.visibility         = View.GONE
+        modelControls.visibility            = View.GONE
+        wireframeModeButton.visibility      = View.GONE
+        animationToggleButton.visibility    = View.GONE
+        rotationRingToggleButton.visibility = View.GONE
+        dimensionHud.visibility             = View.GONE
         statusText.text = "Model deselected"
     }
 
@@ -595,10 +626,11 @@ class ARActivity : AppCompatActivity() {
         val modelName = default?.getModeleName()
         models.remove(default)
         selectedModel = null
-        modelControls.visibility       = View.GONE
-        wireframeModeButton.visibility  = View.GONE
-        animationToggleButton.visibility = View.GONE
-        dimensionHud.visibility         = View.GONE
+        modelControls.visibility            = View.GONE
+        wireframeModeButton.visibility      = View.GONE
+        animationToggleButton.visibility    = View.GONE
+        rotationRingToggleButton.visibility = View.GONE
+        dimensionHud.visibility             = View.GONE
 
         statusText.text = "deleted model $modelName"
     }
@@ -630,16 +662,30 @@ class ARActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        finish()
+        closeScene()
         return true
     }
 
-    // If you are using a newer version of Android/androidx:
     override fun onBackPressed() {
-        // Stop the session and clean up before finishing
+        closeScene()
+    }
+
+    private fun closeScene() {
+        if (isClosing) return
+        isClosing = true
+
+        // Stop any running animation
+        if (isAnimationPlaying) {
+            selectedModel?.setAnimationPlaying(false)
+            isAnimationPlaying = false
+        }
+        // Detach all anchors so ARCore releases tracking resources
+        placedModelNodes.forEach { it.anchor?.detach() }
+        placedMeasureNodes.forEach { it.anchor?.detach() }
+        // Pause and destroy the AR session before leaving
         arSceneView.session?.pause()
         arSceneView.destroy()
-        super.onBackPressed()
+        finish()
     }
 
     override fun onPause() {
@@ -655,9 +701,11 @@ class ARActivity : AppCompatActivity() {
         placedModelNodes.clear()
         placedMeasureNodes.clear()
 
-        // 2. Explicitly stop the session
-        arSceneView.session?.pause()
-        arSceneView.destroy()
+        // 2. Only destroy the session if closeScene() hasn't already done it
+        if (!isClosing) {
+            arSceneView.session?.pause()
+            arSceneView.destroy()
+        }
 
         // 3. Clean up the ViewAttachmentManager
         viewAttachmentManager.onPause()

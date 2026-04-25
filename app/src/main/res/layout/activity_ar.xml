@@ -28,7 +28,7 @@
         android:orientation="vertical">
 
         <ImageButton
-            android:id="@+id/btnLibrary"
+            android:id="@+id/btnBack"
             android:layout_width="48dp"
             android:layout_height="48dp"
             android:layout_marginTop="8dp"
@@ -117,6 +117,23 @@
             selected. Hidden by default; ARActivity shows/hides it
             inside selectModel() / deselectModel().
         -->
+
+        <!--
+            Rotation ring toggle — shown when a model is selected.
+            Full alpha = ring visible; dimmed = ring hidden.
+        -->
+        <ImageButton
+            android:id="@+id/btnRotationRingToggle"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_circle_delete"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:layout_marginTop="10dp"
+            android:contentDescription="Toggle rotation ring"
+            android:visibility="gone"/>
+
         <ImageButton
             android:id="@+id/btnAnimationToggle"
             android:layout_width="48dp"
@@ -127,6 +144,7 @@
             android:padding="10dp"
             android:contentDescription="Toggle animation"
             android:visibility="gone"/>
+
 
     </LinearLayout>
 

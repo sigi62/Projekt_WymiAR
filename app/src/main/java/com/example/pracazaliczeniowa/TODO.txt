@@ -11,17 +11,10 @@
 
   BUGS / FIXES
 
-  1. App Crash when switching model
   2. Rotation Handle not a ring
-  3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
-  4 Default Profile doesn't apply correctly to rotation . Fix  the same as scale
-  5. cannot reset defaults to model original
-
-  6. Model Cards delay before AR loads
 
   wire up back button in AR
   Quick model change with library button in the same session
-
 
 
   7 Add a toggle effect to MeasureTape
