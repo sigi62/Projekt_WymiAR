@@ -2,8 +2,6 @@
 
   IMPLEMENTATION:
 
-  Add imports
-
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
 
@@ -13,12 +11,19 @@
 
   BUGS / FIXES
 
-  1. App Crash when switching model 
+  1. App Crash when switching model
   2. Rotation Handle not a ring
   3. Deselecting model doesn't work  while tapping on selected??? - too bugged with geastures , possible omission
-  5.5 Default Profile doesn't apply correctly to rotation . Fix  the same as scale
+  4 Default Profile doesn't apply correctly to rotation . Fix  the same as scale
+  5. cannot reset defaults to model original
 
   6. Model Cards delay before AR loads
+
+  wire up back button in AR
+  Quick model change with library button in the same session
+
+
+
   7 Add a toggle effect to MeasureTape
   8 Add a toggle effect to wireframe mode too ?? Button type special for selected?
 
@@ -27,8 +32,15 @@
 
   1. Thumbnails for auto models are pre-made
 
+
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
 
     switching to laptop
+
+
+claude on ar collision
+"The "Hard" Path (Physical Collisions): If you want the model to actually bounce off a physical wall or stop moving when it hits a real-world object,
+you need to convert the ARCore Depth Map into a 3D Mesh that a physics engine (like Bullet or JBox2D) can understand. This is very processor-intensive
+and usually requires a phone with a LiDAR/ToF sensor to be usable."

@@ -629,13 +629,39 @@ class ARActivity : AppCompatActivity() {
         return Math.toDegrees(Math.atan2((-dy).toDouble(), dx.toDouble())).toFloat()
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        finish()
+        return true
+    }
+
+    // If you are using a newer version of Android/androidx:
+    override fun onBackPressed() {
+        // Stop the session and clean up before finishing
+        arSceneView.session?.pause()
+        arSceneView.destroy()
+        super.onBackPressed()
+    }
+
     override fun onPause() {
         super.onPause()
+        // This is the standard way to ensure the AR session pauses
+        arSceneView.session?.pause()
         viewAttachmentManager.onPause()
     }
 
     override fun onDestroy() {
-        super.onDestroy()
+        // 1. Clear all nodes to release Sceneform/Sceneview references
+        placedModelNodes.forEach { it.parent = null }
+        placedModelNodes.clear()
+        placedMeasureNodes.clear()
+
+        // 2. Explicitly stop the session
+        arSceneView.session?.pause()
         arSceneView.destroy()
+
+        // 3. Clean up the ViewAttachmentManager
+        viewAttachmentManager.onPause()
+
+        super.onDestroy()
     }
 }
