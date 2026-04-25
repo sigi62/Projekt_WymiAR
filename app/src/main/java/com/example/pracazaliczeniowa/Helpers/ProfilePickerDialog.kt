@@ -116,12 +116,16 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke("Default profile saved")
-                onProfileSaved?.invoke()   // ← notify activity to reset sliders
-                buildList()   // refresh so button label updates
+                onProfileSaved?.invoke()
+                buildList()
             }
         }
-        // No delete button for the default slot
-        row.findViewById<ImageButton>(R.id.btnSlotDelete).visibility = View.GONE
+        row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
+            visibility = View.VISIBLE
+            contentDescription = "Reset to original"
+            setImageResource(R.drawable.ic_revert)   // or any icon you prefer
+            setOnClickListener { confirmResetToOriginal() }
+        }
 
         container.addView(row)
     }
@@ -224,6 +228,25 @@ class ProfilePickerDialog : DialogFragment() {
                 profileManager.deleteNamed(modelName, slotName)
                 onStatusUpdate?.invoke("Deleted profile \"$slotName\"")
                 buildList()
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
+    }
+    private fun confirmResetToOriginal() {
+        AlertDialog.Builder(requireContext())
+            .setTitle("Reset to original?")
+            .setMessage("This will permanently delete all changes made to default profile and revert model back to it's original state.")
+            .setPositiveButton("Reset") { _, _ ->
+                val original = ModelProfile(
+                    scaleX = 1f, scaleY = 1f, scaleZ = 1f,
+                    rotationX = 0f, rotationY = 0f, rotationZ = 0f
+                )
+                profileManager.saveDefault(modelName, original)
+                dismiss()
+                onLoadProfile?.invoke(original)
+                onProfileSaved?.invoke()
+                onResetDefault?.invoke()
+                onStatusUpdate?.invoke("Reset to original")
             }
             .setNegativeButton("Cancel", null)
             .show()

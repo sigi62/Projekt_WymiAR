@@ -120,6 +120,10 @@ class SelectedModelNode(
         baseScale = wrappedNode?.scale ?: Float3(1f)
     }
 
+    fun syncBaseRotation() {
+        initialWorldQuat = this.worldQuaternion
+    }
+
     fun moveTo(pos: Float3) {
         this.worldPosition = pos
         this.initialWorldPos = pos

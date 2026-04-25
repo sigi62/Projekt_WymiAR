@@ -385,12 +385,13 @@ class ARActivity : AppCompatActivity() {
 // exists, baseScale is Float3(1f), and bindToNode seeds sliders correctly.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
-                val sel = selectedModel ?: return@launch
-                val w   = sel.getWrappedNode() ?: return@launch
-                w.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-                w.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
-                sel.syncBaseScale()          // anchor baseScale to the loaded scale
-                sel.refreshRingScale()        // resize rotation handle to match profile scale
+                val selected = selectedModel ?: return@launch
+                val wrapped   = selected.getWrappedNode() ?: return@launch
+                wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+                wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+                selected.syncBaseScale()
+                selected.syncBaseRotation()
+                selected.refreshRingScale()
                 modelControls.resetSlidersToNeutral()
             }
         }
@@ -542,14 +543,15 @@ class ARActivity : AppCompatActivity() {
                 scaleX    = wrapped.scale.x,
                 scaleY    = wrapped.scale.y,
                 scaleZ    = wrapped.scale.z,
-                rotationX = wrapped.rotation.x,
-                rotationY = wrapped.rotation.y,
-                rotationZ = wrapped.rotation.z
+                rotationX = selected.rotation.x,
+                rotationY = selected.rotation.y,
+                rotationZ = selected.rotation.z
             )
         }
 
         dialog.onProfileSaved = {
             selectedModel?.syncBaseScale()
+            selectedModel?.syncBaseRotation()
             modelControls.resetSlidersToNeutral()
             statusText.text = "Profile saved — sliders reset to neutral"
         }
@@ -560,6 +562,7 @@ class ARActivity : AppCompatActivity() {
             wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             selected.syncBaseScale()
+            selected.syncBaseRotation()
             selected.refreshRingScale()
             modelControls.resetSlidersToNeutral()
             if (dimensionHud.visibility == View.VISIBLE) {
@@ -567,9 +570,6 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-        dialog.onResetDefault = {
-            statusText.text = "Default profile cleared"
-        }
 
         dialog.onStatusUpdate = { message -> statusText.text = message }
 
