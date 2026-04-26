@@ -30,6 +30,7 @@ import com.example.pracazaliczeniowa.Helpers.ProfileManager
 import com.example.pracazaliczeniowa.Helpers.ProfilePickerDialog
 
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
+import com.example.pracazaliczeniowa.Nodes.PlaneGridRenderer
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 
 import com.example.pracazaliczeniowa.Overlays.DistanceUnit
@@ -74,6 +75,8 @@ class ARActivity : AppCompatActivity() {
 
     private var isRotationRingVisible: Boolean = true
     private var isClosing: Boolean = false
+
+    private lateinit var planeGridRenderer: PlaneGridRenderer
 
     // ── Dimension HUD views ──────────────────────────────────────────────────
     private lateinit var dimensionHud: View
@@ -165,6 +168,15 @@ class ARActivity : AppCompatActivity() {
             config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
         }
 
+        // ── Custom plane renderer ─────────────────────────────────────────────
+        // Disable SceneView's built-in dot visualizer and replace it with our
+        // grid renderer, which also respects the wall-magnet mode toggle.
+        arSceneView.planeRenderer.isEnabled = false
+        planeGridRenderer = PlaneGridRenderer(arSceneView)
+        arSceneView.onFrame = { _ ->
+            planeGridRenderer.update(isWallMagnetVertical)
+        }
+
         lifecycleScope.launch {
             val env = arSceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
             arSceneView.indirectLight = env?.indirectLight
@@ -244,11 +256,20 @@ class ARActivity : AppCompatActivity() {
             val y = motionEvent.y
 
             val nodeHit = hitResult?.node
-            val activePlaneTypes = if (isWallMagnetVertical)
-                setOf(Plane.Type.VERTICAL)
-            else
-                setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
-            val arHit   = arSceneView.hitTestAR(x, y, activePlaneTypes)
+
+            // Raw ARCore hit-test: filter results by the actual plane type of
+            // the trackable, so floor dots never steal a wall-mode tap and
+            // vice versa. hitTestAR() does not reliably honour the type filter.
+            val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
+                ?.firstOrNull { hit ->
+                    val plane = hit.trackable as? Plane ?: return@firstOrNull false
+                    if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
+                    if (isWallMagnetVertical)
+                        plane.type == Plane.Type.VERTICAL
+                    else
+                        plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
+                                plane.type == Plane.Type.HORIZONTAL_DOWNWARD_FACING
+                }
             val selected = selectedModel
 
             when (motionEvent.actionMasked) {
@@ -745,6 +766,8 @@ class ARActivity : AppCompatActivity() {
         // Detach all anchors so ARCore releases tracking resources
         placedModelNodes.forEach { it.anchor?.detach() }
         placedMeasureNodes.forEach { it.anchor?.detach() }
+        // Destroy custom plane renderer before tearing down the scene
+        planeGridRenderer.destroy()
         // Pause and destroy the AR session before leaving
         arSceneView.session?.pause()
         arSceneView.destroy()
@@ -766,6 +789,7 @@ class ARActivity : AppCompatActivity() {
 
         // 2. Only destroy the session if closeScene() hasn't already done it
         if (!isClosing) {
+            planeGridRenderer.destroy()
             arSceneView.session?.pause()
             arSceneView.destroy()
         }

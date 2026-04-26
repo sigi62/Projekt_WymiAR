@@ -5,7 +5,7 @@
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
 
-  Ar Plane Detection Grid texture
+  Ar Plane Detection Grid texture - fix not appearing 
   Add lang pl/eng
 
 
