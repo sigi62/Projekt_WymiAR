@@ -163,17 +163,20 @@ class ARActivity : AppCompatActivity() {
 
         arSceneView.configureSession { session, config ->
             config.planeFindingMode    = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
-            config.focusMode           = Config.FocusMode.FIXED
+            config.focusMode           = Config.FocusMode.AUTO
             config.updateMode          = Config.UpdateMode.LATEST_CAMERA_IMAGE
             config.lightEstimationMode = Config.LightEstimationMode.AMBIENT_INTENSITY
+            if (session.isDepthModeSupported(Config.DepthMode.AUTOMATIC)) {
+                config.depthMode = Config.DepthMode.AUTOMATIC
+            }
         }
 
         // ── Custom plane renderer ─────────────────────────────────────────────
-        // Disable SceneView's built-in dot visualizer and replace it with our
-        // grid renderer, which also respects the wall-magnet mode toggle.
-        arSceneView.planeRenderer.isEnabled = false
+        // Keep the native PlaneRenderer enabled — it handles plane geometry
+        // correctly. We just swap its "texture" parameter to our grid bitmap.
         planeGridRenderer = PlaneGridRenderer(arSceneView)
-        arSceneView.onFrame = { _ ->
+        planeGridRenderer.init()
+        arSceneView.onSessionUpdated = { _, _ ->
             planeGridRenderer.update(isWallMagnetVertical)
         }
 

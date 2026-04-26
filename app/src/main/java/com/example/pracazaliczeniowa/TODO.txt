@@ -5,7 +5,8 @@
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
 
-  Ar Plane Detection Grid texture - fix not appearing 
+
+  Wall Magnet button turns off other plane detection
   Add lang pl/eng
 
 
