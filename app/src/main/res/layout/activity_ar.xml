@@ -87,7 +87,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
-        android:layout_marginTop="120dp"
+        android:layout_marginTop="80dp"
         android:layout_marginEnd="10dp"
         android:orientation="vertical">
 
@@ -99,7 +99,23 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:layout_marginBottom="10dp"/>
+            android:layout_marginBottom="10dp"
+            android:contentDescription="Toggle measure tape"/>
+
+        <!--
+            Wall-magnet mode toggle — ic_stack (flat = horizontal planes),
+            rotated -90° (counter-clockwise) when in vertical/wall mode.
+        -->
+        <ImageButton
+            android:id="@+id/btnWallMagnet"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_stack"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:layout_marginBottom="10dp"
+            android:contentDescription="Toggle wall magnet mode"/>
 
         <ImageButton
             android:id="@+id/btnWireframeToggle"
@@ -110,13 +126,8 @@
             android:scaleType="centerInside"
             android:padding="10dp"
             android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
-
-        <!--
-            Animation toggle — only shown when a model with animations is
-            selected. Hidden by default; ARActivity shows/hides it
-            inside selectModel() / deselectModel().
-        -->
+            android:visibility="gone"
+            android:contentDescription="Toggle wireframe"/>
 
         <!--
             Rotation ring toggle — shown when a model is selected.
@@ -130,10 +141,15 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
             android:contentDescription="Toggle rotation ring"
             android:visibility="gone"/>
 
+        <!--
+            Animation toggle — only shown when a model with animations is
+            selected. Hidden by default; ARActivity shows/hides it
+            inside selectModel() / deselectModel().
+        -->
         <ImageButton
             android:id="@+id/btnAnimationToggle"
             android:layout_width="48dp"
@@ -142,9 +158,9 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
+            android:layout_marginBottom="10dp"
             android:contentDescription="Toggle animation"
             android:visibility="gone"/>
-
 
     </LinearLayout>
 

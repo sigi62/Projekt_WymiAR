@@ -61,6 +61,11 @@ class ARActivity : AppCompatActivity() {
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var animationToggleButton: ImageButton
     private lateinit var rotationRingToggleButton: ImageButton
+    private lateinit var wallMagnetButton: ImageButton
+
+    // true  → detecting VERTICAL planes (wall mode)
+    // false → detecting HORIZONTAL planes (floor/table mode, default)
+    private var isWallMagnetVertical: Boolean = false
 
     private lateinit var btnLibrary : ImageButton
     private lateinit var unitButton: Button
@@ -130,6 +135,7 @@ class ARActivity : AppCompatActivity() {
         wireframeModeButton       = findViewById(R.id.btnWireframeToggle)
         animationToggleButton     = findViewById(R.id.btnAnimationToggle)
         rotationRingToggleButton  = findViewById(R.id.btnRotationRingToggle)
+        wallMagnetButton          = findViewById(R.id.btnWallMagnet)
         unitButton                = findViewById(R.id.btnUnit)
         settingsButton            = findViewById(R.id.btnSettings)
         btnLibrary                = findViewById<ImageButton>(R.id.btnLibrary)
@@ -177,6 +183,9 @@ class ARActivity : AppCompatActivity() {
         measureOverlay.setUnit(unit)
 
         measureModeButton.setOnClickListener { toggleMeasureTool() }
+
+        // ── Wall-magnet toggle click ───────────────────────────────────────────
+        wallMagnetButton.setOnClickListener { toggleWallMagnetMode() }
 
         // ── Animation toggle click ────────────────────────────────────────────
         animationToggleButton.setOnClickListener {
@@ -235,7 +244,11 @@ class ARActivity : AppCompatActivity() {
             val y = motionEvent.y
 
             val nodeHit = hitResult?.node
-            val arHit   = arSceneView.hitTestAR(x, y, setOf(Plane.Type.HORIZONTAL_UPWARD_FACING))
+            val activePlaneTypes = if (isWallMagnetVertical)
+                setOf(Plane.Type.VERTICAL)
+            else
+                setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
+            val arHit   = arSceneView.hitTestAR(x, y, activePlaneTypes)
             val selected = selectedModel
 
             when (motionEvent.actionMasked) {
@@ -362,6 +375,34 @@ class ARActivity : AppCompatActivity() {
             statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
         } else {
             statusText.text = "Tap to place first measure point"
+        }
+    }
+
+    // ── Wall-magnet mode ──────────────────────────────────────────────────────
+
+    private fun toggleWallMagnetMode() {
+        isWallMagnetVertical = !isWallMagnetVertical
+
+        // Re-configure the ARCore session so it actively scans for the right
+        // plane type. HORIZONTAL_AND_VERTICAL keeps both always tracked by
+        // ARCore internally; we just change which ones accept hit-tests.
+        // Switching to VERTICAL-only can help on some devices, but
+        // HORIZONTAL_AND_VERTICAL is safest and most compatible.
+        arSceneView.configureSession { _, config ->
+            config.planeFindingMode = if (isWallMagnetVertical)
+                Config.PlaneFindingMode.VERTICAL
+            else
+                Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+        }
+
+        if (isWallMagnetVertical) {
+            // Rotate icon 90° counter-clockwise → suggests a vertical wall
+            wallMagnetButton.rotation = -90f
+            statusText.text = "Wall mode: point at a wall and wait, then tap"
+        } else {
+            // Icon flat → horizontal / floor mode
+            wallMagnetButton.rotation = 0f
+            statusText.text = "Floor mode: tap a horizontal surface"
         }
     }
 

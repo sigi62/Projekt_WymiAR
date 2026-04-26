@@ -5,26 +5,21 @@
   AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
 
- Ar Plane Detection Grid texture
-
+  Ar Plane Detection Grid texture
+  Add lang pl/eng
 
 
   BUGS / FIXES
 
   2. Rotation Handle not a ring
-
- Library button max height + delete padding
-
-
-  7 Add a toggle effect to MeasureTape
-  8 Add a toggle effect to wireframe mode too ?? Button type special for selected?
+  3. Thumbnails for auto models are pre-made
 
 
-  IDEAS
 
-  1. Thumbnails for auto models are pre-made
-
-
+  UI FIXES
+  Library button max height + delete padding
+  Add a toggle effect to MeasureTape
+  Add a toggle effect to wireframe mode too ?? Button type special for selected?
   THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
