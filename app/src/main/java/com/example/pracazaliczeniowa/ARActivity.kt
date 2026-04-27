@@ -260,19 +260,33 @@ class ARActivity : AppCompatActivity() {
 
             val nodeHit = hitResult?.node
 
-            // Raw ARCore hit-test: filter results by the actual plane type of
-            // the trackable, so floor dots never steal a wall-mode tap and
-            // vice versa. hitTestAR() does not reliably honour the type filter.
+
+            // Replace lines 263–275 with this:
+
+            val allowedPlaneTypes: Set<Plane.Type> = if (isWallMagnetVertical)
+                setOf(Plane.Type.VERTICAL)
+            else
+                setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
+
             val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
                 ?.firstOrNull { hit ->
                     val plane = hit.trackable as? Plane ?: return@firstOrNull false
                     if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
-                    if (isWallMagnetVertical)
-                        plane.type == Plane.Type.VERTICAL
-                    else
-                        plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
-                                plane.type == Plane.Type.HORIZONTAL_DOWNWARD_FACING
+                    plane.type in allowedPlaneTypes && plane.isPoseInPolygon(hit.hitPose)
                 }
+//            // Raw ARCore hit-test: filter results by the actual plane type of
+//            // the trackable, so floor dots never steal a wall-mode tap and
+//            // vice versa. hitTestAR() does not reliably honour the type filter.
+//            val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
+//                ?.firstOrNull { hit ->
+//                    val plane = hit.trackable as? Plane ?: return@firstOrNull false
+//                    if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
+//                    if (isWallMagnetVertical)
+//                        plane.type == Plane.Type.VERTICAL
+//                    else
+//                        plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
+//                                plane.type == Plane.Type.HORIZONTAL_DOWNWARD_FACING
+//                }
             val selected = selectedModel
 
             when (motionEvent.actionMasked) {
@@ -407,24 +421,23 @@ class ARActivity : AppCompatActivity() {
     private fun toggleWallMagnetMode() {
         isWallMagnetVertical = !isWallMagnetVertical
 
-        // Re-configure the ARCore session so it actively scans for the right
-        // plane type. HORIZONTAL_AND_VERTICAL keeps both always tracked by
-        // ARCore internally; we just change which ones accept hit-tests.
-        // Switching to VERTICAL-only can help on some devices, but
-        // HORIZONTAL_AND_VERTICAL is safest and most compatible.
+        // Always keep HORIZONTAL_AND_VERTICAL so ARCore never stops tracking
+        // either plane type. Plane *visibility* is filtered every frame inside
+        // PlaneGridRenderer.update(), and hit-test filtering is in the touch
+        // handler — no session reconfiguration needed here.
+        // (Switching to VERTICAL-only mid-session caused already-detected
+        // horizontal planes to flicker or vanish on many devices.)
         arSceneView.configureSession { _, config ->
-            config.planeFindingMode = if (isWallMagnetVertical)
-                Config.PlaneFindingMode.VERTICAL
-            else
-                Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
+            config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
         }
 
+        // Force an immediate visibility pass so the change feels instant.
+        planeGridRenderer.update(isWallMagnetVertical)
+
         if (isWallMagnetVertical) {
-            // Rotate icon 90° counter-clockwise → suggests a vertical wall
             wallMagnetButton.rotation = -90f
             statusText.text = "Wall mode: point at a wall and wait, then tap"
         } else {
-            // Icon flat → horizontal / floor mode
             wallMagnetButton.rotation = 0f
             statusText.text = "Floor mode: tap a horizontal surface"
         }

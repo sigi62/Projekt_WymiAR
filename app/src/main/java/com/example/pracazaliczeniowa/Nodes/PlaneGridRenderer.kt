@@ -7,6 +7,8 @@ import android.graphics.Paint
 import android.util.Log
 import com.google.android.filament.Texture
 import com.google.android.filament.TextureSampler
+import com.google.ar.core.Plane
+import com.google.ar.core.TrackingState
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.material.setTexture
 import java.nio.ByteBuffer
@@ -15,7 +17,14 @@ import java.nio.ByteBuffer
  * PlaneGridRenderer
  * ─────────────────
  * Swaps the built-in PlaneRenderer dot texture for a 5 cm grid bitmap.
- * Updated for Sceneview 2.x compatibility.
+ *
+ * Also filters plane visibility per mode:
+ *   wallMagnetActive = true  → show VERTICAL planes only
+ *   wallMagnetActive = false → show HORIZONTAL planes only
+ *
+ * SceneView 2.3.3 exposes no per-plane setVisible() publicly, so we reach
+ * the private `visualizers: MutableMap<Plane, PlaneVisualizer>` field via
+ * reflection and call PlaneVisualizer.setVisible() on each entry.
  */
 class PlaneGridRenderer(private val sceneView: ARSceneView) {
 
@@ -23,22 +32,27 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
     private var gridTexture: Texture? = null
     private var injected = false
 
-    /** Call once in onCreate — enables the renderer and builds the texture. */
+    // Cached reflection references — resolved once on first use.
+    private var visualizersField: java.lang.reflect.Field? = null
+    private var setVisibleMethod: java.lang.reflect.Method? = null
+    private var reflectionReady = false
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
     fun init() {
         sceneView.planeRenderer.isEnabled = true
-        // Set mode to RENDER_ALL or RENDER_TOP_ONLY depending on preference
         sceneView.planeRenderer.planeRendererMode =
             io.github.sceneview.ar.scene.PlaneRenderer.PlaneRendererMode.RENDER_ALL
 
         gridTexture = buildGridTexture()
-        Log.d("PlaneGrid", "init() — texture built")
+        prepareReflection()
+        Log.d("PlaneGrid", "init() — texture built, reflection ready=$reflectionReady")
     }
 
-    /**
-     * Call every frame from onSessionUpdated.
-     */
+    /** Call every frame from onSessionUpdated. */
     fun update(wallMagnetActive: Boolean) {
         if (!injected) injectTexture()
+        filterPlaneVisibility(wallMagnetActive)
     }
 
     fun destroy() {
@@ -47,18 +61,104 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         injected = false
     }
 
+    // ── Reflection setup ──────────────────────────────────────────────────────
+
+    private fun prepareReflection() {
+        try {
+            val rendererClass = sceneView.planeRenderer.javaClass
+
+            // Find the private 'visualizers' field (MutableMap<Plane, PlaneVisualizer>)
+            val field = rendererClass.declaredFields.firstOrNull { f ->
+                Map::class.java.isAssignableFrom(f.type)
+            } ?: run {
+                Log.w("PlaneGrid", "Could not find visualizers field via reflection")
+                return
+            }
+            field.isAccessible = true
+            visualizersField = field
+
+            // Attempt to resolve PlaneVisualizer's setVisible(Boolean) by class name.
+            // If the class is not accessible by name, we fall back to lazy resolution
+            // from the first live entry in the map (see filterPlaneVisibility).
+            val vizClass = try {
+                Class.forName("io.github.sceneview.ar.scene.PlaneVisualizer")
+            } catch (e: ClassNotFoundException) {
+                Log.d("PlaneGrid", "PlaneVisualizer not found by name — will resolve lazily")
+                null
+            }
+
+            if (vizClass != null) {
+                val method = vizClass.methods.firstOrNull { m ->
+                    m.name == "setVisible" &&
+                            m.parameterCount == 1 &&
+                            m.parameterTypes[0] == Boolean::class.javaPrimitiveType
+                }
+                if (method != null) {
+                    method.isAccessible = true
+                    setVisibleMethod = method
+                    reflectionReady = true
+                    Log.d("PlaneGrid", "Reflection ready via class name lookup")
+                } else {
+                    Log.w("PlaneGrid", "setVisible not found on PlaneVisualizer")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("PlaneGrid", "prepareReflection failed: ${e.message}")
+        }
+    }
+
+    // ── Per-plane visibility filter ───────────────────────────────────────────
+
+    @Suppress("UNCHECKED_CAST")
+    private fun filterPlaneVisibility(wallMagnetActive: Boolean) {
+        val field = visualizersField ?: return
+        try {
+            val map = field.get(sceneView.planeRenderer) as? Map<*, *> ?: return
+            if (map.isEmpty()) return
+
+            // Lazily resolve setVisible from the first non-null visualizer instance
+            // when class-name lookup failed during init().
+            if (!reflectionReady) {
+                val firstViz = map.values.firstOrNull() ?: return
+                val method = firstViz.javaClass.methods.firstOrNull { m ->
+                    m.name == "setVisible" &&
+                            m.parameterCount == 1 &&
+                            m.parameterTypes[0] == Boolean::class.javaPrimitiveType
+                } ?: return
+                method.isAccessible = true
+                setVisibleMethod = method
+                reflectionReady = true
+                Log.d("PlaneGrid", "Reflection ready via lazy resolution")
+            }
+
+            val method = setVisibleMethod ?: return
+
+            for ((planeKey, visualizer) in map) {
+                val plane = planeKey as? Plane ?: continue
+                if (plane.trackingState != TrackingState.TRACKING) continue
+                if (plane.subsumedBy != null) continue
+                visualizer ?: continue
+
+                val shouldShow = if (wallMagnetActive) {
+                    plane.type == Plane.Type.VERTICAL
+                } else {
+                    plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
+                            plane.type == Plane.Type.HORIZONTAL_DOWNWARD_FACING
+                }
+
+                method.invoke(visualizer, shouldShow)
+            }
+        } catch (e: Exception) {
+            Log.w("PlaneGrid", "filterPlaneVisibility error: ${e.message}")
+        }
+    }
+
+    // ── Texture injection ─────────────────────────────────────────────────────
+
     private fun injectTexture() {
         val tex = gridTexture ?: return
-
-        // In Sceneview 2.x, the material instance is managed internally.
-        // We access the current material through the planeRenderer.
-        val matInstance = sceneView.planeRenderer.planeMaterial?.defaultInstance ?: run {
-            // If the material or its defaultInstance isn't ready, we wait.
-            return
-        }
-
+        val matInstance = sceneView.planeRenderer.planeMaterial?.defaultInstance ?: return
         try {
-            // "texture" is the parameter name in the default ARCore plane shader
             matInstance.setTexture(
                 "texture",
                 tex,
@@ -68,23 +168,20 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
                     TextureSampler.WrapMode.REPEAT
                 )
             )
-
-            // "uvScale" controls tiling. 20.0f = repeat every 5cm (1/20 meters)
             matInstance.setParameter("uvScale", 20.0f, 20.0f)
-
             injected = true
-            Log.d("PlaneGrid", "Texture injected successfully into material instance")
+            Log.d("PlaneGrid", "Texture injected successfully")
         } catch (e: Exception) {
-            // This might catch if the parameter names changed in a specific filament version
             Log.e("PlaneGrid", "Injection failed: ${e.message}")
         }
     }
+
+    // ── Texture building ──────────────────────────────────────────────────────
 
     private fun buildGridTexture(): Texture {
         val bmp    = Bitmap.createBitmap(TEX_SIZE, TEX_SIZE, Bitmap.Config.ARGB_8888)
         val canvas = Canvas(bmp)
 
-        // Light background fill (semi-transparent)
         canvas.drawColor(Color.argb(15, 255, 255, 255))
 
         val linePx = (TEX_SIZE * 0.07f).coerceAtLeast(3f)
@@ -97,10 +194,10 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         val h  = linePx / 2f
         val sz = TEX_SIZE.toFloat()
 
-        canvas.drawLine(0f,   h,    sz,   h,    paint)   // top
-        canvas.drawLine(0f,   sz-h, sz,   sz-h, paint)   // bottom
-        canvas.drawLine(h,    0f,   h,    sz,   paint)   // left
-        canvas.drawLine(sz-h, 0f,   sz-h, sz,   paint)   // right
+        canvas.drawLine(0f,   h,    sz,   h,    paint)
+        canvas.drawLine(0f,   sz-h, sz,   sz-h, paint)
+        canvas.drawLine(h,    0f,   h,    sz,   paint)
+        canvas.drawLine(sz-h, 0f,   sz-h, sz,   paint)
 
         return uploadBitmap(bmp)
     }
@@ -118,9 +215,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         val buf = ByteBuffer.allocateDirect(bmp.byteCount)
         bmp.copyPixelsToBuffer(buf)
         buf.rewind()
-
-        // Ensure we don't recycle if the engine still needs it,
-        // though copyPixelsToBuffer is usually safe for immediate recycle.
         bmp.recycle()
 
         tex.setImage(engine, 0,
