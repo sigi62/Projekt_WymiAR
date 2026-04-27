@@ -2,12 +2,10 @@
 
   IMPLEMENTATION:
 
-  AR wall manget mode - both vertical and horizontal - add a button for change
   AR collision
 
 
-  Wall Magnet button turns off other plane detection
-  Add lang pl/eng
+  Add lang pl/eng  - > getString(R.string.status_floor_mode)
 
 
   BUGS / FIXES

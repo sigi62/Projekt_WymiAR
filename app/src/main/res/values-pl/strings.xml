@@ -2,7 +2,7 @@
     <string name="app_name">PracaZaliczeniowa</string>
     <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
 
-    <string name="status_floor_mode">Floor mode: tap a horizontal surface</string>
-    <string name="status_wall_mode">Wall mode: point at a wall and wait, then tap</string>
+    <string name="status_floor_mode">Tryb podłogi: dotknij poziomej powierzchni</string>
+    <string name="status_wall_mode">Tryb ściany: skieruj na ścianę i poczekaj, potem dotknij</string>
     <string name="btn_unit_cm">cm</string>
 </resources>

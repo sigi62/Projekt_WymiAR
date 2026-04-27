@@ -436,10 +436,10 @@ class ARActivity : AppCompatActivity() {
 
         if (isWallMagnetVertical) {
             wallMagnetButton.rotation = -90f
-            statusText.text = "Wall mode: point at a wall and wait, then tap"
+            statusText.text = getString(R.string.status_wall_mode)
         } else {
             wallMagnetButton.rotation = 0f
-            statusText.text = "Floor mode: tap a horizontal surface"
+            statusText.text = getString(R.string.status_floor_mode)
         }
     }
 
