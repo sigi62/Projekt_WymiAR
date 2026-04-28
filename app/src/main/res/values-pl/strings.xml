@@ -1,8 +1,168 @@
 <resources>
     <string name="app_name">PracaZaliczeniowa</string>
-    <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
+    <string name="title_converter">Konwerter_plików_STLiOBJ</string>
 
-    <string name="status_floor_mode">Tryb podłogi: dotknij poziomej powierzchni</string>
-    <string name="status_wall_mode">Tryb ściany: skieruj na ścianę i poczekaj, potem dotknij</string>
-    <string name="btn_unit_cm">cm</string>
+
+    <!-- Ar view -->
+    <string name="status_active_model">Aktywny model: %1$s</string>
+    <string name="model_picker_prompt">Aktywny model: %1$s — kliknij na dostępnej powierzchni</string>
+    <string name="status_floor_mode">Tryb horyzontalny: skieruj na podłogę i kliknij dostępną powierzchnie</string>
+    <string name="status_wall_mode">Tryb wertykalny: skieruj na ścianę i kliknij dostępną powierzchnie</string>
+
+    <!-- Model -->
+    <string name="status_loading">Ładowanie modelu…</string>
+    <string name="status_error_not_found">Błąd: Nie znaleziono modelu</string>
+    <string name="status_model_selected">Wybrano model</string>
+    <string name="status_model_deselected">Odznaczono model</string>
+    <string name="status_model_deleted">Usunięto model %1$s</string>
+
+    <!-- Profiles -->
+    <string name="profile_label_default">★ Domyślny</string>
+    <string name="profile_add_named_prompt">+ Dodaj nowy profil…</string>
+    <string name="dialog_add_profile_title">Zapisz bierzące wartości</string>
+    <string name="dialog_add_profile_msg">Podaj nazwę profilu:</string>
+    <string name="status_profile_saved">Profi zapisany — suwaki zresetowane do 1</string>
+    <string name="dialog_profiles_title">Profile – %1$s</string>
+    <string name="dialog_add_profile_hint">n.p. Wielkości lodówki</string>
+    <string name="dialog_overwrite_msg">Podmienić zapisane wartości w \"%1$s\" bierzącymi?</string>
+    <string name="dialog_reset_title">Zresetowć profil?</string>
+    <string name="dialog_reset_msg">Czy ba pewno chcesz zresetować profil? Utraci on wszystkie zmiany jakie na nim zaszły.</string>
+
+    <string name="status_reset_done">Zresetowano do wartości domyślnych</string>
+    <string name="error_too_many_profiles">Limit osiągniety: Maksymalnie %1$d profili na model.</string>
+    <string name="error_profile_save_failed">Błąd zapisu dla profilu: %1$s</string>
+
+    <!-- Animation -->
+    <string name="animation_toggle_on">Animacja włączona</string>
+    <string name="animation_toggle_off">Animacja wyłączona</string>
+
+    <!-- RotationRing -->
+    <string name="rotation_ring_on">Rotation ring shown</string>
+    <string name="rotation_ring_off">Rotation ring hidden</string>
+
+    <!-- Dimensions -->
+    <string name="status_dimensions_shown">Dimensions shown</string>
+    <string name="status_dimensions_hidden">Dimensions hidden</string>
+
+    <!-- Measure Points -->
+    <string name="measure_distance">Dystans: %1$.1f %2$s </string>
+    <string name="measure_tap_first">Kliknij dostępną płaszczyzne aby postawić pierwszy punkt mierniczy</string>
+    <string name="measure_tap_second">Postaw drugi punkt mierniczy</string>
+
+
+    <!-- Converter -->
+    <string name="toast_converter_ready">Konwerter gotowy!</string>
+    <string name="toast_converter_failed">Nie udało się pobrać konwertera (error %1$s)</string>
+    <string name="toast_converter_downloading">Pobieranie konwertera plików 3D...</string>
+    <string name="toast_converter_download_failed">Pobieranie nieudane: %1$s</string>
+    <string name="error_conversion_failed">Nie powiodła się konwersja do pliku GLB</string>
+    <string name="error_extension_unsupported">Niewspomagane rozszerzenie pliku</string>
+
+    <!-- Importing -->
+    <string name="toast_importing">Importowanie…</string>
+    <string name="toast_import_failed">Importowanie nieudane – niewspomagany lub uszkodzony plik</string>
+    <string name="toast_import_verify_failed">Importowanie zakończone ale plik nie pzedł weryfikacji wstępnej</string>
+    <string name="toast_import_added">%1$s został dodany do biblioteki</string>
+
+
+    <!-- Library Options -->
+
+    <string name="library_tittle">Biblioteka modeli</string>
+    <string name="dialog_rename_title">Zmień nazwę</string>
+    <string name="dialog_rename_hint">Nazwa modelu</string>
+    <string name="btn_rename">Zmień</string>
+    <string name="toast_rename_success">\'%1$s\' nazywa się teraz \'%2$s\'</string>
+    <string name="toast_rename_failed">Błąd zmiany nazwy. %1$s</string>
+    <string name="error_name_blank">Nazwa modelu nie może być pusta!</string>
+    <string name="error_name_exists">Model z taką nazwą już istnieje.</string>
+    <string name="toast_delete_success">%1$s został usunięty</string>
+    <string name="toast_delete_failed">Nie można było usunąć %1$s</string>
+
+    <!-- Units -->
+    <string name="unit_label">Jednostka Miary:</string>
+    <string name="unit_mm">mm</string>
+    <string name="unit_cm">cm</string>
+    <string name="unit_m">m</string>
+    <string name="full_unit_m">Metry (m)</string>
+    <string name="full_unit_cm">Centymetry (cm)</string>
+    <string name="full_unit_mm">Milimetry (mm)</string>
+
+    <!-- Model preview -->
+    <string name="preview_loading">Ładowanie podglądu…</string>
+    <string name="preview_error_load">Błąd: Nie znaleziono pliku lub jest on uszkodzony</string>
+    <string name="preview_status_ready">Podgąd gotowy</string>
+    <string name="preview_no_animations">Model nie posiada animacji</string>
+    <string name="preview_dimensions_format">Długość: %1$.1f, Wysokość: %2$.1f, Szerokość: %3$.1f %4$s</string>
+    <string name="preview_close">Zamykanie podglądu</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ustawienia</string>
+    <string name="settings_save_btn">Zapisz ustawienia</string>
+    <string name="settings_saved_toast">Ustawienia zapisane pomyślnie</string>
+
+    <!-- Preview Studio Mode Surfaces -->
+
+    <string name="studio_color_picker_back_wall">Kolor ściany tylniej</string>
+    <string name="studio_color_picker_side_wall">Kolor ściany bocznej</string>
+    <string name="studio_color_picker_floor">Kolor podłogi</string>
+    <string name="studio_color_picker_void">Kolor tła</string>
+    <string name="studio_color_picker_live_preview">Podgląd na żywo</string>
+
+    <!-- Universal buttons -->
+    <string name="btn_back">Cofnij</string>
+    <string name="btn_confirm">Potwierdź</string>
+    <string name="btn_cancel">Anuluj</string>
+    <string name="btn_save">Zapisz</string>
+    <string name="btn_reset">Resetuj</string>
+    <string name="btn_delete">Usuń</string>
+    <string name="btn_overwrite">Nadpisz</string>
+    <string name="btn_load">Wczytaj</string>
+
+    <!-- Control Modes and values -->
+    <string name="label_mode_position">POZYCJA</string>
+    <string name="label_mode_rotate">ROTACJA</string>
+    <string name="label_mode_scale">SKALA</string>
+
+    <string name="label_axis_x">X:</string>
+    <string name="label_axis_y">Y:</string>
+    <string name="label_axis_z">Z:</string>
+
+    <string name="format_decimal_value">%1$.1f</string>
+
+    <!-- Model Control Overlay -->
+    <string name="debug_scale_expanded">Skala rozszerona → nowa maksymalna wartość %1$d (%2$.2f×)</string>
+
+
+    <!-- Model Item Options -->
+    <string name="menu_preview">Podgląd</string>
+    <string name="menu_delete_thumbnail">Usuń zdjęcie</string>
+    <string name="menu_rename">Zmień nazwę</string>
+    <string name="menu_delete_model">Usuń model</string>
+    <string name="toast_thumbnail_deleted">Zdjęciu usunięto</string>
+    <string name="toast_thumbnail_delete_failed">Nie można usunąć zdjęcia</string>
+
+    <!-- Model Item dialog -->
+    <string name="dialog_delete_model_title">Usunąć %1$s?</string>
+    <string name="dialog_delete_model_msg">Model zostanie usunięty z biblioteki, lecz zapisane dla niego profile zostaną w pamięci aplikacji.</string>
+
+    <!-- Profile picker — status messages -->
+    <string name="profile_loaded_default">Wczytywanie profilu domyślnego</string>
+    <string name="profile_saved_default">Profil domyślny zapisany</string>
+    <string name="profile_loaded_named">Wczytywanie profilu \"%1$s\"</string>
+    <string name="profile_updated_named">Profil \"%1$s\" został zaktualizowany</string>
+    <string name="profile_saved_named">Zapisano profil \"%1$s\"</string>
+    <string name="profile_deleted_named">Usunięto profil \"%1$s\"</string>
+
+    <!-- Profile picker — errors -->
+    <string name="profile_error_name_empty">Nazwa profilu nie może być pusta</string>
+    <string name="profile_error_no_model">Nie ma aktywnego profilu</string>
+    <string name="profile_error_save_failed">Zapis się nie powiódł</string>
+
+    <!-- Profile picker — dialogs -->
+    <string name="profile_delete_slot_title">Usunąć \"%1$s\"?</string>
+    <string name="profile_delete_slot_message">Profil zostanie usunięty na trwałe.</string>
+    <string name="profile_reset_default_title">Zresetować profil?</string>
+    <string name="profile_reset_default_message">Model zostanie sprowadzony do oryginalnego stanu a wszystkie zmiany profilu domyślnego zostaną permanentnie usunięte.</string>
+    <string name="profile_reset_btn_content_desc">Profil został zresetowany</string>
+
 </resources>
