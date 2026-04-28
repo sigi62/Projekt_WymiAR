@@ -84,13 +84,13 @@ class ModelLibraryAdapter(
         holder.btnOptions.setOnClickListener { anchor ->
             val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
             PopupMenu(context, anchor).apply {
-                menu.add(0, MENU_PREVIEW,       0, "Preview")
-                menu.add(0, MENU_DELETE_THUMB,  1, "Delete thumbnail")
+                menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
+                menu.add(0, MENU_DELETE_THUMB,  1, context.getString(R.string.menu_delete_thumbnail))
                     .isEnabled = cached.exists()
                 // "Rename" and "Delete model" only shown for user-imported files
                 if (!item.isAsset) {
-                    menu.add(0, MENU_RENAME,       2, "Rename")
-                    menu.add(0, MENU_DELETE_MODEL, 3, "Delete model")
+                    menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
+                    menu.add(0, MENU_DELETE_MODEL, 3, context.getString(R.string.menu_delete_model))
                 }
 
                 setOnMenuItemClickListener { menuItem ->
@@ -161,18 +161,18 @@ class ModelLibraryAdapter(
         val context = holder.itemView.context
         if (cached.delete()) {
             bindThumbnail(holder.thumbnail, item, context.filesDir)
-            Toast.makeText(context, "Thumbnail deleted", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_thumbnail_deleted), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(context, "Could not delete thumbnail", Toast.LENGTH_SHORT).show()
+            Toast.makeText(context, context.getString(R.string.toast_thumbnail_delete_failed), Toast.LENGTH_SHORT).show()
         }
     }
 
     private fun confirmDeleteModel(context: android.content.Context, item: ModelItem) {
         android.app.AlertDialog.Builder(context)
-            .setTitle("Delete ${item.name}?")
-            .setMessage("The model file will be permanently removed from your library. Saved profiles for this model will remain.")
-            .setPositiveButton("Delete") { _, _ -> onDeleteImported(item) }
-            .setNegativeButton("Cancel", null)
+            .setTitle(context.getString(R.string.dialog_delete_model_title, item.name))
+            .setMessage(context.getString(R.string.dialog_delete_model_msg))
+            .setPositiveButton(context.getString(R.string.btn_delete)) { _, _ -> onDeleteImported(item) }
+            .setNegativeButton(context.getString(R.string.btn_cancel), null)
             .show()
     }
 

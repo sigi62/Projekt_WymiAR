@@ -11,7 +11,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.ar.core.HitResult
 import com.google.ar.core.Plane
-import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode
@@ -22,8 +21,6 @@ import java.nio.ByteBuffer
 import kotlin.math.sqrt
 import android.util.Log
 import com.example.pracazaliczeniowa.Helpers.AppSettings
-import com.example.pracazaliczeniowa.Helpers.ModelImportManager
-import com.example.pracazaliczeniowa.Helpers.ModelItem
 import com.example.pracazaliczeniowa.Helpers.ModelPickerPopup
 import com.example.pracazaliczeniowa.Helpers.ModelProfile
 import com.example.pracazaliczeniowa.Helpers.ProfileManager
@@ -37,6 +34,7 @@ import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.google.ar.core.Config
+import com.google.ar.core.TrackingState
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import io.github.sceneview.node.Node
 import java.io.File
@@ -47,9 +45,6 @@ fun log(msg: String) {
 }
 
 class ARActivity : AppCompatActivity() {
-
-    private val handler = android.os.Handler(android.os.Looper.getMainLooper())
-    private var pendingPlacement: Runnable? = null
 
     private lateinit var arSceneView: ARSceneView
     private lateinit var viewAttachmentManager: ViewAttachmentManager
@@ -64,8 +59,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var rotationRingToggleButton: ImageButton
     private lateinit var wallMagnetButton: ImageButton
 
-    // true  → detecting VERTICAL planes (wall mode)
-    // false → detecting HORIZONTAL planes (floor/table mode, default)
+    // true - VERTICAL, false - HORIZONTAL planes
     private var isWallMagnetVertical: Boolean = false
 
     private lateinit var btnLibrary : ImageButton
@@ -87,9 +81,7 @@ class ARActivity : AppCompatActivity() {
     private var isMeasureToolActive: Boolean = false
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
 
-    // ── Animation state ───────────────────────────────────────────────────────
-    // Tracks whether the currently selected model's animation is playing.
-    // Reset to false whenever a new model is selected.
+    // ── Animation state ──────────────────────────────
     private var isAnimationPlaying: Boolean = false
 
     private val placedMeasureNodes = mutableListOf<AnchorNode>()
@@ -108,7 +100,6 @@ class ARActivity : AppCompatActivity() {
     private var initialPinchDistance    = 0f
     private var touchStartPos           = android.graphics.PointF()
     private val MOVE_THRESHOLD          = 20f
-    private var initialTouchAngle       = 0f
     private var initialModelRotationY   = 0f
 
     /**
@@ -209,7 +200,7 @@ class ARActivity : AppCompatActivity() {
             wrapped.setAnimationPlaying(isAnimationPlaying)
             // Tint the icon so the user knows whether animation is active
             animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
-            statusText.text = if (isAnimationPlaying) "Animation playing" else "Animation stopped"
+            statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on) else getString(R.string.animation_toggle_off)
         }
 
         // ── Rotation ring toggle click ────────────────────────────────────────
@@ -219,11 +210,11 @@ class ARActivity : AppCompatActivity() {
             if (isRotationRingVisible) {
                 wrapped.showRotationHandle(arSceneView.engine, arSceneView)
                 rotationRingToggleButton.alpha = 1.0f
-                statusText.text = "Rotation ring shown"
+                statusText.text = getString(R.string.rotation_ring_on)
             } else {
                 wrapped.hideRotationHandle()
                 rotationRingToggleButton.alpha = 0.5f
-                statusText.text = "Rotation ring hidden"
+                statusText.text = getString(R.string.rotation_ring_off)
             }
         }
 
@@ -234,9 +225,9 @@ class ARActivity : AppCompatActivity() {
                 DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
             }
             unitButton.text = when (unit) {
-                DistanceUnit.METERS      -> "m"
-                DistanceUnit.CENTIMETERS -> "cm"
-                DistanceUnit.MILLIMETERS -> "mm"
+                DistanceUnit.METERS      -> getString(R.string.unit_m)
+                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
+                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
             }
             measureOverlay.setUnit(unit)
             modelControls.updateUnit(unit)
@@ -244,7 +235,7 @@ class ARActivity : AppCompatActivity() {
             if (measurePointA != null && measurePointB != null) {
                 val dist = distanceMeters(measurePointA!!, measurePointB!!)
                 val (value, suffix) = unit.convert(dist)
-                statusText.text = String.format("Distance: %.1f %s", value, suffix)
+                statusText.text = getString(R.string.measure_distance, value, suffix)
             }
 
             if (dimensionHud.visibility == View.VISIBLE) {
@@ -252,7 +243,7 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-        statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
+        statusText.text = getString(R.string.status_active_model, activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
 
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
             val x = motionEvent.x
@@ -410,9 +401,9 @@ class ARActivity : AppCompatActivity() {
         isMeasureToolActive = !isMeasureToolActive
         if (!isMeasureToolActive) {
             clearMeasurements()
-            statusText.text = "Active: ${activeModelPath.substringAfterLast('/').substringBeforeLast('.')}"
+            statusText.text = getString(R.string.status_active_model, activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
-            statusText.text = "Tap to place first measure point"
+            statusText.text = getString(R.string.measure_tap_first)
         }
     }
 
@@ -446,7 +437,7 @@ class ARActivity : AppCompatActivity() {
     // ── Model placement ───────────────────────────────────────────────────────
 
     private fun placeModel(hitResult: HitResult) {
-        statusText.text = "Loading model…"
+        statusText.text = getString(R.string.status_loading)
 
         lifecycleScope.launch {
 
@@ -460,7 +451,7 @@ class ARActivity : AppCompatActivity() {
                 val file = File(activeModelPath)
                 if (!file.exists()) {
                     log("ERROR: File not found at $activeModelPath")
-                    statusText.text = "Error: model file not found"
+                    statusText.text = getString(R.string.status_error_not_found)
                     return@launch
                 }
                 log("Loading imported model via ByteBuffer: $activeModelPath")
@@ -565,15 +556,15 @@ class ARActivity : AppCompatActivity() {
                         updateDimensionHud(overlay.getDimensions())
                     }
                     dimensionHud.visibility = View.VISIBLE
-                    statusText.text = "Dimensions shown"
+                    statusText.text = getString(R.string.status_dimensions_shown)
                 } else {
                     dimensionHud.visibility = View.GONE
-                    statusText.text = "Dimensions hidden"
+                    statusText.text = getString(R.string.status_dimensions_hidden)
                 }
             }
         }
 
-        statusText.text = "Model selected"
+        statusText.text = getString(R.string.status_model_selected)
     }
 
     private fun deselectModel() {
@@ -593,7 +584,7 @@ class ARActivity : AppCompatActivity() {
         animationToggleButton.visibility    = View.GONE
         rotationRingToggleButton.visibility = View.GONE
         dimensionHud.visibility             = View.GONE
-        statusText.text = "Model deselected"
+        statusText.text = getString(R.string.status_model_deselected)
     }
 
     // ── Dimension HUD ─────────────────────────────────────────────────────────
@@ -622,7 +613,7 @@ class ARActivity : AppCompatActivity() {
             measurePointA = point
             measurePointB = null
             measureOverlay.setPoints(measurePointA, null)
-            statusText.text = "Tap the second point"
+            statusText.text = getString(R.string.measure_tap_second)
             return
         }
 
@@ -631,7 +622,7 @@ class ARActivity : AppCompatActivity() {
 
         val dist = distanceMeters(measurePointA!!, measurePointB!!)
         val (value, suffix) = unit.convert(dist)
-        statusText.text = String.format("Distance: %.1f %s", value, suffix)
+        statusText.text = getString(R.string.measure_distance, value, suffix)
     }
 
     private fun clearMeasurements() {
@@ -671,7 +662,7 @@ class ARActivity : AppCompatActivity() {
             selectedModel?.syncBaseScale()
             selectedModel?.syncBaseRotation()
             modelControls.resetSlidersToNeutral()
-            statusText.text = "Profile saved — sliders reset to neutral"
+            statusText.text = getString(R.string.status_profile_saved)
         }
 
         dialog.onLoadProfile = { profile ->
@@ -703,7 +694,7 @@ class ARActivity : AppCompatActivity() {
             activeModelIsAsset = picked.isAsset
 
             val label = picked.modelPath.substringAfterLast('/').substringBeforeLast('.')
-            statusText.text = "Active: $label — tap a surface to place"
+            statusText.text = getString(R.string.model_picker_prompt, label)
         }
 
         // Highlighting logic is handled inside based on activeModelPath
@@ -735,7 +726,7 @@ class ARActivity : AppCompatActivity() {
         rotationRingToggleButton.visibility = View.GONE
         dimensionHud.visibility             = View.GONE
 
-        statusText.text = "deleted model $modelName"
+        statusText.text = getString(R.string.status_model_deleted, modelName ?: "")
     }
 
     // ── Math helpers ──────────────────────────────────────────────────────────

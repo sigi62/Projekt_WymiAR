@@ -69,19 +69,14 @@ class LibraryActivity : AppCompatActivity() {
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
             SplitInstallSessionStatus.INSTALLED -> {
-                Toast.makeText(this, "Converter ready!", Toast.LENGTH_SHORT).show()
-                // Now that the module is installed, open the file picker
+                Toast.makeText(this, getString(R.string.toast_converter_ready), Toast.LENGTH_SHORT).show()
                 importLauncher.launch(arrayOf("*/*"))
             }
             SplitInstallSessionStatus.FAILED -> {
-                Toast.makeText(
-                    this,
-                    "Failed to download converter (error ${state.errorCode()})",
-                    Toast.LENGTH_LONG
-                ).show()
+                Toast.makeText(this, getString(R.string.toast_converter_failed, state.errorCode().toString()), Toast.LENGTH_LONG).show()
             }
             SplitInstallSessionStatus.DOWNLOADING -> {
-                Toast.makeText(this, "Downloading converter…", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_converter_downloading), Toast.LENGTH_SHORT).show()
             }
             else -> { /* PENDING, REQUIRES_USER_CONFIRMATION, etc. — ignore */ }
         }
@@ -200,13 +195,13 @@ class LibraryActivity : AppCompatActivity() {
             // open the picker again once INSTALLED fires. We can't reuse the
             // current URI across the module install because the content
             // resolver grant may expire, so we ask the user to pick again.
-            Toast.makeText(this, "Downloading 3D converter…", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_converter_downloading), Toast.LENGTH_SHORT).show()
             val request = SplitInstallRequest.newBuilder()
                 .addModule("converter")
                 .build()
             manager.startInstall(request)
                 .addOnFailureListener { e ->
-                    Toast.makeText(this, "Download failed: ${e.message}", Toast.LENGTH_LONG).show()
+                    Toast.makeText(this, getString(R.string.toast_converter_download_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
                 }
         }
     }
@@ -216,7 +211,7 @@ class LibraryActivity : AppCompatActivity() {
      * thread is never blocked during file copy or native conversion.
      */
     private fun runImportAsync(uri: Uri) {
-        Toast.makeText(this, "Importing…", Toast.LENGTH_SHORT).show()
+        Toast.makeText(this, getString(R.string.toast_importing), Toast.LENGTH_SHORT).show()
 
         lifecycleScope.launch {
             val imported = withContext(Dispatchers.IO) {
@@ -226,13 +221,13 @@ class LibraryActivity : AppCompatActivity() {
             // Back on main thread:
             if (imported == null) {
                 Toast.makeText(this@LibraryActivity,
-                    "Import failed – unsupported or corrupt file", Toast.LENGTH_LONG).show()
+                    getString(R.string.toast_import_failed), Toast.LENGTH_LONG).show()
                 return@launch
             }
 
             if (!ModelImportManager.verifyImport(this@LibraryActivity, imported)) {
                 Toast.makeText(this@LibraryActivity,
-                    "File imported but verification failed", Toast.LENGTH_LONG).show()
+                    getString(R.string.toast_import_verify_failed), Toast.LENGTH_LONG).show()
                 ModelImportManager.deleteImported(this@LibraryActivity, imported)
                 return@launch
             }
@@ -243,7 +238,7 @@ class LibraryActivity : AppCompatActivity() {
             }
 
             Toast.makeText(this@LibraryActivity,
-                "${imported.name} added to library", Toast.LENGTH_SHORT).show()
+                getString(R.string.toast_import_added, imported.name), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -261,17 +256,17 @@ class LibraryActivity : AppCompatActivity() {
             selectAll()
             // Reasonable upper bound; filesystem limits vary but 255 chars is safe
             filters = arrayOf(InputFilter.LengthFilter(255))
-            hint    = "Model name"
+            hint    = getString(R.string.dialog_rename_hint)
         }
 
         AlertDialog.Builder(this)
-            .setTitle("Rename model")
+            .setTitle(getString(R.string.dialog_rename_title))
             .setView(input)
-            .setPositiveButton("Rename") { _, _ ->
+            .setPositiveButton(getString(R.string.btn_rename)) { _, _ ->
                 val newName = input.text.toString()
                 renameModelAsync(item, newName)
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(getString(R.string.btn_cancel), null)
             .show()
 
         // Move cursor to the end and open the keyboard automatically
@@ -295,11 +290,11 @@ class LibraryActivity : AppCompatActivity() {
 
             if (renamed == null) {
                 val reason = when {
-                    newName.isBlank()       -> "Name cannot be blank."
-                    else                    -> "A model with that name may already exist."
+                    newName.isBlank()       -> getString(R.string.error_name_blank)
+                    else                    -> getString(R.string.error_name_exists)
                 }
                 Toast.makeText(this@LibraryActivity,
-                    "Rename failed. $reason", Toast.LENGTH_LONG).show()
+                    getString(R.string.toast_rename_failed, reason), Toast.LENGTH_LONG).show()
                 return@launch
             }
 
@@ -317,7 +312,7 @@ class LibraryActivity : AppCompatActivity() {
             }
 
             Toast.makeText(this@LibraryActivity,
-                "'${item.name}' renamed to '${renamed.name}'", Toast.LENGTH_SHORT).show()
+                getString(R.string.toast_rename_success, item.name, renamed.name), Toast.LENGTH_SHORT).show()
         }
     }
 
@@ -327,9 +322,9 @@ class LibraryActivity : AppCompatActivity() {
         if (ModelImportManager.deleteImported(this, item)) {
             allModels.remove(item)
             adapter.updateItems(allModels.toList())
-            Toast.makeText(this, "${item.name} removed", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_delete_success, item.name), Toast.LENGTH_SHORT).show()
         } else {
-            Toast.makeText(this, "Could not delete ${item.name}", Toast.LENGTH_SHORT).show()
+            Toast.makeText(this, getString(R.string.toast_delete_failed, item.name), Toast.LENGTH_SHORT).show()
         }
     }
 }

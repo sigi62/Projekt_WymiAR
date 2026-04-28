@@ -375,7 +375,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
 
         dotFloor.setOnClickListener {
-            showSurfaceColorPicker("Floor Color", studioFloorColor) { newColor ->
+            showSurfaceColorPicker(getString(R.string.studio_color_picker_floor), studioFloorColor) { newColor ->
                 studioFloorColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.FLOOR, newColor)
@@ -383,7 +383,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
         }
         dotBackWall.setOnClickListener {
-            showSurfaceColorPicker("Back Wall Color", studioBackWallColor) { newColor ->
+            showSurfaceColorPicker(getString(R.string.studio_color_picker_back_wall), studioBackWallColor) { newColor ->
                 studioBackWallColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.BACK_WALL, newColor)
@@ -391,7 +391,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
         }
         dotSideWall.setOnClickListener {
-            showSurfaceColorPicker("Side Wall Color", studioSideWallColor) { newColor ->
+            showSurfaceColorPicker(getString(R.string.studio_color_picker_side_wall), studioSideWallColor) { newColor ->
                 studioSideWallColor = newColor
                 syncDots()
                 applyStudioSurfaceColor(SurfaceTarget.SIDE_WALL, newColor)
@@ -399,7 +399,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
         }
         dotVoid.setOnClickListener {
-            showSurfaceColorPicker("Studio Void Color", studioVoidColor) { newColor ->
+            showSurfaceColorPicker(getString(R.string.studio_color_picker_void), studioVoidColor) { newColor ->
                 studioVoidColor = newColor
                 syncDots()
                 applyBackground(BgMode.Studio)
@@ -454,7 +454,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             ).also { it.bottomMargin = (16 * dp).toInt() }
             addView(previewDot)
             addView(TextView(this@ModelPreviewActivity).apply {
-                text = "Live preview"
+                text = getString(R.string.studio_color_picker_live_preview)
                 textSize = 13f
                 setTextColor(Color.parseColor("#AAAAAA"))
             })

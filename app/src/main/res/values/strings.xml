@@ -2,7 +2,167 @@
     <string name="app_name">PracaZaliczeniowa</string>
     <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
 
+
+    <!-- Ar view -->
+    <string name="status_active_model">Active: %1$s</string>
+    <string name="model_picker_prompt">Active: %1$s — tap a surface to place</string>
     <string name="status_floor_mode">Floor mode: tap a horizontal surface</string>
     <string name="status_wall_mode">Wall mode: point at a wall and wait, then tap</string>
-    <string name="btn_unit_cm">cm</string>
+
+    <!-- Model -->
+    <string name="status_loading">Loading model…</string>
+    <string name="status_error_not_found">Error: model file not found</string>
+    <string name="status_model_selected">Model selected</string>
+    <string name="status_model_deselected">Model deselected</string>
+    <string name="status_model_deleted">Deleted model %1$s</string>
+
+    <!-- Profiles -->
+    <string name="profile_label_default">★ Default</string>
+    <string name="profile_add_named_prompt">+ Add named profile…</string>
+    <string name="dialog_add_profile_title">Save current state</string>
+    <string name="dialog_add_profile_msg">Enter a name for this scale/rotation preset:</string>
+    <string name="status_profile_saved">Profile saved — sliders reset to neutral</string>
+    <string name="dialog_profiles_title">Profiles – %1$s</string>
+    <string name="dialog_add_profile_hint">e.g. Tabletop size</string>
+    <string name="dialog_overwrite_msg">Replace the saved values in \"%1$s\" with current ones?</string>
+    <string name="dialog_reset_title">Reset Default?</string>
+    <string name="dialog_reset_msg">Clear the saved default scale/rotation? The model will revert to its original size.</string>
+
+    <string name="status_reset_done">Reset to original</string>
+    <string name="error_too_many_profiles">Limit reached: Max %1$d profiles per model.</string>
+    <string name="error_profile_save_failed">Save failed: %1$s</string>
+
+    <!-- Animation -->
+    <string name="animation_toggle_on">Animation playing</string>
+    <string name="animation_toggle_off">Animation stopped</string>
+
+    <!-- RotationRing -->
+    <string name="rotation_ring_on">Rotation ring shown</string>
+    <string name="rotation_ring_off">Rotation ring hidden</string>
+
+    <!-- Dimensions -->
+    <string name="status_dimensions_shown">Dimensions shown</string>
+    <string name="status_dimensions_hidden">Dimensions hidden</string>
+
+    <!-- Measure Points -->
+    <string name="measure_distance">Distance: %1$.1f %2$s </string>
+    <string name="measure_tap_first">Tap to place first measure point</string>
+    <string name="measure_tap_second">Tap the second point</string>
+
+
+    <!-- Converter -->
+    <string name="toast_converter_ready">Converter ready!</string>
+    <string name="toast_converter_failed">Failed to download converter (error %1$s)</string>
+    <string name="toast_converter_downloading">Downloading 3D files converter…</string>
+    <string name="toast_converter_download_failed">Download failed: %1$s</string>
+    <string name="error_conversion_failed">Conversion to GLB failed</string>
+    <string name="error_extension_unsupported">Unsupported file extension</string>
+
+    <!-- Importing -->
+    <string name="toast_importing">Importing…</string>
+    <string name="toast_import_failed">Import failed – unsupported or corrupt file</string>
+    <string name="toast_import_verify_failed">File imported but verification failed</string>
+    <string name="toast_import_added">%1$s added to library</string>
+
+
+    <!-- Library Options -->
+
+    <string name="library_tittle">Model Library</string>
+    <string name="dialog_rename_title">Rename model</string>
+    <string name="dialog_rename_hint">Model name</string>
+    <string name="btn_rename">Rename</string>
+    <string name="toast_rename_success">\'%1$s\' renamed to \'%2$s\'</string>
+    <string name="toast_rename_failed">Rename failed. %1$s</string>
+    <string name="error_name_blank">Name cannot be blank.</string>
+    <string name="error_name_exists">A model with that name may already exist.</string>
+    <string name="toast_delete_success">%1$s removed</string>
+    <string name="toast_delete_failed">Could not delete %1$s</string>
+
+    <!-- Units -->
+    <string name="unit_label">Measurement Unit:</string>
+    <string name="unit_mm">mm</string>
+    <string name="unit_cm">cm</string>
+    <string name="unit_m">m</string>
+    <string name="full_unit_m">Meters (m)</string>
+    <string name="full_unit_cm">Centimeters (cm)</string>
+    <string name="full_unit_mm">Millimeters (mm)</string>
+
+    <!-- Model preview -->
+    <string name="preview_loading">Loading preview…</string>
+    <string name="preview_error_load">Error: model file not found or corrupted</string>
+    <string name="preview_status_ready">Preview ready</string>
+    <string name="preview_no_animations">Model has no animations</string>
+    <string name="preview_dimensions_format">W: %1$.1f, H: %2$.1f, D: %3$.1f %4$s</string>
+    <string name="preview_close">Closing preview</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_save_btn">Save Settings</string>
+    <string name="settings_saved_toast">Settings saved successfully</string>
+
+    <!-- Preview Studio Mode Surfaces -->
+
+    <string name="studio_color_picker_back_wall">Back Wall Color</string>
+    <string name="studio_color_picker_side_wall">Side Wall Color</string>
+    <string name="studio_color_picker_floor">Floor Color</string>
+    <string name="studio_color_picker_void">Void Color</string>
+    <string name="studio_color_picker_live_preview">Live preview</string>
+
+    <!-- Universal buttons -->
+    <string name="btn_back">Back</string>
+    <string name="btn_confirm">Confirm</string>
+    <string name="btn_cancel">Cancel</string>
+    <string name="btn_save">Save</string>
+    <string name="btn_reset">Reset</string>
+    <string name="btn_delete">Delete</string>
+    <string name="btn_overwrite">Overwrite</string>
+    <string name="btn_load">Load</string>
+
+    <!-- Control Modes and values -->
+    <string name="label_mode_position">POSITION</string>
+    <string name="label_mode_rotate">ROTATE</string>
+    <string name="label_mode_scale">SCALE</string>
+
+    <string name="label_axis_x">X:</string>
+    <string name="label_axis_y">Y:</string>
+    <string name="label_axis_z">Z:</string>
+
+    <string name="format_decimal_value">%1$.1f</string>
+
+    <!-- Model Control Overlay -->
+    <string name="debug_scale_expanded">Scale range expanded → max progress %1$d (%2$.2f×)</string>
+
+
+    <!-- Model Item Options -->
+    <string name="menu_preview">Preview</string>
+    <string name="menu_delete_thumbnail">Delete Thumbnail</string>
+    <string name="menu_rename">Rename</string>
+    <string name="menu_delete_model">Delete Model</string>
+    <string name="toast_thumbnail_deleted">Thumbnail deleted</string>
+    <string name="toast_thumbnail_delete_failed">Could not delete thumbnail</string>
+
+    <!-- Model Item dialog -->
+    <string name="dialog_delete_model_title">Delete %1$s?</string>
+    <string name="dialog_delete_model_msg">The model file will be permanently removed from your library. Saved profiles for this model will remain.</string>
+
+    <!-- Profile picker — status messages -->
+    <string name="profile_loaded_default">Loaded default profile</string>
+    <string name="profile_saved_default">Default profile saved</string>
+    <string name="profile_loaded_named">Loaded profile \"%1$s\"</string>
+    <string name="profile_updated_named">Profile \"%1$s\" updated</string>
+    <string name="profile_saved_named">Saved profile \"%1$s\"</string>
+    <string name="profile_deleted_named">Deleted profile \"%1$s\"</string>
+
+    <!-- Profile picker — errors -->
+    <string name="profile_error_name_empty">Name cannot be empty</string>
+    <string name="profile_error_no_model">No model selected</string>
+    <string name="profile_error_save_failed">Save failed</string>
+
+    <!-- Profile picker — dialogs -->
+    <string name="profile_delete_slot_title">Delete \"%1$s\"?</string>
+    <string name="profile_delete_slot_message">This cannot be undone.</string>
+    <string name="profile_reset_default_title">Reset to original?</string>
+    <string name="profile_reset_default_message">This will permanently delete all changes made to default profile and revert model back to it\'s original state.</string>
+    <string name="profile_reset_btn_content_desc">Reset to original</string>
+
 </resources>

@@ -12,7 +12,7 @@
 
   2. Rotation Handle not a ring
   3. Thumbnails for auto models are pre-made
-
+  Rename for all models not only import
 
 
   UI FIXES
