@@ -16,7 +16,7 @@
         android:layout_height="60dp"
         android:scaleType="centerCrop"
         android:background="@color/card_image_background"
-        android:contentDescription="Thumbnail" />
+        android:contentDescription="@string/thumbnail" />
 
     <TextView
         android:id="@+id/pickerLabel"

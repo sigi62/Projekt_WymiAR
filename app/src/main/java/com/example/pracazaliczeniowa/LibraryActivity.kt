@@ -266,7 +266,7 @@ class LibraryActivity : AppCompatActivity() {
                 val newName = input.text.toString()
                 renameModelAsync(item, newName)
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
 
         // Move cursor to the end and open the keyboard automatically

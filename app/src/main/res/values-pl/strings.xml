@@ -89,16 +89,34 @@
 
     <!-- Model preview -->
     <string name="preview_loading">Ładowanie podglądu…</string>
-    <string name="preview_error_load">Błąd: Nie znaleziono pliku lub jest on uszkodzony</string>
-    <string name="preview_status_ready">Podgąd gotowy</string>
+    <string name="preview_error_load">Błąd: Nie znaleziono modelu lub jego plik jest uszkodzony </string>
+    <string name="preview_status_ready">Podgląd gotowy</string>
     <string name="preview_no_animations">Model nie posiada animacji</string>
-    <string name="preview_dimensions_format">Długość: %1$.1f, Wysokość: %2$.1f, Szerokość: %3$.1f %4$s</string>
+    <string name="preview_dimensions_format">Szerokość: %1$.1f, Wysokość: %2$.1f, Głębia: %3$.1f %4$s</string>
     <string name="preview_close">Zamykanie podglądu</string>
+    <string name="change_background">Zmień Tło</string>
+    <string name="save_thumbnail">✓ Zapisno Zdjęcie</string>
+    <string name="open_in_ar">Otwórz w AR</string>
+    <string name="set_thumbnail">📷 Zapisz zdjcie</string>
 
     <!-- Settings -->
     <string name="settings_title">Ustawienia</string>
     <string name="settings_save_btn">Zapisz ustawienia</string>
     <string name="settings_saved_toast">Ustawienia zapisane pomyślnie</string>
+    <string name="appearance">WYGLĄD</string>
+    <string name="dark_mode">Tryb ciemny</string>
+    <string name="dark_mode_description">Zmień między trybem jasnym a ciemnym</string>
+    <string name="ar_controls_position">Ustawienia AR – POZYCJA</string>
+    <string name="default_pos_range">Zakres pozycji</string>
+    <string name="pos_range_desc">Zmień domyślną wartość graniczną do której można przesunąc model w trybie AR (1–1000 cm)</string>
+    <string name="pos_mid_val">±100 cm</string>
+    <string name="hint_100">100</string>
+    <string name="ar_controls_scale">Ustawienia AR - SKALA</string>
+    <string name="default_scale_max">Zakres skali</string>
+    <string name="scale_max_desc">Domyślna maksymalna wartość skali do której można zwiększyć model</string>
+    <string name="scale_max_val">5.00×</string>
+    <string name="hint_500">500</string>
+
 
     <!-- Preview Studio Mode Surfaces -->
 
@@ -109,14 +127,15 @@
     <string name="studio_color_picker_live_preview">Podgląd na żywo</string>
 
     <!-- Universal buttons -->
-    <string name="btn_back">Cofnij</string>
-    <string name="btn_confirm">Potwierdź</string>
-    <string name="btn_cancel">Anuluj</string>
-    <string name="btn_save">Zapisz</string>
-    <string name="btn_reset">Resetuj</string>
-    <string name="btn_delete">Usuń</string>
-    <string name="btn_overwrite">Nadpisz</string>
-    <string name="btn_load">Wczytaj</string>
+    <string name="back">Cofnij</string>
+    <string name="confirm">Potwierdź</string>
+    <string name="save">Zapisz</string>
+    <string name="reset">Resetuj</string>
+    <string name="delete">Usuń</string>
+    <string name="overwrite">Nadpisz</string>
+    <string name="load">Wczytaj</string>
+
+
 
     <!-- Control Modes and values -->
     <string name="label_mode_position">POZYCJA</string>
@@ -131,15 +150,21 @@
 
     <!-- Model Control Overlay -->
     <string name="debug_scale_expanded">Skala rozszerona → nowa maksymalna wartość %1$d (%2$.2f×)</string>
-
+    <string name="label_axis_uni">Uni</string>
 
     <!-- Model Item Options -->
+
+    <string name="import_model">Importuj model</string>
+    <string name="imported_badge">↓ Zimportowany</string>
     <string name="menu_preview">Podgląd</string>
-    <string name="menu_delete_thumbnail">Usuń zdjęcie</string>
+    <string name="thumbnail">Zdjęcie</string>
+    <string name="menu_delete_thumbnail">Usuń zdjęcię</string>
     <string name="menu_rename">Zmień nazwę</string>
     <string name="menu_delete_model">Usuń model</string>
-    <string name="toast_thumbnail_deleted">Zdjęciu usunięto</string>
-    <string name="toast_thumbnail_delete_failed">Nie można usunąć zdjęcia</string>
+    <string name="model_thumbnail">Zdjęcie modelu</string>
+    <string name="toast_thumbnail_deleted">Zdjęcie modelu</string>
+    <string name="toast_thumbnail_delete_failed">nie można było usunąć zdjęcia</string>
+    <string name="saved_badge">✓ Zapisany</string>
 
     <!-- Model Item dialog -->
     <string name="dialog_delete_model_title">Usunąć %1$s?</string>
@@ -160,9 +185,37 @@
 
     <!-- Profile picker — dialogs -->
     <string name="profile_delete_slot_title">Usunąć \"%1$s\"?</string>
+    <string name="delete_profile">Delete profile</string>
     <string name="profile_delete_slot_message">Profil zostanie usunięty na trwałe.</string>
     <string name="profile_reset_default_title">Zresetować profil?</string>
     <string name="profile_reset_default_message">Model zostanie sprowadzony do oryginalnego stanu a wszystkie zmiany profilu domyślnego zostaną permanentnie usunięte.</string>
     <string name="profile_reset_btn_content_desc">Profil został zresetowany</string>
+
+
+    <!-- Navigation -->
+    <string name="tap_to_change">Tap to change</string>
+    <string name="more_options">More options</string>
+
+    <!-- dialog_background_color_picker.xml -->
+    <string name="background">Background</string>
+    <string name="hdr">HDR</string>
+    <string name="studio">Studio</string>
+    <string name="solid">Solid</string>
+    <string name="surface_colors">Surface Colors</string>
+    <string name="floor">Floor</string>
+    <string name="back_wall">Back Wall</string>
+    <string name="side_wall">Side Wall</string>
+    <string name="ambient_void">Ambient Void</string>
+    <string name="space_beyond_walls">Space beyond walls</string>
+    <string name="presets">Presets</string>
+    <string name="custom_mixer">Custom Mixer</string>
+    <string name="selected_color">Selected Color</string>
+    <string name="color_realtime_desc">Updates background in real-time</string>
+
+    <!-- Dimension HUD placeholders -->
+    <string name="dim_w_placeholder">Szerokość: – cm</string>
+    <string name="dim_h_placeholder">Wysokość: – cm</string>
+    <string name="dim_d_placeholder">Głębokość: – cm</string>
+
 
 </resources>

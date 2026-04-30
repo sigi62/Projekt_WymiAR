@@ -12,7 +12,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="APPEARANCE"
+        android:text="@string/appearance"
         android:textSize="12sp"
         android:textColor="@color/accent"
         android:letterSpacing="0.08"
@@ -34,14 +34,14 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Dark mode"
+            android:text="@string/dark_mode"
             android:textSize="16sp"
             android:textColor="@color/text_primary"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Switch between dark and light theme"
+            android:text="@string/dark_mode_description"
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:layout_marginTop="2dp"/> </LinearLayout>
@@ -57,7 +57,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="AR CONTROLS – POSITION"
+        android:text="@string/ar_controls_position"
         android:textSize="12sp"
         android:textColor="@color/accent"
         android:letterSpacing="0.08"
@@ -72,14 +72,14 @@
         android:background="@color/layout_background"> <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Default position range"
+        android:text="@string/default_pos_range"
         android:textSize="16sp"
         android:textColor="@color/text_primary"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Half-range when AR overlay first opens (1–1000 cm)."
+            android:text="@string/pos_range_desc"
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:layout_marginTop="2dp"
@@ -87,7 +87,7 @@
             android:id="@+id/tvPosMidValue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="±100 cm"
+            android:text="@string/pos_mid_val"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -104,7 +104,7 @@
                 android:id="@+id/btnPosMidMinus"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:text="−"
+                android:text="-"
                 android:textSize="20sp"
                 android:textColor="@color/button_text"
                 android:backgroundTint="@color/button_background"
@@ -117,7 +117,7 @@
             android:inputType="number"
             android:textSize="16sp"
             android:gravity="center"
-            android:hint="100"
+            android:hint="@string/hint_100"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/edit_text_hint"
             android:background="@android:color/transparent"
@@ -135,7 +135,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="AR CONTROLS – SCALE"
+        android:text="@string/ar_controls_scale"
         android:textSize="12sp"
         android:textColor="@color/accent"
         android:letterSpacing="0.08"
@@ -150,14 +150,14 @@
         android:background="@color/layout_background"> <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Default scale maximum"
+        android:text="@string/default_scale_max"
         android:textSize="16sp"
         android:textColor="@color/text_primary"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Seekbar max when AR overlay first opens. Value = progress ÷ 100. Range: 100–10000."
+            android:text="@string/scale_max_desc"
             android:textSize="13sp"
             android:textColor="@color/text_secondary"
             android:layout_marginTop="2dp"
@@ -165,7 +165,7 @@
             android:id="@+id/tvSclMaxValue"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="5.00×"
+            android:text="@string/scale_max_val"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -182,7 +182,7 @@
                 android:id="@+id/btnSclMaxMinus"
                 android:layout_width="48dp"
                 android:layout_height="48dp"
-                android:text="−"
+                android:text="-"
                 android:textSize="20sp"
                 android:textColor="@color/button_text"
                 android:backgroundTint="@color/button_background"
@@ -195,7 +195,7 @@
             android:inputType="number"
             android:textSize="16sp"
             android:gravity="center"
-            android:hint="500"
+            android:hint="@string/hint_500"
             android:textColor="@color/text_primary"
             android:textColorHint="@color/edit_text_hint"
             android:background="@android:color/transparent"

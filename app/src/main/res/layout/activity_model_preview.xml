@@ -20,7 +20,7 @@
         android:layout_gravity="top|start"
         android:layout_margin="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Back"
+        android:contentDescription="@string/back"
         android:src="@drawable/ic_arrow_back_white" />
 
     <!-- Background picker button (top-right) — always visible, hides during crop -->
@@ -31,7 +31,7 @@
         android:layout_gravity="top|end"
         android:layout_margin="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Change background"
+        android:contentDescription="@string/change_background"
         android:src="@drawable/ic_color_palette"
         app:tint="@android:color/white" />
 
@@ -48,7 +48,6 @@
         android:layout_marginTop="80dp"
         android:layout_marginEnd="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="Toggle animation"
         android:src="@drawable/ic_animation"
         app:tint="@android:color/white"
         android:visibility="gone" />
@@ -81,7 +80,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Cancel" />
+            android:text="@string/cancel" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnCropConfirm"
@@ -89,7 +88,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="✓ Save Thumbnail" />
+            android:text="@string/save_thumbnail" />
 
     </LinearLayout>
 
@@ -121,7 +120,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="Open in AR" />
+            android:text="@string/open_in_ar" />
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnTakeScreenshot"
@@ -129,7 +128,7 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="📷 Set Thumbnail" />
+            android:text="@string/set_thumbnail" />
 
     </LinearLayout>
 

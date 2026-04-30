@@ -36,7 +36,7 @@
             android:src="@drawable/ic_arrow_back_white"
             android:background="?attr/selectableItemBackgroundBorderless"
             android:scaleType="centerInside"
-            android:contentDescription="Back"/>
+            android:contentDescription="@string/back"/>
 
         <ImageButton
             android:id="@+id/btnLibrary"
@@ -49,7 +49,7 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:contentDescription="Model Library"/>
+            android:contentDescription="@string/library_tittle"/>
     </LinearLayout>
 
     <!-- ── Unit toggle – top-end ────────────────────────────────────────── -->
@@ -69,13 +69,13 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:contentDescription="Settings"/>
+            android:contentDescription="@string/settings_title"/>
 
         <Button
             android:id="@+id/btnUnit"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="cm"
+            android:text="@string/unit_cm"
             android:visibility="gone"
             android:background="#88000000"
             android:textColor="#FFFFFF" />
@@ -100,7 +100,7 @@
             android:scaleType="centerInside"
             android:padding="10dp"
             android:layout_marginBottom="10dp"
-            android:contentDescription="Toggle measure tape"/>
+            android:contentDescription="@string/measure_tap_first"/>
 
         <!--
             Wall-magnet mode toggle — ic_stack (flat = horizontal planes),
@@ -114,8 +114,7 @@
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:contentDescription="Toggle wall magnet mode"/>
+            android:layout_marginBottom="10dp"/>
 
         <ImageButton
             android:id="@+id/btnWireframeToggle"
@@ -126,8 +125,7 @@
             android:scaleType="centerInside"
             android:padding="10dp"
             android:layout_marginBottom="10dp"
-            android:visibility="gone"
-            android:contentDescription="Toggle wireframe"/>
+            android:visibility="gone"/>
 
         <!--
             Rotation ring toggle — shown when a model is selected.
@@ -142,7 +140,6 @@
             android:scaleType="centerInside"
             android:padding="10dp"
             android:layout_marginBottom="10dp"
-            android:contentDescription="Toggle rotation ring"
             android:visibility="gone"/>
 
         <!--
@@ -159,7 +156,6 @@
             android:scaleType="centerInside"
             android:padding="10dp"
             android:layout_marginBottom="10dp"
-            android:contentDescription="Toggle animation"
             android:visibility="gone"/>
 
     </LinearLayout>
@@ -177,7 +173,7 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="8dp"
-            android:text="Point at a surface to place model"
+            android:text="@string/status_point_at_surface"
             android:textColor="@color/AR_text_color"
             android:background="@color/AR_text_background"
             android:padding="8dp"

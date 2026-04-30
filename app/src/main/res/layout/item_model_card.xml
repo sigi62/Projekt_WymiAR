@@ -25,7 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="120dp"
             android:scaleType="centerCrop"
-            android:contentDescription="Model thumbnail"
+            android:contentDescription="@string/model_thumbnail"
             android:background="@color/card_image_background"/>
 
         <!-- Row: model name + three-dots menu -->
@@ -55,7 +55,7 @@
                 android:layout_height="24dp"
                 android:background="?attr/selectableItemBackgroundBorderless"
                 android:src="@drawable/ic_more_vert"
-                android:contentDescription="More options"
+                android:contentDescription="@string/more_options"
                 android:scaleType="fitCenter"/>
 
         </LinearLayout>
@@ -74,7 +74,7 @@
                 android:id="@+id/tvSavedBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="✓ Saved"
+                android:text="@string/saved_badge"
                 android:textColor="@color/text_primary"
                 android:textSize="11sp"
                 android:visibility="gone"/>
@@ -89,7 +89,7 @@
                 android:id="@+id/tvImportedBadge"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="↓ Imported"
+                android:text="@string/imported_badge"
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"
                 android:visibility="gone"/>

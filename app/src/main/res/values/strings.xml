@@ -8,6 +8,7 @@
     <string name="model_picker_prompt">Active: %1$s — tap a surface to place</string>
     <string name="status_floor_mode">Floor mode: tap a horizontal surface</string>
     <string name="status_wall_mode">Wall mode: point at a wall and wait, then tap</string>
+    <string name="status_point_at_surface">Point at a surface to place model</string>
 
     <!-- Model -->
     <string name="status_loading">Loading model…</string>
@@ -17,6 +18,7 @@
     <string name="status_model_deleted">Deleted model %1$s</string>
 
     <!-- Profiles -->
+    <string name="profiles">Profiles</string>
     <string name="profile_label_default">★ Default</string>
     <string name="profile_add_named_prompt">+ Add named profile…</string>
     <string name="dialog_add_profile_title">Save current state</string>
@@ -94,11 +96,29 @@
     <string name="preview_no_animations">Model has no animations</string>
     <string name="preview_dimensions_format">W: %1$.1f, H: %2$.1f, D: %3$.1f %4$s</string>
     <string name="preview_close">Closing preview</string>
+    <string name="change_background">Change background</string>
+    <string name="cancel">Cancel</string>
+    <string name="save_thumbnail">✓ Save Thumbnail</string>
+    <string name="open_in_ar">Open in AR</string>
+    <string name="set_thumbnail">📷 Set Thumbnail</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
     <string name="settings_save_btn">Save Settings</string>
     <string name="settings_saved_toast">Settings saved successfully</string>
+    <string name="appearance">APPEARANCE</string>
+    <string name="dark_mode">Dark mode</string>
+    <string name="dark_mode_description">Switch between dark and light theme</string>
+    <string name="ar_controls_position">AR CONTROLS – POSITION</string>
+    <string name="default_pos_range">Default position range</string>
+    <string name="pos_range_desc">Half-range when AR overlay first opens (1–1000 cm).</string>
+    <string name="pos_mid_val">±100 cm</string>
+    <string name="hint_100">100</string>
+    <string name="ar_controls_scale">AR CONTROLS – SCALE</string>
+    <string name="default_scale_max">Default scale maximum</string>
+    <string name="scale_max_desc">Seekbar max when AR overlay first opens. Value = progress ÷ 100. Range: 100–10000.</string>
+    <string name="scale_max_val">5.00×</string>
+    <string name="hint_500">500</string>
 
     <!-- Preview Studio Mode Surfaces -->
 
@@ -109,37 +129,42 @@
     <string name="studio_color_picker_live_preview">Live preview</string>
 
     <!-- Universal buttons -->
-    <string name="btn_back">Back</string>
-    <string name="btn_confirm">Confirm</string>
-    <string name="btn_cancel">Cancel</string>
-    <string name="btn_save">Save</string>
-    <string name="btn_reset">Reset</string>
-    <string name="btn_delete">Delete</string>
-    <string name="btn_overwrite">Overwrite</string>
-    <string name="btn_load">Load</string>
+    <string name="back">Back</string>
+    <string name="confirm">Confirm</string>
+    <string name="save">Save</string>
+    <string name="reset">Reset</string>
+    <string name="delete">Delete</string>
+    <string name="overwrite">Overwrite</string>
+    <string name="load">Load</string>
 
     <!-- Control Modes and values -->
     <string name="label_mode_position">POSITION</string>
     <string name="label_mode_rotate">ROTATE</string>
     <string name="label_mode_scale">SCALE</string>
-
     <string name="label_axis_x">X:</string>
     <string name="label_axis_y">Y:</string>
     <string name="label_axis_z">Z:</string>
-
     <string name="format_decimal_value">%1$.1f</string>
 
     <!-- Model Control Overlay -->
     <string name="debug_scale_expanded">Scale range expanded → max progress %1$d (%2$.2f×)</string>
+    <string name="label_axis_uni">Uni</string>
 
 
     <!-- Model Item Options -->
+
+    <string name="import_model">Import model</string>
+    <string name="imported_badge">↓ Imported</string>
     <string name="menu_preview">Preview</string>
+    <string name="thumbnail">Thumbnail</string>
     <string name="menu_delete_thumbnail">Delete Thumbnail</string>
     <string name="menu_rename">Rename</string>
     <string name="menu_delete_model">Delete Model</string>
+    <string name="model_thumbnail">Model thumbnail</string>
     <string name="toast_thumbnail_deleted">Thumbnail deleted</string>
     <string name="toast_thumbnail_delete_failed">Could not delete thumbnail</string>
+    <string name="saved_badge">✓ Saved</string>
+
 
     <!-- Model Item dialog -->
     <string name="dialog_delete_model_title">Delete %1$s?</string>
@@ -160,9 +185,37 @@
 
     <!-- Profile picker — dialogs -->
     <string name="profile_delete_slot_title">Delete \"%1$s\"?</string>
+    <string name="delete_profile">Delete profile</string>
     <string name="profile_delete_slot_message">This cannot be undone.</string>
     <string name="profile_reset_default_title">Reset to original?</string>
     <string name="profile_reset_default_message">This will permanently delete all changes made to default profile and revert model back to it\'s original state.</string>
     <string name="profile_reset_btn_content_desc">Reset to original</string>
+
+
+    <!-- Navigation -->
+    <string name="tap_to_change">Tap to change</string>
+    <string name="more_options">More options</string>
+
+    <!-- dialog_background_color_picker.xml -->
+    <string name="background">Background</string>
+    <string name="hdr">HDR</string>
+    <string name="studio">Studio</string>
+    <string name="solid">Solid</string>
+    <string name="surface_colors">Surface Colors</string>
+    <string name="floor">Floor</string>
+    <string name="back_wall">Back Wall</string>
+    <string name="side_wall">Side Wall</string>
+    <string name="ambient_void">Ambient Void</string>
+    <string name="space_beyond_walls">Space beyond walls</string>
+    <string name="presets">Presets</string>
+    <string name="custom_mixer">Custom Mixer</string>
+    <string name="selected_color">Selected Color</string>
+    <string name="color_realtime_desc">Updates background in real-time</string>
+
+    <!-- Dimension HUD placeholders -->
+    <string name="dim_w_placeholder">W: – cm</string>
+    <string name="dim_h_placeholder">H: – cm</string>
+    <string name="dim_d_placeholder">D: – cm</string>
+
 
 </resources>

@@ -22,7 +22,7 @@
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:text="Model Library"
+            android:text="@string/library_tittle"
             android:textSize="22sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
@@ -34,7 +34,7 @@
             android:layout_height="44dp"
             android:src="@drawable/ic_add"
             android:background="@android:color/transparent"
-            android:contentDescription="Import model"
+            android:contentDescription="@string/import_model"
             android:scaleType="centerInside"
             android:padding="8dp"
             app:tint="@color/icon_tint" />
@@ -45,7 +45,7 @@
             android:layout_height="44dp"
             android:src="@drawable/ic_settings"
             android:background="@android:color/transparent"
-            android:contentDescription="Settings"
+            android:contentDescription="@string/settings_title"
             android:scaleType="centerInside"
             android:padding="8dp"
             app:tint="@color/icon_tint" />

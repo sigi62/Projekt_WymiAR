@@ -25,7 +25,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Background"
+            android:text="@string/background"
             android:textSize="16sp"
             android:textStyle="bold"
             android:textColor="@color/text_primary"
@@ -44,7 +44,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="HDR"
+                android:text="@string/hdr"
                 android:textColor="@color/text_primary" />
 
             <RadioButton
@@ -52,7 +52,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="Studio"
+                android:text="@string/studio"
                 android:textColor="@color/text_primary" />
 
             <RadioButton
@@ -60,7 +60,7 @@
                 android:layout_width="0dp"
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
-                android:text="Solid"
+                android:text="@string/solid"
                 android:textColor="@color/text_primary" />
         </RadioGroup>
 
@@ -78,7 +78,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Surface Colors"
+                android:text="@string/surface_colors"
                 android:textSize="13sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="14dp" />
@@ -107,7 +107,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Floor"
+                        android:text="@string/floor"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary" />
@@ -115,7 +115,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tap to change"
+                        android:text="@string/tap_to_change"
                         android:textSize="12sp"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
@@ -145,7 +145,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Back Wall"
+                        android:text="@string/back_wall"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary" />
@@ -153,7 +153,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tap to change"
+                        android:text="@string/tap_to_change"
                         android:textSize="12sp"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
@@ -183,7 +183,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Side Wall"
+                        android:text="@string/side_wall"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary" />
@@ -191,7 +191,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Tap to change"
+                        android:text="@string/tap_to_change"
                         android:textSize="12sp"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
@@ -221,7 +221,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Ambient Void"
+                        android:text="@string/ambient_void"
                         android:textSize="14sp"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary" />
@@ -229,7 +229,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Space beyond walls"
+                        android:text="@string/space_beyond_walls"
                         android:textSize="12sp"
                         android:textColor="@color/text_secondary" />
                 </LinearLayout>
@@ -251,7 +251,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Presets"
+                android:text="@string/presets"
                 android:textSize="13sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="10dp" />
@@ -272,7 +272,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Custom Mixer"
+                android:text="@string/custom_mixer"
                 android:textSize="13sp"
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="10dp" />
@@ -304,7 +304,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Selected Color"
+                        android:text="@string/selected_color"
                         android:textStyle="bold"
                         android:textColor="@color/text_primary"
                         android:textSize="14sp" />
@@ -312,7 +312,7 @@
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="Updates background in real-time"
+                        android:text="@string/color_realtime_desc"
                         android:textColor="@color/text_secondary"
                         android:textSize="12sp" />
                 </LinearLayout>

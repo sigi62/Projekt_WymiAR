@@ -111,7 +111,7 @@ class ProfilePickerDialog : DialogFragment() {
             }
         }
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
-            text = if (hasDefault) getString(R.string.btn_overwrite) else getString(R.string.btn_save)
+            text = if (hasDefault) getString(R.string.overwrite) else getString(R.string.save)
             setOnClickListener {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
@@ -143,7 +143,7 @@ class ProfilePickerDialog : DialogFragment() {
             onStatusUpdate?.invoke(getString(R.string.profile_loaded_named, slotName))
         }
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
-            text = getString(R.string.btn_overwrite)
+            text = getString(R.string.overwrite)
             setOnClickListener {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveNamed(modelName, slotName, current)
@@ -185,7 +185,7 @@ class ProfilePickerDialog : DialogFragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.dialog_add_profile_title))
             .setView(input)
-            .setPositiveButton(getString(R.string.btn_save)) { _, _ ->
+            .setPositiveButton(getString(R.string.save)) { _, _ ->
                 val name = input.text.toString().trim()
                 if (name.isEmpty()) {
                     Toast.makeText(requireContext(), getString(R.string.profile_error_name_empty), Toast.LENGTH_SHORT).show()
@@ -214,7 +214,7 @@ class ProfilePickerDialog : DialogFragment() {
                     }
                 }
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 
@@ -224,19 +224,19 @@ class ProfilePickerDialog : DialogFragment() {
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.profile_delete_slot_title, slotName))
             .setMessage(getString(R.string.profile_delete_slot_message))
-            .setPositiveButton(getString(R.string.btn_delete)) { _, _ ->
+            .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 profileManager.deleteNamed(modelName, slotName)
                 onStatusUpdate?.invoke(getString(R.string.profile_deleted_named, slotName))
                 buildList()
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
     private fun confirmResetToOriginal() {
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.profile_reset_default_title))
             .setMessage(getString(R.string.profile_reset_default_message))
-            .setPositiveButton(getString(R.string.btn_reset)) { _, _ ->
+            .setPositiveButton(getString(R.string.reset)) { _, _ ->
                 val original = ModelProfile(
                     scaleX = 1f, scaleY = 1f, scaleZ = 1f,
                     rotationX = 0f, rotationY = 0f, rotationZ = 0f
@@ -248,7 +248,7 @@ class ProfilePickerDialog : DialogFragment() {
                 onResetDefault?.invoke()
                 onStatusUpdate?.invoke(getString(R.string.status_reset_done))
             }
-            .setNegativeButton(getString(R.string.btn_cancel), null)
+            .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
 

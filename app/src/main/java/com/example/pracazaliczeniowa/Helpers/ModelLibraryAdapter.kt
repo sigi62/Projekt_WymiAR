@@ -171,8 +171,8 @@ class ModelLibraryAdapter(
         android.app.AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.dialog_delete_model_title, item.name))
             .setMessage(context.getString(R.string.dialog_delete_model_msg))
-            .setPositiveButton(context.getString(R.string.btn_delete)) { _, _ -> onDeleteImported(item) }
-            .setNegativeButton(context.getString(R.string.btn_cancel), null)
+            .setPositiveButton(context.getString(R.string.delete)) { _, _ -> onDeleteImported(item) }
+            .setNegativeButton(context.getString(R.string.cancel), null)
             .show()
     }
 

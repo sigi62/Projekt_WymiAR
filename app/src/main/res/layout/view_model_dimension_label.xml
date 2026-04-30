@@ -34,7 +34,7 @@
             android:textColor="#FFFF4444"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:text="W: – cm" />
+            android:text="@string/dim_w_placeholder" />
     </LinearLayout>
 
     <!-- Height row -->
@@ -58,7 +58,7 @@
             android:textColor="#FF44FF44"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:text="H: – cm" />
+            android:text="@string/dim_h_placeholder" />
     </LinearLayout>
 
     <!-- Depth row -->
@@ -82,7 +82,7 @@
             android:textColor="#FF4488FF"
             android:textSize="13sp"
             android:textStyle="bold"
-            android:text="D: – cm" />
+            android:text="@string/dim_d_placeholder" />
     </LinearLayout>
 
 </LinearLayout>

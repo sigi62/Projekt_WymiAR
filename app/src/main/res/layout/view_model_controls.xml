@@ -33,7 +33,7 @@
                 android:id="@+id/label1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="X"
+                android:text="@string/label_axis_x"
                 android:textColor="@android:color/white"/>
 
             <SeekBar
@@ -73,7 +73,7 @@
                 android:id="@+id/label2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Y"
+                android:text="@string/label_axis_y"
                 android:textColor="@android:color/white"/>
 
             <SeekBar
@@ -108,7 +108,7 @@
                 android:id="@+id/label3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Z"
+                android:text="@string/label_axis_z"
                 android:textColor="@android:color/white"/>
 
             <SeekBar
@@ -143,7 +143,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Uni"
+                android:text="@string/label_axis_uni"
                 android:textColor="@android:color/white"/>
 
             <SeekBar
