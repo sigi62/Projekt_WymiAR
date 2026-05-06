@@ -1,5 +1,6 @@
 package com.example.pracazaliczeniowa
 
+
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -27,6 +28,7 @@ import androidx.core.graphics.red
 import androidx.lifecycle.lifecycleScope
 import com.example.pracazaliczeniowa.Helpers.HsvColorPicker
 import com.example.pracazaliczeniowa.Overlays.CropOverlayView
+import com.example.pracazaliczeniowa.Overlays.RulerSeekBar
 import io.github.sceneview.math.Position
 import io.github.sceneview.math.Rotation
 import io.github.sceneview.SceneView
@@ -215,7 +217,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             btnAnimationToggle.alpha = if (isAnimationPlaying) 1.0f else 0.5f
         }
 
-        val rotationSlider = findViewById<SeekBar>(R.id.rotationSlider)
+        val rotationSlider = findViewById<RulerSeekBar>(R.id.rotationSlider)
         rotationSlider.progress = ROT_MID.toInt()
 
         rotationSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {

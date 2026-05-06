@@ -100,7 +100,7 @@
     <string name="cancel">Cancel</string>
     <string name="save_thumbnail">✓ Save Thumbnail</string>
     <string name="open_in_ar">Open in AR</string>
-    <string name="set_thumbnail">📷 Set Thumbnail</string>
+    <string name="set_thumbnail">Set Thumbnail</string>
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>

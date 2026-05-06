@@ -24,16 +24,17 @@
         android:src="@drawable/ic_arrow_back_white" />
 
     <!-- Background picker button (top-right) — always visible, hides during crop -->
+
+
     <ImageButton
         android:id="@+id/btnBackground"
         android:layout_width="48dp"
         android:layout_height="48dp"
+        android:background="@drawable/rounded_button"
         android:layout_gravity="top|end"
         android:layout_margin="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/change_background"
-        android:src="@drawable/ic_color_palette"
-        app:tint="@android:color/white" />
+        android:src="@drawable/ic_color_palette" />
 
     <!--
         Animation toggle — floats top-end below the background button.
@@ -92,15 +93,22 @@
 
     </LinearLayout>
 
-    <SeekBar
+    <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
         android:id="@+id/rotationSlider"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_height="200dp"
         android:layout_gravity="bottom"
         android:layout_marginBottom="80dp"
-        android:max="360"
-        android:progress="180"
         android:padding="16dp" />
+<!--    <SeekBar-->
+<!--        android:id="@+id/rotationSlider2"-->
+<!--        android:layout_width="match_parent"-->
+<!--        android:layout_height="wrap_content"-->
+<!--        android:layout_gravity="bottom"-->
+<!--        android:layout_marginBottom="80dp"-->
+<!--        android:max="360"-->
+<!--        android:progress="180"-->
+<!--        android:padding="16dp" />-->
 
     <!-- Bottom button row (hidden while crop overlay is active) -->
     <LinearLayout
