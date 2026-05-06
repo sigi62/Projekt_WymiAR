@@ -260,10 +260,15 @@ class ARActivity : AppCompatActivity() {
                 setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
 
             val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
-                ?.firstOrNull { hit ->
-                    val plane = hit.trackable as? Plane ?: return@firstOrNull false
-                    if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
-                    plane.type in allowedPlaneTypes && plane.isPoseInPolygon(hit.hitPose)
+                ?.let { hits ->
+                    // 1st choice: depth/point-cloud hit (sub-centimetre on good devices)
+                    hits.firstOrNull { it.trackable is com.google.ar.core.DepthPoint }
+                    // 2nd choice: oriented plane hit matching the current magnet mode
+                        ?: hits.firstOrNull { hit ->
+                            val plane = hit.trackable as? Plane ?: return@firstOrNull false
+                            if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
+                            plane.type in allowedPlaneTypes && plane.isPoseInPolygon(hit.hitPose)
+                        }
                 }
 //            // Raw ARCore hit-test: filter results by the actual plane type of
 //            // the trackable, so floor dots never steal a wall-mode tap and
@@ -351,7 +356,16 @@ class ARActivity : AppCompatActivity() {
                     if (moved) return@onTouchEvent false
 
                     if (isMeasureToolActive) {
+                        // NEW: guard against tapping into an unready scene
+                        val isReady = arSceneView.frame?.camera?.trackingState == TrackingState.TRACKING
+                                && arSceneView.session?.getAllTrackables(Plane::class.java)
+                            ?.any { it.trackingState == TrackingState.TRACKING } == true
+                        if (!isReady) {
+                            statusText.text = "Move camera slowly to detect surfaces…"
+                            return@onTouchEvent true
+                        }
                         if (arHit != null) placeMeasurePoint(arHit)
+                        else statusText.text = "Tap on a detected surface (grid area)"
                         return@onTouchEvent true
                     }
 
@@ -600,25 +614,24 @@ class ARActivity : AppCompatActivity() {
     }
 
     // ── Measure points ────────────────────────────────────────────────────────
+    private val measureAnchorA: AnchorNode? get() = placedMeasureNodes.getOrNull(placedMeasureNodes.size - (if (measurePointB == null) 1 else 2))
+    private val measureAnchorB: AnchorNode? get() = if (placedMeasureNodes.size >= 2) placedMeasureNodes.last() else null
 
     private fun placeMeasurePoint(hitResult: HitResult) {
-        val pose  = hitResult.hitPose
-        val point = Float3(pose.tx(), pose.ty(), pose.tz())
-
         val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
         arSceneView.addChildNode(anchorNode)
         placedMeasureNodes.add(anchorNode)
 
         if (measurePointA == null || measurePointB != null) {
-            measurePointA = point
+            measurePointA = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
             measurePointB = null
-            measureOverlay.setPoints(measurePointA, null)
+            measureOverlay.setAnchorNodes(anchorNode, null)   // see MeasureTapeOverlayView change below
             statusText.text = getString(R.string.measure_tap_second)
             return
         }
 
-        measurePointB = point
-        measureOverlay.setPoints(measurePointA, measurePointB)
+        measurePointB = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
+        measureOverlay.setAnchorNodes(placedMeasureNodes[placedMeasureNodes.size - 2], anchorNode)
 
         val dist = distanceMeters(measurePointA!!, measurePointB!!)
         val (value, suffix) = unit.convert(dist)

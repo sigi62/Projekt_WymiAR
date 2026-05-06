@@ -3,6 +3,7 @@ package com.example.pracazaliczeniowa.Overlays
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.opengl.Matrix
@@ -12,6 +13,7 @@ import android.view.View
 import com.google.ar.core.TrackingState
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.ar.node.AnchorNode
 import kotlin.math.abs
 import kotlin.math.sqrt
 
@@ -26,17 +28,28 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
 
     private var sceneView: ARSceneView? = null
 
+
+    private var anchorA: AnchorNode? = null
+    private var anchorB: AnchorNode? = null
+
     private var p0: Float3? = null
     private var p1: Float3? = null
     private var unit: DistanceUnit = DistanceUnit.METERS
 
+
+    fun setAnchorNodes(a: AnchorNode?, b: AnchorNode?) {
+        anchorA = a
+        anchorB = b
+    }
+
     // ── Paints ────────────────────────────────────────────────────────────
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.YELLOW
-        strokeWidth = 8f
+        color = Color.WHITE
+        strokeWidth = 6f
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
+        pathEffect = DashPathEffect(floatArrayOf(20f, 12f), 0f)
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -52,7 +65,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
     }
 
     private val pointFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.YELLOW
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
 
@@ -107,7 +120,8 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         super.onDraw(canvas)
 
         val sv = sceneView ?: return
-        val a = p0 ?: return
+        val rawA = anchorA ?: return
+        val a = rawA.worldPosition.let { Float3(it.x, it.y, it.z) }
 
         val frame = sv.frame ?: return
         val camera = frame.camera
@@ -123,7 +137,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         val pa = project(a, sw, sh) ?: return
         drawPoint(canvas, pa[0], pa[1])
 
-        val b = p1
+        val b = anchorB?.worldPosition?.let { Float3(it.x, it.y, it.z) }
         if (b != null) {
             val pb = project(b, sw, sh) ?: return
             canvas.drawLine(pa[0], pa[1], pb[0], pb[1], linePaint)
