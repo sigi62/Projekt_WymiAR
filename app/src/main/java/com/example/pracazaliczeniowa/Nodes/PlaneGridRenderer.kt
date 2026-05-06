@@ -16,7 +16,7 @@ import java.nio.ByteBuffer
 /**
  * PlaneGridRenderer
  * ─────────────────
- * Swaps the built-in PlaneRenderer dot texture for a 5 cm grid bitmap.
+ * Swaps the built-in PlaneRenderer dot texture for a grid bitmap.
  *
  * Also filters plane visibility per mode:
  *   wallMagnetActive = true  → show VERTICAL planes only
@@ -31,6 +31,10 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
     private val TEX_SIZE = 256
     private var gridTexture: Texture? = null
     private var injected = false
+
+    // Skip injection for the first few frames to let the plane material
+    // finish loading before we try to access its defaultInstance.
+    private var frameCount = 0
 
     // Cached reflection references — resolved once on first use.
     private var visualizersField: java.lang.reflect.Field? = null
@@ -51,7 +55,10 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
 
     /** Call every frame from onSessionUpdated. */
     fun update(wallMagnetActive: Boolean) {
-        if (!injected) injectTexture()
+        frameCount++
+        // Wait 2 frames before injecting so the plane material's defaultInstance
+        // is guaranteed to be ready, avoiding a stale/null injection attempt.
+        if (!injected && frameCount > 2) injectTexture()
         filterPlaneVisibility(wallMagnetActive)
     }
 
@@ -135,11 +142,16 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
 
             for ((planeKey, visualizer) in map) {
                 val plane = planeKey as? Plane ?: continue
-                if (plane.trackingState != TrackingState.TRACKING) continue
-                if (plane.subsumedBy != null) continue
                 visualizer ?: continue
 
-                val shouldShow = if (wallMagnetActive) {
+                // A plane should only be visible when it is actively tracked,
+                // not subsumed by a larger plane, and matches the current mode.
+                // Note: we no longer `continue` on non-TRACKING planes — we
+                // explicitly hide them so they don't linger after going stale.
+                val isActive = plane.trackingState == TrackingState.TRACKING
+                        && plane.subsumedBy == null
+
+                val shouldShow = isActive && if (wallMagnetActive) {
                     plane.type == Plane.Type.VERTICAL
                 } else {
                     plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
@@ -168,7 +180,9 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
                     TextureSampler.WrapMode.REPEAT
                 )
             )
-            matInstance.setParameter("uvScale", 20.0f, 20.0f)
+            // Reduced from 20 → 8: less aggressive tiling means plane-estimate
+            // drift shifts the grid far less noticeably, reducing the "floating" look.
+            matInstance.setParameter("uvScale", 8.0f, 8.0f)
             injected = true
             Log.d("PlaneGrid", "Texture injected successfully")
         } catch (e: Exception) {
@@ -202,14 +216,28 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         return uploadBitmap(bmp)
     }
 
+    /**
+     * Computes the number of mip levels needed for a full chain.
+     * e.g. 256×256 → log2(256)+1 = 9 levels.
+     * Filament requires levels >= 1; this always returns at least 1.
+     */
+    private fun mipLevels(w: Int, h: Int): Int {
+        var levels = 1
+        var size = maxOf(w, h)
+        while (size > 1) { size = size shr 1; levels++ }
+        return levels
+    }
+
     private fun uploadBitmap(bmp: Bitmap): Texture {
         val engine = sceneView.engine
         val tex = Texture.Builder()
             .width(bmp.width)
             .height(bmp.height)
-            .levels(1)
+            .levels(mipLevels(bmp.width, bmp.height))
             .sampler(Texture.Sampler.SAMPLER_2D)
             .format(Texture.InternalFormat.RGBA8)
+            // ADD THIS LINE BELOW:
+            .usage(Texture.Usage.DEFAULT or Texture.Usage.GEN_MIPMAPPABLE)
             .build(engine)
 
         val buf = ByteBuffer.allocateDirect(bmp.byteCount)
@@ -219,6 +247,10 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
 
         tex.setImage(engine, 0,
             Texture.PixelBufferDescriptor(buf, Texture.Format.RGBA, Texture.Type.UBYTE))
+
+        // Now this call will succeed:
+        tex.generateMipmaps(engine)
+
         return tex
     }
 }
