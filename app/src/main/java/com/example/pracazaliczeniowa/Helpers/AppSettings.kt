@@ -41,6 +41,16 @@ class AppSettings(context: Context) {
         AppCompatDelegate.setDefaultNightMode(mode)
     }
 
+    fun applyLocale(context: Context) {
+        val tag = languageOverride
+        val locale = if (tag.isEmpty()) {
+            // Restore system default
+            androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+        } else {
+            androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+        }
+        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locale)
+    }
     // -------------------------------------------------------------------------
     // ModelControlOverlayView – position default half-range (cm)
     // -------------------------------------------------------------------------
@@ -67,6 +77,16 @@ class AppSettings(context: Context) {
         get() = prefs.getInt(KEY_SCL_MAX, 500).coerceIn(100, 10_000)
         set(value) { prefs.edit().putInt(KEY_SCL_MAX, value.coerceIn(100, 10_000)).apply() }
 
+
+    // ── Language override ────────────────────────────────────────────────────────
+    /**
+     * BCP-47 language tag override. Empty string = follow system locale.
+     * Supported values: "" (system), "en", "pl"
+     */
+    var languageOverride: String
+        get() = prefs.getString(KEY_LANGUAGE, "") ?: ""
+        set(value) { prefs.edit().putString(KEY_LANGUAGE, value).apply() }
+
     // -------------------------------------------------------------------------
     // Companion
     // -------------------------------------------------------------------------
@@ -76,5 +96,6 @@ class AppSettings(context: Context) {
         private const val KEY_DARK_MODE = "dark_mode"
         private const val KEY_POS_MID   = "pos_mid_default"
         private const val KEY_SCL_MAX   = "scl_max_default"
+        private const val KEY_LANGUAGE = "language_override"
     }
 }

@@ -8,6 +8,7 @@
     <string name="model_picker_prompt">Aktywny model: %1$s — kliknij na dostępnej powierzchni</string>
     <string name="status_floor_mode">Tryb horyzontalny: skieruj na podłogę i kliknij dostępną powierzchnie</string>
     <string name="status_wall_mode">Tryb wertykalny: skieruj na ścianę i kliknij dostępną powierzchnie</string>
+    <string name="status_point_at_surface">Skieruj telefon na płaszczyzne aby położyć model</string>
 
     <!-- Model -->
     <string name="status_loading">Ładowanie modelu…</string>
@@ -17,6 +18,7 @@
     <string name="status_model_deleted">Usunięto model %1$s</string>
 
     <!-- Profiles -->
+    <string name="profiles">Profile</string>
     <string name="profile_label_default">★ Domyślny</string>
     <string name="profile_add_named_prompt">+ Dodaj nowy profil…</string>
     <string name="dialog_add_profile_title">Zapisz bierzące wartości</string>
@@ -95,6 +97,7 @@
     <string name="preview_dimensions_format">Szerokość: %1$.1f, Wysokość: %2$.1f, Głębia: %3$.1f %4$s</string>
     <string name="preview_close">Zamykanie podglądu</string>
     <string name="change_background">Zmień Tło</string>
+    <string name="cancel">Anuluj</string>
     <string name="save_thumbnail">✓ Zapisno Zdjęcie</string>
     <string name="open_in_ar">Otwórz w AR</string>
     <string name="set_thumbnail">📷 Zapisz zdjcie</string>
@@ -218,4 +221,12 @@
     <string name="dim_d_placeholder">Głębokość: – cm</string>
 
 
+    <!-- Settings language -->
+    <string name="language">Język</string>
+    <string name="language_description">Nadpisz język systemowy</string>
+    <string-array name="language_display_names">
+        <item>Domyślny systemowy</item>
+        <item>Angielski</item>
+        <item>Polski</item>
+    </string-array>
 </resources>

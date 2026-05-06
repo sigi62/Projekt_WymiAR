@@ -14,6 +14,8 @@ import com.example.pracazaliczeniowa.Helpers.AppSettings
 class App : Application() {
     override fun onCreate() {
         super.onCreate()
-        AppSettings(this).applyTheme()
+        val settings = AppSettings(this)
+        settings.applyTheme()
+        settings.applyLocale(this)
     }
 }

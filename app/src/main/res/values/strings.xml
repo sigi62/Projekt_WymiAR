@@ -217,5 +217,12 @@
     <string name="dim_h_placeholder">H: – cm</string>
     <string name="dim_d_placeholder">D: – cm</string>
 
-
+    <!-- Settings language -->
+    <string name="language">Language</string>
+    <string name="language_description">Override the system language</string>
+    <string-array name="language_display_names">
+        <item>System default</item>
+        <item>English</item>
+        <item>Polish</item>
+    </string-array>
 </resources>

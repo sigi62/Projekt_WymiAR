@@ -40,6 +40,29 @@ class SettingsActivity : AppCompatActivity() {
             )
             recreate()
         }
+        // ── Language ─────────────────────────────────────────────────────────────
+        val languageCodes = listOf("", "en", "pl")   // matches the string-array order
+        val spinnerLanguage = findViewById<android.widget.Spinner>(R.id.spinnerLanguage)
+
+        val adapter = android.widget.ArrayAdapter.createFromResource(
+            this,
+            R.array.language_display_names,
+            android.R.layout.simple_spinner_item
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        spinnerLanguage.adapter = adapter
+        spinnerLanguage.setSelection(languageCodes.indexOf(settings.languageOverride).coerceAtLeast(0))
+
+        spinnerLanguage.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: android.view.View?, pos: Int, id: Long) {
+                val newCode = languageCodes[pos]
+                if (newCode == settings.languageOverride) return   // no change, avoid recreate loop
+                settings.languageOverride = newCode
+                settings.applyLocale(this@SettingsActivity)
+                recreate()   // redraw the settings screen in the new language
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>) {}
+        }
 
         // ── Position half-range ──────────────────────────────────────────
         val posLabel = findViewById<TextView>(R.id.tvPosMidValue)
