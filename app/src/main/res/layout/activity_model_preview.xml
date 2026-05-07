@@ -93,24 +93,18 @@
 
     </LinearLayout>
 
+
+    <!-- Bottom button row (hidden while crop overlay is active) -->
     <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
         android:id="@+id/rotationSlider"
         android:layout_width="match_parent"
         android:layout_height="200dp"
         android:layout_gravity="bottom"
         android:layout_marginBottom="80dp"
-        android:padding="16dp" />
-<!--    <SeekBar-->
-<!--        android:id="@+id/rotationSlider2"-->
-<!--        android:layout_width="match_parent"-->
-<!--        android:layout_height="wrap_content"-->
-<!--        android:layout_gravity="bottom"-->
-<!--        android:layout_marginBottom="80dp"-->
-<!--        android:max="360"-->
-<!--        android:progress="180"-->
-<!--        android:padding="16dp" />-->
+        android:max="3600"
+        android:padding="16dp"
+        android:progress="1800" />
 
-    <!-- Bottom button row (hidden while crop overlay is active) -->
     <LinearLayout
         android:id="@+id/normalButtonBar"
         android:layout_width="match_parent"

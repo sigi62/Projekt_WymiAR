@@ -26,6 +26,7 @@ import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.example.pracazaliczeniowa.Helpers.LibraryFilterManager
 
 class LibraryActivity : AppCompatActivity() {
 
@@ -63,9 +64,12 @@ class LibraryActivity : AppCompatActivity() {
     private var selectedModelKey: String? = null
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: ModelLibraryAdapter
+
+    private lateinit var filterManager: LibraryFilterManager
     private val allModels = mutableListOf<ModelItem>()
 
     // SplitInstall listener — kept as a field so we can unregister it
+
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
             SplitInstallSessionStatus.INSTALLED -> {
@@ -125,8 +129,12 @@ class LibraryActivity : AppCompatActivity() {
             .map    { it.profileKey }
             .toSet()
 
+        filterManager = LibraryFilterManager(savedProfiles)
+        wireFilterChips()
+
         recyclerView = findViewById(R.id.rvModelLibrary)
         recyclerView.layoutManager = GridLayoutManager(this, 2)
+
 
         adapter = ModelLibraryAdapter(
             items            = allModels.toList(),
@@ -152,10 +160,12 @@ class LibraryActivity : AppCompatActivity() {
                 )
             },
             onDeleteImported = { deleteImportedModel(it) },
-            onRenameImported = { showRenameDialog(it) }
+            onRenameImported = { showRenameDialog(it) },
+            loadDefaultProfile = { key -> profileManager.loadDefault(key) }
         )
 
         recyclerView.adapter = adapter
+        updateCountLabel()
     }
 
     override fun onDestroy() {
@@ -314,6 +324,28 @@ class LibraryActivity : AppCompatActivity() {
             Toast.makeText(this@LibraryActivity,
                 getString(R.string.toast_rename_success, item.name, renamed.name), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    private fun wireFilterChips() {
+        val chips = mapOf(
+            R.id.chipAll      to LibraryFilterManager.Filter.ALL,
+            R.id.chipOwn      to LibraryFilterManager.Filter.OWN,
+            R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
+            R.id.chipSaved    to LibraryFilterManager.Filter.SAVED
+        )
+        chips.forEach { (id, filter) ->
+            findViewById<com.google.android.material.chip.Chip>(id).setOnClickListener {
+                filterManager.select(filter)
+                adapter.updateItems(filterManager.apply(allModels))
+                updateCountLabel()
+            }
+        }
+    }
+
+    private fun updateCountLabel() {
+        val count = filterManager.apply(allModels).size
+        findViewById<android.widget.TextView>(R.id.tvItemCount)
+            .text = getString(R.string.library_item_count, count)
     }
 
     // ── Delete helper ─────────────────────────────────────────────────────────

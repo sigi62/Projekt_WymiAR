@@ -16,7 +16,9 @@ data class ModelItem(
     val name: String,
     val modelPath: String,
     val thumbnailRes: Int? = null,
-    val isAsset: Boolean = true
+    val isAsset: Boolean = true,
+    val lastModified: Long = 0L,      // epoch ms — from File.lastModified() or asset fallback
+    val defaultSizeM: Triple<Float, Float, Float>? = null   // (widthMeters, heightMeters, deepthMeter)
 ) {
     /**
      * The key used by [ProfileManager] – derived from the file name

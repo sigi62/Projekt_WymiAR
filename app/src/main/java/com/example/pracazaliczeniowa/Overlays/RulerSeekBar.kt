@@ -6,10 +6,18 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatSeekBar
+import com.example.pracazaliczeniowa.R
 
 class RulerSeekBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : AppCompatSeekBar(context, attrs) {
+
+    // Default interval set to 300 (Rotation). Can be changed to 20 for Position.
+    var tickInterval: Int = 30
+        set(value) {
+            field = value
+            invalidate() // Redraw when interval changes
+        }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
@@ -17,54 +25,88 @@ class RulerSeekBar @JvmOverloads constructor(
     }
 
     init {
-        // Hide the default seekbar track and thumb so we can draw our own
         splitTrack = false
         thumb = null
-        setPadding(60, 0, 60, 0)
+
+        background = null           // Removes the ripple/highlight glow
+        progressDrawable = null     // Removes the default blue/grey progress line
+        // Ensure enough padding for labels and the indicator
+        setPadding(60, 120, 60, 60)
     }
 
     override fun onDraw(canvas: Canvas) {
-        // We do NOT call super.onDraw(canvas) because we want to completely
-        // replace the visual look with the ruler from image_6a2ad2.png
-
         val width = width.toFloat()
         val height = height.toFloat()
         val centerY = height / 2
         val usableWidth = width - paddingLeft - paddingRight
 
-        // Draw the ruler horizontal base line
-        paint.strokeWidth = 4f
-        canvas.drawLine(paddingLeft.toFloat(), centerY, width - paddingRight, centerY, paint)
+        val totalTicks = max.toFloat()
+        val midPoint = totalTicks / 2f
 
-        val totalTicks = max // If max is 360, we have 360 intervals
+        val rulerColor = androidx.core.content.ContextCompat.getColor(context, R.color.icon_tint)
+        paint.color = rulerColor
+        paint.isAntiAlias = true
 
-        // Draw Ticks
-        for (i in 0..totalTicks step 5) { // Step by 5 to avoid overcrowding
-            val x = paddingLeft + (i.toFloat() / max) * usableWidth
-            val isMajor = i % 30 == 0 // Major tick every 30 units
+        // 1. Draw Ticks
+        for (i in 0..max step 100) {
+            val x = paddingLeft + (i.toFloat() / totalTicks) * usableWidth
+            val diffFromMid = i.toFloat() - midPoint
 
-            val tickHeight = if (isMajor) 60f else 30f
-            paint.strokeWidth = if (isMajor) 6f else 3f
+            val isZero = i.toFloat() == midPoint
+            val isBoundary = isZero || i == 0 || i == max
+            val isMajor30 = diffFromMid % 300f == 0f
+            val isTenth10 = diffFromMid % 100f == 0f
 
+            var tickHeight = 0f
+            var currentStrokeWidth = 0f
+            when {
+                isBoundary -> {
+                    tickHeight = 35f
+                    currentStrokeWidth = 5f
+                }
+                isMajor30 -> {
+                    tickHeight = 20f
+                    currentStrokeWidth = 3f
+                }
+                isTenth10 -> {
+                    tickHeight = 10f
+                    currentStrokeWidth = 2f
+                }
+            }
+
+            paint.strokeWidth = currentStrokeWidth
             canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
 
-            // Draw Labels (e.g., -30, 0, 30 logic based on your progress)
-            if (isMajor) {
+            if (isBoundary) {
                 paint.textSize = 35f
-                // Offset labels to match your -30 to 30 or 0 to 360 scale
-                val labelText = (i - (max / 2)).toString()
-                canvas.drawText(labelText, x, centerY - 60f, paint)
+                paint.isFakeBoldText = true
+                val labelValue = (diffFromMid / 10f).toInt()
+                canvas.drawText(labelValue.toString(), x, centerY - (tickHeight / 2) - 15f, paint)
+                paint.isFakeBoldText = false
             }
         }
 
-        // Draw the Indicator (The "Thumb") based on current progress
-        val thumbX = paddingLeft + (progress.toFloat() / max) * usableWidth
-        paint.color = Color.RED
-        canvas.drawCircle(thumbX, centerY, 15f, paint)
-
-        // Draw current value text above indicator as seen in image_6a2ad2.png
-        val displayVal = progress - (max / 2)
-        canvas.drawText(displayVal.toString(), thumbX, centerY - 110f, paint)
+        // 2. Draw the Indicator (The vertical line indicating current progress)
+        val thumbX = paddingLeft + (progress.toFloat() / totalTicks) * usableWidth
+        // Black "Outline" for the indicator
         paint.color = Color.BLACK
+        paint.strokeWidth = 7f
+        canvas.drawLine(thumbX, centerY - 40f, thumbX, centerY + 40f, paint)
+
+        // White "Core" for the indicator
+        paint.color = Color.WHITE
+        paint.strokeWidth = 3f
+        canvas.drawLine(thumbX, centerY - 38f, thumbX, centerY + 38f, paint)
+
+        // 3. Current Value Text with Decimal
+        paint.color = rulerColor
+        val displayVal = (progress.toFloat() - midPoint) / 10f
+        val decimalText = "%.1f".format(displayVal)
+
+        paint.textSize = 42f
+        paint.isFakeBoldText = true
+        canvas.drawText(decimalText, thumbX, centerY - 70f, paint)
+
+        paint.isFakeBoldText = false
     }
 }

@@ -225,4 +225,12 @@
         <item>English</item>
         <item>Polish</item>
     </string-array>
+
+    <string name="filter_all">Wszystkie</string>
+    <string name="filter_own">Własne</string>
+    <string name="filter_imported">Importowane</string>
+    <string name="filter_saved">Zapisane</string>
+
+    <!-- Item count label -->
+    <string name="library_item_count">%1$d modeli</string>
 </resources>

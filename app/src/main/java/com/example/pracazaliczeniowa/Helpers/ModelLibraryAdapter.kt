@@ -13,6 +13,9 @@ import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 import com.example.pracazaliczeniowa.R
 
 class ModelLibraryAdapter(
@@ -35,14 +38,24 @@ class ModelLibraryAdapter(
      * refreshing the adapter via [updateItems].
      * Never called for bundled asset models.
      */
-    private val onRenameImported: (ModelItem) -> Unit
+    private val onRenameImported: (ModelItem) -> Unit,
+    /**
+     * Provides the default [ModelProfile] for a given profileKey, or null if
+     * none has been saved yet. Used to compute the scaled dimension string.
+     * Inject via: { key -> profileManager.loadDefault(key) }
+     */
+    private val loadDefaultProfile: (profileKey: String) -> ModelProfile?
 ) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
 
     private val items: MutableList<ModelItem> = items.toMutableList()
+    private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
         val thumbnail: ImageView    = view.findViewById(R.id.imgModelThumbnail)
         val name: TextView          = view.findViewById(R.id.tvModelName)
+        val fileSize: TextView      = view.findViewById(R.id.tvFileSize)
+        val dimensions: TextView    = view.findViewById(R.id.tvDimensions)
+        val editDate: TextView      = view.findViewById(R.id.tvEditDate)
         val savedBadge: TextView    = view.findViewById(R.id.tvSavedBadge)
         val importedBadge: TextView = view.findViewById(R.id.tvImportedBadge)
         val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
@@ -72,6 +85,29 @@ class ModelLibraryAdapter(
         // ── Name ────────────────────────────────────────────────────────────
         holder.name.text = item.name
 
+        // ── File size ───────────────────────────────────────────────────────
+        holder.fileSize.text = getFileSizeLabel(context, item)
+
+        // ── Dimensions ──────────────────────────────────────────────────────
+        // If the model has a known base size and a saved default profile,
+        // multiply the base by the saved scale to show real-world dimensions.
+        // Falls back to hiding the field if either piece is missing.
+        val dimText = buildDimensionString(item)
+        if (dimText != null) {
+            holder.dimensions.visibility = View.VISIBLE
+            holder.dimensions.text = dimText
+        } else {
+            holder.dimensions.visibility = View.GONE
+        }
+
+        // ── Last modified date ───────────────────────────────────────────────
+        if (item.lastModified > 0L) {
+            holder.editDate.visibility = View.VISIBLE
+            holder.editDate.text = dateFormat.format(Date(item.lastModified))
+        } else {
+            holder.editDate.visibility = View.GONE
+        }
+
         // ── "✓ Saved" badge ─────────────────────────────────────────────────
         holder.savedBadge.visibility =
             if (item.profileKey in savedProfiles) View.VISIBLE else View.GONE
@@ -87,31 +123,17 @@ class ModelLibraryAdapter(
                 menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
                 menu.add(0, MENU_DELETE_THUMB,  1, context.getString(R.string.menu_delete_thumbnail))
                     .isEnabled = cached.exists()
-                // "Rename" and "Delete model" only shown for user-imported files
                 if (!item.isAsset) {
                     menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
                     menu.add(0, MENU_DELETE_MODEL, 3, context.getString(R.string.menu_delete_model))
                 }
-
                 setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
-                        MENU_PREVIEW -> {
-                            onPreviewClick(item)
-                            true
-                        }
-                        MENU_DELETE_THUMB -> {
-                            deleteThumbnail(cached, item, holder)
-                            true
-                        }
-                        MENU_RENAME -> {
-                            onRenameImported(item)
-                            true
-                        }
-                        MENU_DELETE_MODEL -> {
-                            confirmDeleteModel(context, item)
-                            true
-                        }
-                        else -> false
+                        MENU_PREVIEW      -> { onPreviewClick(item); true }
+                        MENU_DELETE_THUMB -> { deleteThumbnail(cached, item, holder); true }
+                        MENU_RENAME       -> { onRenameImported(item); true }
+                        MENU_DELETE_MODEL -> { confirmDeleteModel(context, item); true }
+                        else              -> false
                     }
                 }
                 show()
@@ -138,14 +160,36 @@ class ModelLibraryAdapter(
 
     override fun getItemCount() = items.size
 
-    // ── Thumbnail helpers ─────────────────────────────────────────────────────
+    // ── Dimension helpers ─────────────────────────────────────────────────────
 
     /**
-     * Loads the thumbnail for [item] into [imageView]:
-     *  1. On-disk cached JPEG (saved via "Set Thumbnail" in ModelPreviewActivity)
-     *  2. Bundled drawable resource (asset models only)
-     *  3. Generic placeholder
+     * Returns a display string like "25 × 10 cm" if the model has a known
+     * base size AND a saved default profile to scale it with.
+     *
+     * • If the default profile exists, the base size is multiplied by the
+     *   profile's scaleX (width) and scaleY (height).
+     * • If no profile exists yet, the raw base size is shown as-is — so the
+     *   user always sees something once [defaultSizeM] is provided.
+     * • Returns null only when [defaultSizeM] is null (imported models with
+     *   unknown native size).
      */
+    private fun buildDimensionString(item: ModelItem): String? {
+        val (baseW, baseH, baseD) = item.defaultSizeM ?: return null
+        val profile = loadDefaultProfile(item.profileKey)
+        val w = if (profile != null) baseW * profile.scaleX else baseW
+        val h = if (profile != null) baseH * profile.scaleY else baseH
+        val d = if (profile != null) baseD * profile.scaleZ else baseD
+        // Convert metres → centimetres and round to one decimal place
+        val wCm = (w * 100f)
+        val hCm = (h * 100f)
+        val dCm = (d* 100f)
+        // Use Int display when the value is a whole number, else one decimal
+        fun fmt(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
+        return "${fmt(wCm)} × ${fmt(hCm)} × ${fmt(dCm)} cm"
+    }
+
+    // ── Thumbnail helpers ─────────────────────────────────────────────────────
+
     private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: java.io.File) {
         imageView.setImageDrawable(null)
         val cached = File(filesDir, "thumbnails/${item.profileKey}.jpg")
@@ -174,6 +218,22 @@ class ModelLibraryAdapter(
             .setPositiveButton(context.getString(R.string.delete)) { _, _ -> onDeleteImported(item) }
             .setNegativeButton(context.getString(R.string.cancel), null)
             .show()
+    }
+
+    private fun getFileSizeLabel(context: android.content.Context, item: ModelItem): String {
+        val bytes = if (item.isAsset) {
+            try {
+                context.assets.open(item.modelPath).use { it.available().toLong() }
+            } catch (e: Exception) { return "" }
+        } else {
+            val f = File(item.modelPath)
+            if (f.exists()) f.length() else return ""
+        }
+        return when {
+            bytes >= 1_048_576 -> "${bytes / 1_048_576} MB"
+            bytes >= 1_024     -> "${bytes / 1_024} KB"
+            else               -> "$bytes B"
+        }
     }
 
     // ── Constants ─────────────────────────────────────────────────────────────

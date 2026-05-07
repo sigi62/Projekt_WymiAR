@@ -30,4 +30,12 @@
     <color name="icon_invert_tint">#FFFFFF</color>
     <color name="background_tint">#88EBEBEB</color>
     <color name="accent">#49454F</color>
+
+    <!-- Badge: Saved (blue tint) -->
+    <color name="badge_saved_bg">#E6F1FB</color>
+    <color name="badge_saved_text">#185FA5</color>
+
+    <!-- Badge: Imported (green tint) -->
+    <color name="badge_imported_bg">#EAF3DE</color>
+    <color name="badge_imported_text">#3B6D11</color>
 </resources>

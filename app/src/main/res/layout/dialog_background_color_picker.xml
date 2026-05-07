@@ -45,7 +45,8 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="@string/hdr"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/text_primary"
+                android:buttonTint="@color/text_primary"/>
 
             <RadioButton
                 android:id="@+id/rbModeStudio"
@@ -53,13 +54,15 @@
                 android:layout_weight="1"
                 android:layout_height="wrap_content"
                 android:text="@string/studio"
-                android:textColor="@color/text_primary" />
+                android:textColor="@color/text_primary"
+                android:buttonTint="@color/text_primary" />
 
             <RadioButton
                 android:id="@+id/rbModeVoid"
                 android:layout_width="0dp"
-                android:layout_weight="1"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:buttonTint="@color/text_primary"
                 android:text="@string/solid"
                 android:textColor="@color/text_primary" />
         </RadioGroup>

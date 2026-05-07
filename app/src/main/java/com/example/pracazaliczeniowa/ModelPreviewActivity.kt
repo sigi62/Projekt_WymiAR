@@ -136,7 +136,7 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var camAzimDeg = CAM_AZIM_DEG_INIT
 
     private var modelRotationY = 0f
-    private val ROT_MID = 180f
+    private val ROT_MID = 1800f
     private var lastTouchX = 0f
     private var lastTouchY = 0f
     private var initialPinchDist = 0f
@@ -223,7 +223,11 @@ class ModelPreviewActivity : AppCompatActivity() {
         rotationSlider.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (fromUser) {
-                    modelRotationY = progress.toFloat() - ROT_MID
+                    // 1. Subtract the midpoint (1800) to get -1800 to 1800
+                    // 2. Divide by 10f to get -180.0 to 180.0
+                    modelRotationY = (progress.toFloat() - 1800f) / 10f
+
+                    // Now modelRotationY is a proper degree value (e.g., 15.5)
                     modelNode?.rotation = Rotation(0f, modelRotationY, 0f)
                 }
             }
