@@ -5,29 +5,24 @@
   AR collision
 
 
-  Add lang pl/eng  - > getString(R.string.status_floor_mode)
-Add proper handling for closing Preview
+
+Add proper handling for closing Preview when studio mode (it doesnt chras in hdr or void ???)
 Fix rulerSeekBar top cut
+refractor recent chip filter logic
+change import filter aviable files extension
+make deleteThumbnail Button appear only when thumbnai laviable
 
   BUGS / FIXES
 
   2. Rotation Handle not a ring
   3. Thumbnails for auto models are pre-made
-  Rename for all models not only import
+
+
 
 
   UI FIXES
-  Library button max height + delete padding
   Add a toggle effect to MeasureTape
   Add a toggle effect to wireframe mode too ?? Button type special for selected?
-  THINK - ALL BUTTONS BACKGROUND TINT OR (white) ICONS ONLY
 
 
 
-    switching to laptop
-
-
-claude on ar collision
-"The "Hard" Path (Physical Collisions): If you want the model to actually bounce off a physical wall or stop moving when it hits a real-world object,
-you need to convert the ARCore Depth Map into a 3D Mesh that a physics engine (like Bullet or JBox2D) can understand. This is very processor-intensive
-and usually requires a phone with a LiDAR/ToF sensor to be usable."

@@ -718,14 +718,28 @@ class ModelPreviewActivity : AppCompatActivity() {
     }
 
     override fun onSupportNavigateUp(): Boolean {
-        onDestroy()
+        finish()
         return true
     }
+    
     override fun onDestroy() {
-        // Stop animation cleanly before destroying the scene
-        modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
-        removeStudioPlanes()
-        sceneView.destroy()
         super.onDestroy()
+        try {
+            // Stop animation before touching Filament resources
+            modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
+            // Cancel frame callback so no screenshot fires after destroy
+            sceneView.onFrame = null
+
+            removeStudioPlanes()
+            modelNode?.let {
+                sceneView.removeChildNode(it)
+                it.destroy()
+            }
+            sceneView.engine.flushAndWait()
+
+
+            sceneView.destroy()
+            super.onDestroy()
+        } catch (_: Exception) {}
     }
 }

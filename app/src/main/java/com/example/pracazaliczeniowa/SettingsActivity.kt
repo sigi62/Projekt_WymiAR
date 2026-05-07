@@ -5,6 +5,7 @@ import android.text.Editable
 import android.text.TextWatcher
 import android.widget.Button
 import android.widget.EditText
+import android.widget.ImageButton
 import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -28,6 +29,8 @@ class SettingsActivity : AppCompatActivity() {
 
         // ── Dark / Light mode toggle ─────────────────────────────────────
         val themeSwitch = findViewById<Switch>(R.id.switchDarkMode)
+
+        findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
         themeSwitch.isChecked = settings.isDarkMode
 
         themeSwitch.setOnCheckedChangeListener { _, isChecked ->

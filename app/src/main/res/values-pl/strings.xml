@@ -222,6 +222,7 @@
 
 
     <!-- Settings language -->
+    <string name="language_title">JĘZYK</string>
     <string name="language">Język</string>
     <string name="language_description">Nadpisz język systemowy</string>
     <string-array name="language_display_names">
@@ -231,7 +232,7 @@
     </string-array>
 
     <string name="filter_all">Wszystkie</string>
-    <string name="filter_own">Własne</string>
+    <string name="filter_recent">Ostatnie</string>
     <string name="filter_imported">Importowane</string>
     <string name="filter_saved">Zapisane</string>
 

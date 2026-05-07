@@ -52,11 +52,23 @@ class LibraryActivity : AppCompatActivity() {
     ) { adapter.notifyDataSetChanged() }
 
     // File picker — opened only after converter is confirmed installed (if needed)
-    private val importLauncher = registerForActivityResult(
-        ActivityResultContracts.OpenDocument()
-    ) { uri ->
-        uri ?: return@registerForActivityResult
-        processImport(uri)
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            val fileName = getFileName(it) ?: "unknown"
+            val extension = fileName.substringAfterLast(".", "").lowercase()
+
+            // Define your approved list
+            val allowed = listOf("obj", "stl", "glb", "gltf")
+
+            if (extension in allowed) {
+                // Success! The file is actually a 3D model.
+                Toast.makeText(this, "Importing: $fileName", Toast.LENGTH_SHORT).show()
+                // proceedWithImport(it)
+            } else {
+                // The user picked a .pdf or .docx because the picker was too broad.
+                Toast.makeText(this, "Rejected: .$extension files are not supported", Toast.LENGTH_LONG).show()
+            }
+        }
     }
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -70,11 +82,20 @@ class LibraryActivity : AppCompatActivity() {
 
     // SplitInstall listener — kept as a field so we can unregister it
 
+    val modelMimeTypes = arrayOf(
+        "model/obj",
+        "model/stl",
+        "model/gltf-binary",
+        "model/gltf+json",
+        "application/sla",
+        "application/octet-stream" // The "catch-all" for binary files like .obj/.stl
+    )
+
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
             SplitInstallSessionStatus.INSTALLED -> {
                 Toast.makeText(this, getString(R.string.toast_converter_ready), Toast.LENGTH_SHORT).show()
-                importLauncher.launch(arrayOf("*/*"))
+                importLauncher.launch(modelMimeTypes)
             }
             SplitInstallSessionStatus.FAILED -> {
                 Toast.makeText(this, getString(R.string.toast_converter_failed, state.errorCode().toString()), Toast.LENGTH_LONG).show()
@@ -329,7 +350,7 @@ class LibraryActivity : AppCompatActivity() {
     private fun wireFilterChips() {
         val chips = mapOf(
             R.id.chipAll      to LibraryFilterManager.Filter.ALL,
-            R.id.chipOwn      to LibraryFilterManager.Filter.OWN,
+            R.id.chipRecent   to LibraryFilterManager.Filter.RECENT,
             R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
             R.id.chipSaved    to LibraryFilterManager.Filter.SAVED
         )
@@ -346,6 +367,25 @@ class LibraryActivity : AppCompatActivity() {
         val count = filterManager.apply(allModels).size
         findViewById<android.widget.TextView>(R.id.tvItemCount)
             .text = getString(R.string.library_item_count, count)
+    }
+
+    private fun getFileName(uri: android.net.Uri): String? {
+        var result: String? = null
+        if (uri.scheme == "content") {
+            val cursor = contentResolver.query(uri, null, null, null, null)
+            cursor.use { c ->
+                if (c != null && c.moveToFirst()) {
+                    val index = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    if (index != -1) result = c.getString(index)
+                }
+            }
+        }
+        if (result == null) {
+            result = uri.path
+            val cut = result?.lastIndexOf('/') ?: -1
+            if (cut != -1) result = result?.substring(cut + 1)
+        }
+        return result
     }
 
     // ── Delete helper ─────────────────────────────────────────────────────────

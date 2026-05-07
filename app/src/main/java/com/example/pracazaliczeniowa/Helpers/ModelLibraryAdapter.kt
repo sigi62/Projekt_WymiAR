@@ -95,7 +95,7 @@ class ModelLibraryAdapter(
         val dimText = buildDimensionString(item)
         if (dimText != null) {
             holder.dimensions.visibility = View.VISIBLE
-            holder.dimensions.text = dimText
+            holder.dimensions.text = "Dimensions: $dimText"
         } else {
             holder.dimensions.visibility = View.GONE
         }
@@ -103,7 +103,8 @@ class ModelLibraryAdapter(
         // ── Last modified date ───────────────────────────────────────────────
         if (item.lastModified > 0L) {
             holder.editDate.visibility = View.VISIBLE
-            holder.editDate.text = dateFormat.format(Date(item.lastModified))
+            val dateStr = dateFormat.format(Date(item.lastModified))
+            holder.editDate.text = "Modified: $dateStr"
         } else {
             holder.editDate.visibility = View.GONE
         }
@@ -123,8 +124,8 @@ class ModelLibraryAdapter(
                 menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
                 menu.add(0, MENU_DELETE_THUMB,  1, context.getString(R.string.menu_delete_thumbnail))
                     .isEnabled = cached.exists()
+                menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
                 if (!item.isAsset) {
-                    menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
                     menu.add(0, MENU_DELETE_MODEL, 3, context.getString(R.string.menu_delete_model))
                 }
                 setOnMenuItemClickListener { menuItem ->

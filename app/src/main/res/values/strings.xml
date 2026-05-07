@@ -218,6 +218,7 @@
     <string name="dim_d_placeholder">D: – cm</string>
 
     <!-- Settings language -->
+    <string name="language_title">LANGUAGE</string>
     <string name="language">Language</string>
     <string name="language_description">Override the system language</string>
     <string-array name="language_display_names">
@@ -226,11 +227,11 @@
         <item>Polish</item>
     </string-array>
 
-    <string name="filter_all">Wszystkie</string>
-    <string name="filter_own">Własne</string>
-    <string name="filter_imported">Importowane</string>
-    <string name="filter_saved">Zapisane</string>
+    <string name="filter_all">All</string>
+    <string name="filter_recent">Recent</string>
+    <string name="filter_imported">Imported</string>
+    <string name="filter_saved">Saved</string>
 
     <!-- Item count label -->
-    <string name="library_item_count">%1$d modeli</string>
+    <string name="library_item_count">%1$d models</string>
 </resources>

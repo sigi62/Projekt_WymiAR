@@ -99,7 +99,7 @@
     <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
         android:id="@+id/rotationSlider"
         android:layout_width="match_parent"
-        android:layout_height="200dp"
+        android:layout_height="80dp"
         android:layout_gravity="bottom"
         android:layout_marginBottom="80dp"
         android:max="3600"

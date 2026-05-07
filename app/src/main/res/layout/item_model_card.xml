@@ -77,8 +77,7 @@
                 android:layout_height="wrap_content"
                 android:layout_marginTop="2dp"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:text="24cm x 24cm x 24cm"/>
+                android:textSize="11sp"/>
 
             <!-- Edit date -->
             <TextView
@@ -86,8 +85,7 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:textColor="@color/text_secondary"
-                android:textSize="11sp"
-                android:text="last edited: today" />
+                android:textSize="11sp"/>
 
             <!-- Badge row -->
             <LinearLayout
