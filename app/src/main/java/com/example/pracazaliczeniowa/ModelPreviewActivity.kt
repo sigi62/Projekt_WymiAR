@@ -225,7 +225,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                 if (fromUser) {
                     // 1. Subtract the midpoint (1800) to get -1800 to 1800
                     // 2. Divide by 10f to get -180.0 to 180.0
-                    modelRotationY = (progress.toFloat() - 1800f) / 10f
+                    modelRotationY = (progress.toFloat() - ROT_MID) / 10f
 
                     // Now modelRotationY is a proper degree value (e.g., 15.5)
                     modelNode?.rotation = Rotation(0f, modelRotationY, 0f)
@@ -717,11 +717,15 @@ class ModelPreviewActivity : AppCompatActivity() {
         } catch (e: Exception) {}
     }
 
+    override fun onSupportNavigateUp(): Boolean {
+        onDestroy()
+        return true
+    }
     override fun onDestroy() {
         // Stop animation cleanly before destroying the scene
         modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
-        super.onDestroy()
         removeStudioPlanes()
         sceneView.destroy()
+        super.onDestroy()
     }
 }

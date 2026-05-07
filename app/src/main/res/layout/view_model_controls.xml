@@ -17,7 +17,6 @@
         android:id="@+id/seekBarsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
         android:orientation="vertical"
         android:visibility="gone">
 
@@ -26,8 +25,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label1"
@@ -36,12 +34,12 @@
                 android:text="@string/label_axis_x"
                 android:textColor="@android:color/white"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
                 android:id="@+id/seek1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"/>
+                android:max="1000" />
 
             <!--
                 inputType="numberSigned|numberDecimal" allows negative values and
@@ -66,8 +64,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label2"
@@ -76,12 +73,12 @@
                 android:text="@string/label_axis_y"
                 android:textColor="@android:color/white"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
                 android:id="@+id/seek2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"/>
+                android:max="1000" />
 
             <EditText
                 android:id="@+id/input2"
@@ -101,8 +98,7 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label3"
@@ -111,12 +107,12 @@
                 android:text="@string/label_axis_z"
                 android:textColor="@android:color/white"/>
 
-            <SeekBar
-                android:id="@+id/seek3"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:max="100"/>
+            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
+            android:id="@+id/seek3"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:max="1000" />
 
             <EditText
                 android:id="@+id/input3"
@@ -146,13 +142,13 @@
                 android:text="@string/label_axis_uni"
                 android:textColor="@android:color/white"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
                 android:id="@+id/seekUniversalScale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"
-                android:progress="10"/>
+                android:max="1000"
+                android:progress="100"/>
 
             <EditText
                 android:id="@+id/inputUniScale"

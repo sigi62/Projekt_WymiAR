@@ -6,7 +6,8 @@
 
 
   Add lang pl/eng  - > getString(R.string.status_floor_mode)
-
+Add proper handling for closing Preview
+Fix rulerSeekBar top cut
 
   BUGS / FIXES
 

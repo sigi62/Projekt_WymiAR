@@ -32,7 +32,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private companion object {
         // Rotation is fixed; never adapts.
-        const val ROT_MIN = 0;  const val ROT_MAX = 360;  const val ROT_MID = 180
+        const val ROT_MIN = 0;  const val ROT_MAX = 3600;  const val ROT_MID = 1800
 
         // Scale: progress / SCL_MID = displayed value.  SCL_MID is fixed as the
         // denominator so the mapping stays simple; only the seekbar max grows.
@@ -130,9 +130,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // Views (lateinit — bound after inflation)
     // -------------------------------------------------------------------------
 
-    private lateinit var s1: SeekBar;   private lateinit var s2: SeekBar;   private lateinit var s3: SeekBar
+    private lateinit var s1: RulerSeekBar;   private lateinit var s2: RulerSeekBar;   private lateinit var s3: RulerSeekBar
     private lateinit var i1: EditText;  private lateinit var i2: EditText;  private lateinit var i3: EditText
-    private lateinit var sUni: SeekBar; private lateinit var iUni: EditText
+    private lateinit var sUni: RulerSeekBar; private lateinit var iUni: EditText
 
     // -------------------------------------------------------------------------
     // Init
@@ -296,8 +296,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     /** Called by a drag-handle gesture; overrides only the Y rotation. */
     fun updateRotationFromHandle(yDegrees: Float) {
-        val normalised = ((yDegrees + 180) % 360) - 180
-        val newProgress = (normalised / 1.8f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        val normalised = ((yDegrees + 180f) % 360f) - 180f
+        val newProgress = (normalised * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         rotateProgress = rotateProgress.copy(second = newProgress)
 
         if (currentMode == "ROTATE") {
@@ -570,14 +570,14 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private fun progressToValue(progress: Int): Float = when (currentMode) {
         "POSITION" -> (progress - posDynMid).toFloat()
-        "ROTATE"   -> (progress - ROT_MID).toFloat()
+        "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
         "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE)
         else       -> progress.toFloat()
     }
 
     private fun valueToProgress(value: Float): Int = when (currentMode) {
         "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
-        "ROTATE"   -> (value + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        "ROTATE"   -> ((value * 1)+ ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         "SCALE"    -> (value * SCL_MID).toInt().coerceIn(SCL_MIN, sclDynMax)
         else       -> value.toInt()
     }

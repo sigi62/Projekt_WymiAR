@@ -78,7 +78,7 @@ class RulerSeekBar @JvmOverloads constructor(
             canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
 
             if (isBoundary) {
-                paint.textSize = 35f
+                paint.textSize = 30f
                 paint.isFakeBoldText = true
                 val labelValue = (diffFromMid / 10f).toInt()
                 canvas.drawText(labelValue.toString(), x, centerY - (tickHeight / 2) - 15f, paint)
@@ -103,7 +103,7 @@ class RulerSeekBar @JvmOverloads constructor(
         val displayVal = (progress.toFloat() - midPoint) / 10f
         val decimalText = "%.1f".format(displayVal)
 
-        paint.textSize = 42f
+        paint.textSize = 40f
         paint.isFakeBoldText = true
         canvas.drawText(decimalText, thumbX, centerY - 70f, paint)
 

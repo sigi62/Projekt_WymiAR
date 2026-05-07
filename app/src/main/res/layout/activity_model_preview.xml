@@ -95,6 +95,7 @@
 
 
     <!-- Bottom button row (hidden while crop overlay is active) -->
+
     <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
         android:id="@+id/rotationSlider"
         android:layout_width="match_parent"
