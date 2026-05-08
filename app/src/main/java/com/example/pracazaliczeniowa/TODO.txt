@@ -5,11 +5,9 @@
   AR collision
 
 
-Filtering chip AZ arrows and REcent arrows for both orders!!!
-Fix RulerSeekBar for positon + scale !! textconversion + dynamic values
+Fix RulerSeekBar for positon + scale !! textconversion + dynamic values redraw lines
 Model appear skewed with new planeBuilder
 Fix rulerSeekBar top cut
-change import filter aviable files extension
 make deleteThumbnail Button appear only when thumbnai laviable
 
   BUGS / FIXES

@@ -246,11 +246,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val newPosMid = settings.posMidDefault
         val newSclMax = settings.sclMaxDefault
 
-        // Only update if the stored value is larger than the current dynamic
-        // value (i.e. don't shrink a range the user already expanded via typing).
         if (newPosMid > posDynMid) {
             posDynMid = newPosMid
-            // Reset position progress to the new centre so sliders start neutral.
             positionProgress = Triple(posDynMid, posDynMid, posDynMid)
             log("Settings applied → posDynMid=$posDynMid")
         }
@@ -259,13 +256,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
             log("Settings applied → sclDynMax=$sclDynMax")
         }
 
-        // If the UI is already inflated, refresh the seekbar maxes immediately.
         if (::s1.isInitialized) {
             withSync {
                 val dynMax = modeMax()
                 s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
                 sUni.max = sclDynMax
             }
+            updateRulerVisuals()   // ← new: ruler redraws with new ranges
         }
     }
 
@@ -515,45 +512,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         withSync {
             val dynMax = modeMax()
-
-            // --- Configure Ruler Visuals based on Mode ---
-            val sliders = listOf(s1, s2, s3)
-            when (currentMode) {
-                "SCALE" -> {
-                    sliders.plus(sUni).forEach {
-                        it.minValue = 0f
-                        it.maxValue = sclDynMax / 100f
-                        it.centerValue = (SCL_MID /100).toFloat()  // The "Natural" landmark for scale
-                        it.majorTickInterval = 1f
-                        it.minorTickInterval = 0.2f
-                        it.invalidate()
-                    }
-                }
-                "POSITION" -> {
-                    sliders.forEach {
-                        it.minValue = -(posDynMid/10).toFloat()
-                        it.maxValue = (posDynMid/10).toFloat()
-                        it.centerValue = 0f
-                        it.majorTickInterval = (posDynMid / 20f)
-                        it.minorTickInterval = (posDynMid / 100f)
-                        it.invalidate()
-                    }
-                }
-                "ROTATE" -> {
-                    sliders.forEach {
-                        it.minValue = -180f
-                        it.maxValue = 180f
-                        it.centerValue = 0f
-                        it.majorTickInterval = 30f
-                        it.minorTickInterval = 10f
-                        it.invalidate()
-                    }
-                }
-            }
-            s1.max   = dynMax;  s2.max   = dynMax;  s3.max   = dynMax
+            s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
             sUni.max = sclDynMax
 
-            s1.progress   = p1;  s2.progress   = p2;  s3.progress   = p3
+            // Ruler visuals are now managed in one place
+            updateRulerVisuals()
+
+            s1.progress = p1;  s2.progress = p2;  s3.progress = p3
             sUni.progress = universalScaleProgress
 
             i1.setText(formatValue(progressToValue(p1)))
@@ -604,30 +569,78 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     private fun progressToValue(progress: Int): Float = when (currentMode) {
+        // progress 0..2*posDynMid  →  value in cm  →  (progress - mid) / 10
         "POSITION" -> (progress - posDynMid).toFloat() / 10f
+        // progress 0..3600  →  (progress - 1800) / 10  →  -180..+180 degrees
         "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
+        // progress 1..sclDynMax  →  progress / 100  →  0.01..100×
         "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE)
         else       -> progress.toFloat()
     }
 
     private fun valueToProgress(value: Float): Int = when (currentMode) {
-        "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
-        "ROTATE"   -> ((value * 1)+ ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        // inverse of (progress - posDynMid) / 10  →  value * 10 + posDynMid
+        "POSITION" -> (value * 10f + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
+        // inverse of (progress - ROT_MID) / 10  →  value * 10 + ROT_MID
+        "ROTATE"   -> (value * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        // inverse of progress / SCL_MID  →  value * SCL_MID
         "SCALE"    -> (value * SCL_MID).toInt().coerceIn(SCL_MIN, sclDynMax)
         else       -> value.toInt()
     }
+
+    private fun updateRulerVisuals() {
+        if (!::s1.isInitialized) return
+        val sliders = listOf(s1, s2, s3)
+        when (currentMode) {
+            "SCALE" -> {
+                val scaleMax = sclDynMax / SCL_MID.toFloat()   // e.g. 5.0 or 100.0
+                sliders.plus(sUni).forEach {
+                    it.minValue         = 0f
+                    it.maxValue         = scaleMax
+                    it.centerValue      = 1f                   // 1× is the "natural" landmark
+                    it.majorTickInterval = 1f
+                    it.minorTickInterval = if (scaleMax > 20f) 1f else 0.2f
+                    it.invalidate()
+                }
+            }
+            "POSITION" -> {
+                val posMax = posDynMid / 10f                   // e.g. 10.0 cm or 100.0 cm
+                sliders.forEach {
+                    it.minValue         = -posMax
+                    it.maxValue         =  posMax
+                    it.centerValue      = 0f
+                    it.majorTickInterval = (posMax / 2f).coerceAtLeast(1f)
+                    it.minorTickInterval = (posMax / 10f).coerceAtLeast(0.1f)
+                    it.invalidate()
+                }
+            }
+            "ROTATE" -> {
+                sliders.forEach {
+                    it.minValue         = -180f
+                    it.maxValue         =  180f
+                    it.centerValue      = 0f
+                    it.majorTickInterval = 30f
+                    it.minorTickInterval = 10f
+                    it.invalidate()
+                }
+            }
+        }
+    }
+
 
     // -------------------------------------------------------------------------
     // Dynamic range expansion
     // -------------------------------------------------------------------------
 
     private fun maybeExpandRange(value: Float) {
+        var expanded = false
         when (currentMode) {
             "POSITION" -> {
-                val needed = kotlin.math.abs(value).toInt()
+                val needed = kotlin.math.abs(value * 10f).toInt()  // value is cm, mid is 10× cm
                 if (needed > posDynMid) {
                     posDynMid = needed.coerceAtMost(POS_MID_HARD)
-                    log("Position range expanded → ±$posDynMid cm")
+                    log("Position range expanded → ±${posDynMid / 10f} cm")
+                    expanded = true
                 }
             }
             "SCALE" -> {
@@ -635,9 +648,11 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 if (neededMax > sclDynMax) {
                     sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
                     log("Scale range expanded → max progress $sclDynMax (${sclDynMax / SCL_MID.toFloat()}×)")
+                    expanded = true
                 }
             }
         }
+        if (expanded) updateRulerVisuals()
     }
 
     // -------------------------------------------------------------------------

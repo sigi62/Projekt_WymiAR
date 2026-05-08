@@ -63,6 +63,7 @@
     <!-- Importing -->
     <string name="toast_importing">Importing…</string>
     <string name="toast_import_failed">Import failed – unsupported or corrupt file</string>
+    <string name="toast_unsupported_format">Unsupported format: .%s — use .glb, .obj, or .stl</string>
     <string name="toast_import_verify_failed">File imported but verification failed</string>
     <string name="toast_import_added">%1$s added to library</string>
 
@@ -231,7 +232,7 @@
     <string name="filter_recent">Recent</string>
     <string name="filter_imported">Imported</string>
     <string name="filter_saved">Saved</string>
-
+    <string name="filter_alphabetical">A–Z</string>
     <!-- Item count label -->
     <string name="library_item_count">%1$d models</string>
 

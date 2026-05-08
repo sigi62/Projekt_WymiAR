@@ -59,6 +59,7 @@
     </LinearLayout>
 
     <!-- Filter chips -->
+    <!-- Filter chips -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -81,16 +82,36 @@
                 android:layout_marginEnd="6dp"
                 android:text="@string/filter_all"
                 android:textSize="12sp"
-                android:checked="true" />
+                android:checked="false" />
 
             <com.google.android.material.chip.Chip
-            android:id="@+id/chipRecent"
-            style="@style/Widget.Material3.Chip.Filter"
-            android:layout_width="wrap_content"
-            android:layout_height="40dp"
-            android:layout_marginEnd="6dp"
-            android:text="@string/filter_recent"
-            android:textSize="12sp" />
+                android:id="@+id/chipAlphabetical"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/filter_alphabetical"
+                android:textSize="12sp"
+                app:chipIcon="@drawable/ic_sort_asc"
+                app:chipIconVisible="true"
+                app:chipIconSize="16dp"
+                app:iconStartPadding="4dp"
+                app:checkedIconVisible="false"/>
+
+            <com.google.android.material.chip.Chip
+                android:id="@+id/chipRecent"
+                style="@style/Widget.Material3.Chip.Filter"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/filter_recent"
+                android:textSize="12sp"
+                android:checked="true"
+                app:chipIcon="@drawable/ic_sort_desc"
+                app:chipIconVisible="true"
+                app:chipIconSize="16dp"
+                app:iconStartPadding="4dp"
+                app:checkedIconVisible="false" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipImported"

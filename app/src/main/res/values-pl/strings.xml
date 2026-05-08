@@ -63,6 +63,7 @@
     <!-- Importing -->
     <string name="toast_importing">Importowanie…</string>
     <string name="toast_import_failed">Importowanie nieudane – niewspomagany lub uszkodzony plik</string>
+    <string name="toast_unsupported_format">Niewspierany format: .%s — użyj .glb, .obj, lub .stl</string>
     <string name="toast_import_verify_failed">Importowanie zakończone ale plik nie pzedł weryfikacji wstępnej</string>
     <string name="toast_import_added">%1$s został dodany do biblioteki</string>
 
@@ -235,6 +236,7 @@
     <string name="filter_recent">Ostatnie</string>
     <string name="filter_imported">Importowane</string>
     <string name="filter_saved">Zapisane</string>
+    <string name="filter_alphabetical">A–Z</string>
 
     <!-- Item count label -->
     <string name="library_item_count">%1$d modeli</string>

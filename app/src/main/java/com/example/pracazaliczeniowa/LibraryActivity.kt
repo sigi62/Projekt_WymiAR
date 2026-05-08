@@ -35,6 +35,16 @@ class LibraryActivity : AppCompatActivity() {
         const val EXTRA_MODEL_IS_ASSET = "extra_model_is_asset"
     }
 
+
+    val modelMimeTypes = arrayOf(
+        "model/obj",
+        "model/stl",
+        "model/gltf-binary",
+        "model/gltf+json",
+        "application/sla",
+        "application/octet-stream" // The "catch-all" for binary files like .obj/.stl
+    )
+
     // ── Result launchers ──────────────────────────────────────────────────────
 
     private val settingsLauncher = registerForActivityResult(
@@ -55,22 +65,24 @@ class LibraryActivity : AppCompatActivity() {
         adapter.notifyDataSetChanged()
     }
     // File picker — opened only after converter is confirmed installed (if needed)
-    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            val fileName = getFileName(it) ?: "unknown"
-            val extension = fileName.substringAfterLast(".", "").lowercase()
+    private val importLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) { result ->
+        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        val uri = result.data?.data ?: return@registerForActivityResult
 
-            // Define your approved list
-            val allowed = listOf("obj", "stl", "glb", "gltf")
+        val fileName  = getFileName(uri) ?: "unknown"
+        val extension = fileName.substringAfterLast(".", "").lowercase()
+        val allowed   = setOf("obj", "stl", "glb", "gltf")
 
-            if (extension in allowed) {
-                // Success! The file is actually a 3D model.
-                Toast.makeText(this, "Importing: $fileName", Toast.LENGTH_SHORT).show()
-                // proceedWithImport(it)
-            } else {
-                // The user picked a .pdf or .docx because the picker was too broad.
-                Toast.makeText(this, "Rejected: .$extension files are not supported", Toast.LENGTH_LONG).show()
-            }
+        if (extension in allowed) {
+            processImport(uri)
+        } else {
+            Toast.makeText(
+                this,
+                getString(R.string.toast_unsupported_format, extension),
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
@@ -85,20 +97,18 @@ class LibraryActivity : AppCompatActivity() {
 
     // SplitInstall listener — kept as a field so we can unregister it
 
-    val modelMimeTypes = arrayOf(
-        "model/obj",
-        "model/stl",
-        "model/gltf-binary",
-        "model/gltf+json",
-        "application/sla",
-        "application/octet-stream" // The "catch-all" for binary files like .obj/.stl
-    )
 
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
             SplitInstallSessionStatus.INSTALLED -> {
                 Toast.makeText(this, getString(R.string.toast_converter_ready), Toast.LENGTH_SHORT).show()
-                importLauncher.launch(modelMimeTypes)
+                importLauncher.launch(
+                    Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                        putExtra(Intent.EXTRA_MIME_TYPES, modelMimeTypes)
+                    }
+                )
             }
             SplitInstallSessionStatus.FAILED -> {
                 Toast.makeText(this, getString(R.string.toast_converter_failed, state.errorCode().toString()), Toast.LENGTH_LONG).show()
@@ -147,10 +157,12 @@ class LibraryActivity : AppCompatActivity() {
         // only if the picked file actually needs conversion (see importLauncher above
         // and ensureConverterThenPick below).
         findViewById<ImageButton>(R.id.btnImportModel).setOnClickListener {
-            // We don't know yet what file the user will pick, so open the picker
-            // unconditionally. If the picked file is OBJ/STL and the converter
-            // isn't installed, processImport will trigger the download then retry.
-            importLauncher.launch(arrayOf("*/*"))
+            val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                addCategory(Intent.CATEGORY_OPENABLE)
+                type = "*/*"                         // required — some pickers ignore it without this
+                putExtra(Intent.EXTRA_MIME_TYPES, modelMimeTypes)
+            }
+            importLauncher.launch(intent)
         }
 
         allModels.clear()
@@ -371,19 +383,59 @@ class LibraryActivity : AppCompatActivity() {
     }
 
     private fun wireFilterChips() {
-        val chips = mapOf(
+        // Chips that carry a direction icon (togglable)
+        val chipAlphabetical = findViewById<com.google.android.material.chip.Chip>(R.id.chipAlphabetical)
+        val chipRecent       = findViewById<com.google.android.material.chip.Chip>(R.id.chipRecent)
+
+        // Simple chips — no direction icon
+        val simpleChips = mapOf(
             R.id.chipAll      to LibraryFilterManager.Filter.ALL,
-            R.id.chipRecent   to LibraryFilterManager.Filter.RECENT,
             R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
             R.id.chipSaved    to LibraryFilterManager.Filter.SAVED
         )
-        chips.forEach { (id, filter) ->
+
+        fun syncChipIcons() {
+            // Alphabetical: show A→Z (ascending) or Z→A (descending)
+            chipAlphabetical.chipIcon = getDrawable(
+                if (filterManager.current == LibraryFilterManager.Filter.ALPHABETICAL && !filterManager.ascending)
+                    R.drawable.ic_sort_asc
+                else
+                    R.drawable.ic_sort_desc
+            )
+            // Recent: show arrow-down (newest first / descending) or arrow-up (oldest first)
+            chipRecent.chipIcon = getDrawable(
+                if (filterManager.current == LibraryFilterManager.Filter.RECENT && filterManager.ascending)
+                    R.drawable.ic_sort_asc
+                else
+                    R.drawable.ic_sort_desc
+            )
+        }
+
+        fun applyAndRefresh() {
+            adapter.updateItems(filterManager.apply(allModels))
+            updateCountLabel()
+            syncChipIcons()
+        }
+
+        chipAlphabetical.setOnClickListener {
+            filterManager.select(LibraryFilterManager.Filter.ALPHABETICAL)
+            applyAndRefresh()
+        }
+
+        chipRecent.setOnClickListener {
+            filterManager.select(LibraryFilterManager.Filter.RECENT)
+            applyAndRefresh()
+        }
+
+        simpleChips.forEach { (id, filter) ->
             findViewById<com.google.android.material.chip.Chip>(id).setOnClickListener {
                 filterManager.select(filter)
-                adapter.updateItems(filterManager.apply(allModels))
-                updateCountLabel()
+                applyAndRefresh()
             }
         }
+
+        // Initialise icons to match the default state (RECENT descending)
+        syncChipIcons()
     }
 
     private fun updateCountLabel() {
