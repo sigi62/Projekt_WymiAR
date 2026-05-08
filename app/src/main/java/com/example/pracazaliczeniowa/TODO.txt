@@ -5,9 +5,10 @@
   AR collision
 
 
-
+Filtering chip AZ arrows and REcent arrows for both orders!!!
+Fix RulerSeekBar for positon + scale !! textconversion + dynamic values
+Model appear skewed with new planeBuilder
 Fix rulerSeekBar top cut
-refractor recent chip filter logic
 change import filter aviable files extension
 make deleteThumbnail Button appear only when thumbnai laviable
 

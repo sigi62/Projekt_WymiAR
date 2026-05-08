@@ -515,6 +515,41 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         withSync {
             val dynMax = modeMax()
+
+            // --- Configure Ruler Visuals based on Mode ---
+            val sliders = listOf(s1, s2, s3)
+            when (currentMode) {
+                "SCALE" -> {
+                    sliders.plus(sUni).forEach {
+                        it.minValue = 0f
+                        it.maxValue = sclDynMax / 100f
+                        it.centerValue = (SCL_MID /100).toFloat()  // The "Natural" landmark for scale
+                        it.majorTickInterval = 1f
+                        it.minorTickInterval = 0.2f
+                        it.invalidate()
+                    }
+                }
+                "POSITION" -> {
+                    sliders.forEach {
+                        it.minValue = -(posDynMid/10).toFloat()
+                        it.maxValue = (posDynMid/10).toFloat()
+                        it.centerValue = 0f
+                        it.majorTickInterval = (posDynMid / 20f)
+                        it.minorTickInterval = (posDynMid / 100f)
+                        it.invalidate()
+                    }
+                }
+                "ROTATE" -> {
+                    sliders.forEach {
+                        it.minValue = -180f
+                        it.maxValue = 180f
+                        it.centerValue = 0f
+                        it.majorTickInterval = 30f
+                        it.minorTickInterval = 10f
+                        it.invalidate()
+                    }
+                }
+            }
             s1.max   = dynMax;  s2.max   = dynMax;  s3.max   = dynMax
             sUni.max = sclDynMax
 
@@ -569,7 +604,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     private fun progressToValue(progress: Int): Float = when (currentMode) {
-        "POSITION" -> (progress - posDynMid).toFloat()
+        "POSITION" -> (progress - posDynMid).toFloat() / 10f
         "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
         "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE)
         else       -> progress.toFloat()

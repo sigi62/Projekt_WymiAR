@@ -12,13 +12,19 @@ class RulerSeekBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : AppCompatSeekBar(context, attrs) {
 
-    // Default interval set to 300 (Rotation). Can be changed to 20 for Position.
-    var tickInterval: Int = 30
-        set(value) {
-            field = value
-            invalidate() // Redraw when interval changes
-        }
+    // --- New Dynamic Properties ---
+    var minValue: Float = -180f
+    var maxValue: Float = 180f
+    var centerValue: Float = 0f
 
+    var majorTickInterval: Float = 30f
+
+    // How often to draw a small tick (e.g., every 10 units)
+    var minorTickInterval: Float = 10f
+    // Default interval set to 300 (Rotation). Can be changed to 20 for Position.
+
+    private val currentRealValue: Float
+        get() = minValue + (progress.toFloat() / max.toFloat()) * (maxValue - minValue)
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.BLACK
         textAlign = Paint.Align.CENTER
@@ -39,55 +45,60 @@ class RulerSeekBar @JvmOverloads constructor(
         val height = height.toFloat()
         val centerY = height / 2
         val usableWidth = width - paddingLeft - paddingRight
+        val totalRange = maxValue - minValue
 
-        val totalTicks = max.toFloat()
-        val midPoint = totalTicks / 2f
 
         val rulerColor = androidx.core.content.ContextCompat.getColor(context, R.color.icon_tint)
         paint.color = rulerColor
         paint.isAntiAlias = true
 
         // 1. Draw Ticks
-        for (i in 0..max step 100) {
-            val x = paddingLeft + (i.toFloat() / totalTicks) * usableWidth
-            val diffFromMid = i.toFloat() - midPoint
+        var currentTick = minValue
+        var currentVal = minValue
+        while (currentVal <= maxValue + 0.001f) { // Small epsilon for float precision
+            val relativePos = (currentVal - minValue) / totalRange
+            val x = paddingLeft + (relativePos * usableWidth)
 
-            val isZero = i.toFloat() == midPoint
-            val isBoundary = isZero || i == 0 || i == max
-            val isMajor30 = diffFromMid % 300f == 0f
-            val isTenth10 = diffFromMid % 100f == 0f
+            // Determine if this is a Landmark (Start, End, or Center)
+            val isBoundary = currentVal <= minValue + 0.001f || currentVal >= maxValue - 0.001f
+            val isCenter = Math.abs(currentVal - centerValue) < 0.001f
 
-            var tickHeight = 0f
-            var currentStrokeWidth = 0f
+            val isMajor = Math.abs(currentVal % majorTickInterval) < 0.001f ||
+                    Math.abs(currentVal % majorTickInterval - majorTickInterval) < 0.001f
+
+            val isMinor = Math.abs(currentVal % minorTickInterval) < 0.001f ||
+                    Math.abs(currentVal % minorTickInterval - minorTickInterval) < 0.001f
             when {
-                isBoundary -> {
-                    tickHeight = 35f
-                    currentStrokeWidth = 5f
+                isBoundary || isCenter -> {
+                    // Level 1: Landmarks - Boldest & Labeled
+                    paint.strokeWidth = 6f
+                    val tickHeight = 50f
+                    canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
+
+                    paint.textSize = 32f
+                    paint.isFakeBoldText = true
+                    val label = if (maxValue <= 10f) "%.1f".format(currentVal) else currentVal.toInt().toString()
+                    canvas.drawText(label, x, centerY - (tickHeight / 2) - 20f, paint)
                 }
-                isMajor30 -> {
-                    tickHeight = 20f
-                    currentStrokeWidth = 3f
+                isMajor -> {
+                    // Level 2: Major Ticks - Distinct but NO labels
+                    paint.strokeWidth = 4f
+                    val tickHeight = 30f
+                    canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
                 }
-                isTenth10 -> {
-                    tickHeight = 10f
-                    currentStrokeWidth = 2f
+                isMinor -> {
+                    // Level 3: Minor Ticks - Subtle background detail
+                    paint.strokeWidth = 2f
+                    val tickHeight = 15f
+                    canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
                 }
             }
-
-            paint.strokeWidth = currentStrokeWidth
-            canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
-
-            if (isBoundary) {
-                paint.textSize = 30f
-                paint.isFakeBoldText = true
-                val labelValue = (diffFromMid / 10f).toInt()
-                canvas.drawText(labelValue.toString(), x, centerY - (tickHeight / 2) - 15f, paint)
-                paint.isFakeBoldText = false
-            }
+            currentVal += minorTickInterval
         }
 
-        // 2. Draw the Indicator (The vertical line indicating current progress)
-        val thumbX = paddingLeft + (progress.toFloat() / totalTicks) * usableWidth
+        val progressPercent = progress.toFloat() / max.toFloat()
+        val thumbX = paddingLeft + (progressPercent * usableWidth)
+
         // Black "Outline" for the indicator
         paint.color = Color.BLACK
         paint.strokeWidth = 7f
@@ -100,12 +111,11 @@ class RulerSeekBar @JvmOverloads constructor(
 
         // 3. Current Value Text with Decimal
         paint.color = rulerColor
-        val displayVal = (progress.toFloat() - midPoint) / 10f
-        val decimalText = "%.1f".format(displayVal)
-
         paint.textSize = 40f
         paint.isFakeBoldText = true
-        canvas.drawText(decimalText, thumbX, centerY - 70f, paint)
+        val realValue = minValue + (progressPercent * totalRange)
+        val displayVal = "%.1f".format(realValue)
+        canvas.drawText(displayVal, thumbX, centerY - 70f, paint)
 
         paint.isFakeBoldText = false
     }
