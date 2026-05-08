@@ -34,7 +34,11 @@ import com.example.pracazaliczeniowa.Overlays.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.google.ar.core.Config
+import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import io.github.sceneview.node.Node
 import java.io.File
@@ -259,30 +263,19 @@ class ARActivity : AppCompatActivity() {
             else
                 setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
 
+            // Always use a plane hit for model placement and dragging — plane hits
+            // carry a well-defined orientation (surface normal) that we use to build
+            // a clean upright anchor. DepthPoint hits have an arbitrary orientation
+            // and caused models to appear skewed or lying on their side, so they are
+            // intentionally excluded here. Measure-point placement (further below)
+            // still benefits from depth precision but only uses the position, not
+            // the orientation, so it also works fine with plane-only hits.
             val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
-                ?.let { hits ->
-                    // 1st choice: depth/point-cloud hit (sub-centimetre on good devices)
-                    hits.firstOrNull { it.trackable is com.google.ar.core.DepthPoint }
-                    // 2nd choice: oriented plane hit matching the current magnet mode
-                        ?: hits.firstOrNull { hit ->
-                            val plane = hit.trackable as? Plane ?: return@firstOrNull false
-                            if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
-                            plane.type in allowedPlaneTypes && plane.isPoseInPolygon(hit.hitPose)
-                        }
+                ?.firstOrNull { hit ->
+                    val plane = hit.trackable as? Plane ?: return@firstOrNull false
+                    if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
+                    plane.type in allowedPlaneTypes && plane.isPoseInPolygon(hit.hitPose)
                 }
-//            // Raw ARCore hit-test: filter results by the actual plane type of
-//            // the trackable, so floor dots never steal a wall-mode tap and
-//            // vice versa. hitTestAR() does not reliably honour the type filter.
-//            val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
-//                ?.firstOrNull { hit ->
-//                    val plane = hit.trackable as? Plane ?: return@firstOrNull false
-//                    if (plane.trackingState != TrackingState.TRACKING) return@firstOrNull false
-//                    if (isWallMagnetVertical)
-//                        plane.type == Plane.Type.VERTICAL
-//                    else
-//                        plane.type == Plane.Type.HORIZONTAL_UPWARD_FACING ||
-//                                plane.type == Plane.Type.HORIZONTAL_DOWNWARD_FACING
-//                }
             val selected = selectedModel
 
             when (motionEvent.actionMasked) {
@@ -456,7 +449,6 @@ class ARActivity : AppCompatActivity() {
         lifecycleScope.launch {
 
             log("Loading path: $activeModelPath  isAsset: $activeModelIsAsset")
-
             // ── Key distinction: asset path vs absolute file path ─────────────
 
             val modelInstance = if (activeModelIsAsset) {
@@ -483,12 +475,39 @@ class ARActivity : AppCompatActivity() {
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            // Apply default profile directly to the node's scale/rotation before
-            // it is wrapped. bindToNode will then read these values and seed the
-            // sliders correctly — no double-application.
-            val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
+            // ── Build an upright anchor ───────────────────────────────────────
+            // hitResult.createAnchor() bakes the full hit pose (including surface-
+            // normal tilt) into the anchor, which makes the node inherit that tilt
+            // and appear skewed — especially on vertical planes and DepthPoint hits.
+            // Instead we create an anchor at the same world position but with an
+            // identity orientation so the node always starts axis-aligned.
+            val hitPose = hitResult.hitPose
+            val session = arSceneView.session ?: return@launch
+            val uprightPose = Pose.makeTranslation(hitPose.tx(), hitPose.ty(), hitPose.tz())
+            val anchor = session.createAnchor(uprightPose)
+
+            val anchorNode = AnchorNode(arSceneView.engine, anchor)
             anchorNode.addChildNode(node)
             arSceneView.addChildNode(anchorNode)
+
+            // ── Wall-magnet: face the model outward from the wall ─────────────
+            // The hit pose's X-axis is the wall's horizontal "right" direction and
+            // its Z-axis points outward (the surface normal). We extract the yaw
+            // (rotation around world-Y) from that normal so the model faces out.
+            if (isWallMagnetVertical) {
+                // Wall normal in world space = hit pose's +Z column
+                // quat → rotation matrix column 2 = (2(qx*qz+qy*qw),
+                //                                   2(qy*qz-qx*qw),
+                //                                   1-2(qx²+qy²))
+                val qx = hitPose.qx(); val qy = hitPose.qy()
+                val qz = hitPose.qz(); val qw = hitPose.qw()
+                val normalX =  2f * (qx * qz + qy * qw)
+                val normalZ =  1f - 2f * (qx * qx + qy * qy)
+                // atan2 gives the yaw angle that makes the model face the normal
+                val yawDeg = Math.toDegrees(atan2(normalX.toDouble(), normalZ.toDouble())).toFloat()
+                node.rotation = Float3(0f, yawDeg, 0f)
+                log("Wall placement: normal=($normalX, $normalZ) → yaw=$yawDeg°")
+            }
 
             placedModelNodes.add(anchorNode)
 
