@@ -166,4 +166,9 @@ class ProfileManager(context: Context) {
         val bundle = loadBundle(modelName)
         return bundle.default != null || bundle.named.isNotEmpty()
     }
+
+    fun getLastSavedTime(modelName: String): Long {
+        val file = fileFor(modelName)
+        return if (file.exists()) file.lastModified() else 0L
+    }
 }

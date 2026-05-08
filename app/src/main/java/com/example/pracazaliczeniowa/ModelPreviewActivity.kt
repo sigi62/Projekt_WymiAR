@@ -576,18 +576,44 @@ class ModelPreviewActivity : AppCompatActivity() {
     }
 
     private fun removeStudioPlanes() {
-        studioFloorNode?.let { sceneView.removeChildNode(it); it.destroy() }
-        studioBackWallNode?.let { sceneView.removeChildNode(it); it.destroy() }
-        studioSideWallNode?.let { sceneView.removeChildNode(it); it.destroy() }
-        studioFloorNode = null; studioBackWallNode = null; studioSideWallNode = null
-        floorMatInstance = null; backWallMatInstance = null; sideWallMatInstance = null
-        try {
-            val engine = sceneView.engine
-            studioVBufs.forEach { engine.destroyVertexBuffer(it) }
-            studioIBufs.forEach { engine.destroyIndexBuffer(it) }
-            studioMats.forEach { engine.destroyMaterialInstance(it) }
-        } catch (e: Exception) {}
-        studioVBufs.clear(); studioIBufs.clear(); studioMats.clear()
+        val engine = try { sceneView.engine } catch (e: Exception) { null }
+
+        // 1. Remove nodes from scene first
+        studioFloorNode?.let    { sceneView.removeChildNode(it) }
+        studioBackWallNode?.let { sceneView.removeChildNode(it) }
+        studioSideWallNode?.let { sceneView.removeChildNode(it) }
+
+        // 2. Destroy the renderable component from each entity BEFORE
+        //    destroying the MaterialInstance that it still references
+        engine?.let { eng ->
+            val rm = eng.renderableManager
+            listOfNotNull(studioFloorNode, studioBackWallNode, studioSideWallNode)
+                .forEach { node ->
+                    val instance = rm.getInstance(node.entity)
+                    if (instance != 0) rm.destroy(node.entity)
+                }
+        }
+
+        // 3. Now it's safe to destroy the nodes themselves
+        studioFloorNode?.destroy()
+        studioBackWallNode?.destroy()
+        studioSideWallNode?.destroy()
+        studioFloorNode    = null
+        studioBackWallNode = null
+        studioSideWallNode = null
+        floorMatInstance    = null
+        backWallMatInstance = null
+        sideWallMatInstance = null
+
+        // 4. Only now destroy GPU resources — renderable no longer holds refs
+        engine?.let { eng ->
+            studioVBufs.forEach { runCatching { eng.destroyVertexBuffer(it) } }
+            studioIBufs.forEach { runCatching { eng.destroyIndexBuffer(it) } }
+        }
+        studioMats.forEach  { runCatching { sceneView.materialLoader.destroyMaterialInstance(it) } }
+        studioVBufs.clear()
+        studioIBufs.clear()
+        studioMats.clear()
     }
 
     private suspend fun loadModel(path: String, isAsset: Boolean = true) {
@@ -721,25 +747,32 @@ class ModelPreviewActivity : AppCompatActivity() {
         finish()
         return true
     }
+
+    override fun onStop() {
+        if (currentBgMode is BgMode.Studio) {
+            removeStudioPlanes()
+        }
+        super.onStop()
+    }
     
     override fun onDestroy() {
-        super.onDestroy()
         try {
             // Stop animation before touching Filament resources
             modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
             // Cancel frame callback so no screenshot fires after destroy
             sceneView.onFrame = null
 
-            removeStudioPlanes()
             modelNode?.let {
                 sceneView.removeChildNode(it)
                 it.destroy()
             }
             sceneView.engine.flushAndWait()
-
-
             sceneView.destroy()
-            super.onDestroy()
-        } catch (_: Exception) {}
+
+        } catch (e: Exception) {
+            Log.e(TAG, "onDestroy cleanup error", e)  // don't silently swallow this
+        } finally {
+            super.onDestroy()  // ✅ called exactly once, at the very end
+        }
     }
 }

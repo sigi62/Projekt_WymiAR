@@ -98,8 +98,13 @@ object ModelImportManager {
 
             val displayName = dest.nameWithoutExtension
             log("Import SUCCESS: $displayName (${dest.length()} bytes)")
-            ModelItem(name = displayName, modelPath = dest.absolutePath,
-                thumbnailRes = null, isAsset = false)
+            ModelItem(
+                name         = displayName,
+                modelPath    = dest.absolutePath,
+                thumbnailRes = null,
+                isAsset      = false,
+                createdAt    = System.currentTimeMillis()
+            )
 
         } catch (e: Exception) {
             log("Import FAILED with exception: ${e.message}")
@@ -121,7 +126,8 @@ object ModelImportManager {
                     name         = file.nameWithoutExtension,
                     modelPath    = file.canonicalPath,
                     thumbnailRes = null,
-                    isAsset      = false
+                    isAsset      = false,
+                    createdAt    = file.lastModified()
                 )
             }
             ?: emptyList()
@@ -180,7 +186,8 @@ object ModelImportManager {
                 name         = sanitised,
                 modelPath    = newFile.canonicalPath,
                 thumbnailRes = item.thumbnailRes,
-                isAsset      = false
+                isAsset      = false,
+                createdAt    = item.createdAt
             )
         } else {
             log("Rename FAILED: File.renameTo returned false for '${item.name}'")

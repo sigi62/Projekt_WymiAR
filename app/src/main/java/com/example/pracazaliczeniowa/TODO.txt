@@ -6,7 +6,6 @@
 
 
 
-Add proper handling for closing Preview when studio mode (it doesnt chras in hdr or void ???)
 Fix rulerSeekBar top cut
 refractor recent chip filter logic
 change import filter aviable files extension

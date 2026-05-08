@@ -17,15 +17,13 @@ class LibraryFilterManager(
     fun apply(allModels: List<ModelItem>): List<ModelItem> {
         val filtered = when (current) {
             Filter.ALL      -> allModels
-            Filter.RECENT   -> {
-                // Returns items modified in the last 7 days
-                val sevenDaysAgo = System.currentTimeMillis() - (7 * 24 * 60 * 60 * 1000L)
-                allModels.filter { it.lastModified >= sevenDaysAgo }
-            }
+            Filter.RECENT   -> allModels  // all items, sorted below by activity time
 
             Filter.IMPORTED -> allModels.filter { !it.isAsset }
             Filter.SAVED    -> allModels.filter { it.profileKey in savedProfiles }
         }
-        return filtered.sortedByDescending { it.lastModified }
+        // Sort by the most recent activity: a saved/modified profile beats the
+        // raw creation/import time, so prefer lastModified and fall back to createdAt.
+        return filtered.sortedByDescending { maxOf(it.lastModified, it.createdAt) }
     }
 }

@@ -101,10 +101,10 @@ class ModelLibraryAdapter(
         }
 
         // ── Last modified date ───────────────────────────────────────────────
-        if (item.lastModified > 0L) {
+        val (dateVisible, dateText) = resolveDateLabel(context, item)
+        if (dateVisible) {
             holder.editDate.visibility = View.VISIBLE
-            val dateStr = dateFormat.format(Date(item.lastModified))
-            holder.editDate.text = "Modified: $dateStr"
+            holder.editDate.text = dateText
         } else {
             holder.editDate.visibility = View.GONE
         }
@@ -235,6 +235,28 @@ class ModelLibraryAdapter(
             bytes >= 1_024     -> "${bytes / 1_024} KB"
             else               -> "$bytes B"
         }
+    }
+
+    private fun resolveDateLabel(context: android.content.Context, item: ModelItem): Pair<Boolean, String> {
+        val fmt = dateFormat
+        // A saved/modified profile exists → show "Modified: {date}"
+        if (item.lastModified > 0L) {
+            return true to context.getString(R.string.label_modified, fmt.format(Date(item.lastModified)))
+        }
+        // Explicit creation/import timestamp recorded at import time
+        if (item.createdAt > 0L) {
+            val labelRes = if (item.isAsset) R.string.label_created else R.string.label_imported
+            return true to context.getString(labelRes, fmt.format(Date(item.createdAt)))
+        }
+        // Fallback for imported models whose createdAt was never stored:
+        // read the timestamp directly from the file on disk.
+        if (!item.isAsset) {
+            val fileTs = File(item.modelPath).takeIf { it.exists() }?.lastModified() ?: 0L
+            if (fileTs > 0L) {
+                return true to context.getString(R.string.label_imported, fmt.format(Date(fileTs)))
+            }
+        }
+        return false to ""
     }
 
     // ── Constants ─────────────────────────────────────────────────────────────

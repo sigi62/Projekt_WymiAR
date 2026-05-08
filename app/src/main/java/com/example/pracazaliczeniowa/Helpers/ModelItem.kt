@@ -17,13 +17,8 @@ data class ModelItem(
     val modelPath: String,
     val thumbnailRes: Int? = null,
     val isAsset: Boolean = true,
-    val lastModified: Long = 0L,      // epoch ms — from File.lastModified() or asset fallback
-    val defaultSizeM: Triple<Float, Float, Float>? = null   // (widthMeters, heightMeters, deepthMeter)
-) {
-    /**
-     * The key used by [ProfileManager] – derived from the file name
-     * without its extension, matching [DefaultModelNode.getModeleName()].
-     */
-    val profileKey: String
-        get() = modelPath.substringAfterLast('/').substringBeforeLast('.')
-}
+    val profileKey: String = modelPath.substringAfterLast("/").substringBeforeLast("."),
+    val defaultSizeM: Triple<Float, Float, Float>? = null,
+    val lastModified: Long = 0L,
+    val createdAt: Long = 0L
+)

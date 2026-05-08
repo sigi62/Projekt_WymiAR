@@ -49,8 +49,11 @@ class LibraryActivity : AppCompatActivity() {
 
     private val previewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
-    ) { adapter.notifyDataSetChanged() }
-
+    ) {
+        // Refresh items so lastModified reflects any profile save that just happened
+        refreshAllModels()
+        adapter.notifyDataSetChanged()
+    }
     // File picker — opened only after converter is confirmed installed (if needed)
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
@@ -108,14 +111,26 @@ class LibraryActivity : AppCompatActivity() {
     }
 
     // ── Bundled models ────────────────────────────────────────────────────────
-
-    private val bundledModels = listOf(
-        ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder, isAsset = true),
-        ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder, isAsset = true),
-        ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder, isAsset = true),
-    )
+    private val installTime: Long by lazy {
+        packageManager
+            .getPackageInfo(packageName, 0)
+            .firstInstallTime
+    }
+    private val bundledModels: List<ModelItem> by lazy {
+        listOf(
+            ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder,
+                isAsset = true, createdAt = installTime),
+            ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder,
+                isAsset = true, createdAt = installTime),
+            ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder,
+                isAsset = true, createdAt = installTime)
+        )
+    }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
+
+
+    private lateinit var profileManager: ProfileManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -144,7 +159,7 @@ class LibraryActivity : AppCompatActivity() {
             imports.forEach { ModelImportManager.verifyImport(this, it) }
         })
 
-        val profileManager = ProfileManager(this)
+        profileManager = ProfileManager(this)
         val savedProfiles = allModels
             .filter { profileManager.hasAnyProfile(it.profileKey) }
             .map    { it.profileKey }
@@ -345,6 +360,14 @@ class LibraryActivity : AppCompatActivity() {
             Toast.makeText(this@LibraryActivity,
                 getString(R.string.toast_rename_success, item.name, renamed.name), Toast.LENGTH_SHORT).show()
         }
+    }
+    private fun refreshAllModels() {
+        allModels.replaceAll { item ->
+            val profileTimestamp = profileManager.getLastSavedTime(item.profileKey) // you may need to add this to ProfileManager
+            if (profileTimestamp > 0L) item.copy(lastModified = profileTimestamp)
+            else item
+        }
+        adapter.updateItems(allModels.toList())
     }
 
     private fun wireFilterChips() {

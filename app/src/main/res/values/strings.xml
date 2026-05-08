@@ -234,4 +234,8 @@
 
     <!-- Item count label -->
     <string name="library_item_count">%1$d models</string>
+
+    <string name="label_created">Created: %1$s</string>
+    <string name="label_imported">Imported: %1$s</string>
+    <string name="label_modified">Modified: %1$s</string>
 </resources>
