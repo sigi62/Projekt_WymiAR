@@ -1,8 +1,6 @@
 package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
@@ -53,8 +51,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         const val MIN_SCALE_VALUE = 0.01f
 
-        /** Delay after the last keystroke before committing an EditText value (ms). */
-        const val EDIT_COMMIT_DELAY_MS = 2000L
     }
 
     // -------------------------------------------------------------------------
@@ -101,25 +97,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
     }
 
     // -------------------------------------------------------------------------
-    // Debounce infrastructure for EditText commit
-    // -------------------------------------------------------------------------
-
-    private val commitHandler = Handler(Looper.getMainLooper())
-
-    private val pendingCommit = HashMap<EditText, Runnable>()
-
-    private fun scheduleCommit(editText: EditText, action: () -> Unit) {
-        pendingCommit[editText]?.let { commitHandler.removeCallbacks(it) }
-        val runnable = Runnable { action() }
-        pendingCommit[editText] = runnable
-        commitHandler.postDelayed(runnable, EDIT_COMMIT_DELAY_MS)
-    }
-
-    private fun cancelCommit(editText: EditText) {
-        pendingCommit.remove(editText)?.let { commitHandler.removeCallbacks(it) }
-    }
-
-    // -------------------------------------------------------------------------
     // Callbacks for the host Activity
     // -------------------------------------------------------------------------
 
@@ -161,7 +138,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     fun bindToNode(node: SelectedModelNode) {
         // Cancel any in-flight debounced commits so they can't overwrite the
         // values we're about to seed from the node's actual state.
-        if (::i1.isInitialized) listOf(i1, i2, i3, iUni).forEach { cancelCommit(it) }
+        if (::i1.isInitialized) { /* no pending commits to cancel */ }
         targetNode = node
 
         // Seed sliders from the node's actual current state so they don't
@@ -401,22 +378,12 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     private fun attachEditTextListeners(editText: EditText, onCommit: () -> Unit) {
-        // Remove accumulated TextWatchers from repeated setupUI() calls
-        editText.clearComposingText()
-
-        editText.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (isSyncing) return
-                scheduleCommit(editText, onCommit)
-            }
-        })
+        // No TextWatcher — we only commit on explicit user action (Done key or
+        // focus loss), so typing is never interrupted by mid-input updates.
 
         editText.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
                 if (isSyncing) return@setOnFocusChangeListener
-                cancelCommit(editText)
                 onCommit()
                 dismissKeyboard(editText)
             }
@@ -424,7 +391,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         editText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                cancelCommit(editText)
                 onCommit()
                 editText.clearFocus()
                 dismissKeyboard(editText)
@@ -456,6 +422,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         withSync {
             val dynMax = modeMax()
             s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
+            updateRulerVisuals()   // redraw ticks if range just expanded
 
             s1.progress = p1;  s2.progress = p2;  s3.progress = p3
             i1.setText(formatValue(progressToValue(p1)))
@@ -483,6 +450,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         withSync {
             sUni.max = sclDynMax
             s1.max   = sclDynMax;  s2.max = sclDynMax;  s3.max = sclDynMax
+            updateRulerVisuals()   // redraw ticks if scale range just expanded
 
             sUni.progress = p
             s1.progress   = p;  s2.progress = p;  s3.progress = p
@@ -515,7 +483,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
             s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
             sUni.max = sclDynMax
 
-            // Ruler visuals are now managed in one place
+            // Ruler visuals updated AFTER max is set so the new tick boundaries
+            // are consistent with the seekbar's internal progress/max ratio.
             updateRulerVisuals()
 
             s1.progress = p1;  s2.progress = p2;  s3.progress = p3

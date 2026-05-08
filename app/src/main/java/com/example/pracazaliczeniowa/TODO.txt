@@ -5,7 +5,6 @@
   AR collision
 
 
-Fix RulerSeekBar for positon + scale !! textconversion + dynamic values redraw lines
 Model appear skewed with new planeBuilder
 Fix rulerSeekBar top cut
 make deleteThumbnail Button appear only when thumbnai laviable
