@@ -27,6 +27,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.pracazaliczeniowa.Helpers.LibraryFilterManager
+import com.example.pracazaliczeniowa.Helpers.ModelFileUtils
 
 class LibraryActivity : AppCompatActivity() {
 
@@ -126,14 +127,19 @@ class LibraryActivity : AppCompatActivity() {
             .getPackageInfo(packageName, 0)
             .firstInstallTime
     }
+
+
     private val bundledModels: List<ModelItem> by lazy {
         listOf(
             ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime),
+                isAsset = true, createdAt = installTime,
+                defaultSizeM = ModelFileUtils.readBounds(this,"models/cat.glb")),   // ~25×20×30 cm — adjust to reality
             ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime),
+                isAsset = true, createdAt = installTime,
+                defaultSizeM = ModelFileUtils.readBounds(this,"models/dog.glb")),
             ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime)
+                isAsset = true, createdAt = installTime,
+                defaultSizeM = ModelFileUtils.readBounds(this,"models/van.glb"))
         )
     }
 
@@ -166,6 +172,7 @@ class LibraryActivity : AppCompatActivity() {
         }
 
         allModels.clear()
+
         allModels.addAll(bundledModels)
         allModels.addAll(ModelImportManager.loadImported(this).also { imports ->
             imports.forEach { ModelImportManager.verifyImport(this, it) }

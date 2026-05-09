@@ -97,13 +97,15 @@ object ModelImportManager {
             }
 
             val displayName = dest.nameWithoutExtension
-            log("Import SUCCESS: $displayName (${dest.length()} bytes)")
+            val bounds = ModelFileUtils.readBounds(dest)   // ← add this line
+            log("Import SUCCESS: $displayName (${dest.length()} bytes), bounds=$bounds")
             ModelItem(
-                name         = displayName,
-                modelPath    = dest.absolutePath,
-                thumbnailRes = null,
-                isAsset      = false,
-                createdAt    = System.currentTimeMillis()
+                name          = displayName,
+                modelPath     = dest.absolutePath,
+                thumbnailRes  = null,
+                isAsset       = false,
+                createdAt     = System.currentTimeMillis(),
+                defaultSizeM  = bounds       // ← and this
             )
 
         } catch (e: Exception) {
@@ -127,7 +129,8 @@ object ModelImportManager {
                     modelPath    = file.canonicalPath,
                     thumbnailRes = null,
                     isAsset      = false,
-                    createdAt    = file.lastModified()
+                    createdAt    = file.lastModified(),
+                    defaultSizeM = ModelFileUtils.readBounds(file)  // ← add this
                 )
             }
             ?: emptyList()
@@ -226,6 +229,8 @@ object ModelImportManager {
         }
         return uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
     }
+
+
 
     /**
      * Triggers the GlbConverter object's init block via reflection so it
