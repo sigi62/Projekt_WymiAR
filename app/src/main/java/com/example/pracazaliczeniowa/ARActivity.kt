@@ -73,6 +73,10 @@ class ARActivity : AppCompatActivity() {
     private lateinit var settingsButton: ImageButton
     private lateinit var backButton: ImageButton
 
+    // ── Measure-mode action buttons ──────────────────────────────────────────
+    private lateinit var btnMeasureDelete: ImageButton
+    private lateinit var btnMeasureRevert: ImageButton
+
     private var isRotationRingVisible: Boolean = true
     private var isClosing: Boolean = false
 
@@ -89,14 +93,31 @@ class ARActivity : AppCompatActivity() {
     // ── Animation state ──────────────────────────────
     private var isAnimationPlaying: Boolean = false
 
+    // ── Measure state ────────────────────────────────────────────────────────
+    /**
+     * Committed line segments – each is a pair of AnchorNodes that are fully
+     * anchored to the scene and owned by [placedMeasureNodes].
+     * Hard-limited to MAX_MEASURE_LINES (5) entries.
+     */
+    private val measureLines = mutableListOf<Pair<AnchorNode, AnchorNode>>()
+
+    /**
+     * The node placed on the first tap of a new line, waiting for a second tap.
+     * Null when no line is in progress.
+     */
+    private var pendingMeasureNode: AnchorNode? = null
+
+    companion object {
+        /** Maximum number of simultaneous measurement lines. */
+        const val MAX_MEASURE_LINES = 5
+    }
+
+    // ── Other scene nodes ────────────────────────────────────────────────────
     private val placedMeasureNodes = mutableListOf<AnchorNode>()
     private val placedModelNodes   = mutableListOf<AnchorNode>()
 
     private val models         = mutableListOf<DefaultModelNode>()
     private var selectedModel: SelectedModelNode? = null
-
-    private var measurePointA: Float3? = null
-    private var measurePointB: Float3? = null
 
     private var isDragging   = false
     private var isPinching   = false
@@ -140,6 +161,13 @@ class ARActivity : AppCompatActivity() {
         settingsButton            = findViewById(R.id.btnSettings)
         btnLibrary                = findViewById<ImageButton>(R.id.btnLibrary)
 
+        // ── Measure action buttons ───────────────────────────────────────────
+        btnMeasureDelete     = findViewById(R.id.btnMeasureDelete)
+        btnMeasureRevert     = findViewById(R.id.btnMeasureRevert)
+
+        btnMeasureDelete.setOnClickListener { clearMeasurements() }
+        btnMeasureRevert.setOnClickListener { revertLastMeasurePoint() }
+
         // ── Dimension HUD ────────────────────────────────────────────────────
         dimensionHud = findViewById(R.id.dimensionHud)
         dimW = dimensionHud.findViewById(R.id.dimensionW)
@@ -174,8 +202,6 @@ class ARActivity : AppCompatActivity() {
         }
 
         // ── Custom plane renderer ─────────────────────────────────────────────
-        // Keep the native PlaneRenderer enabled — it handles plane geometry
-        // correctly. We just swap its "texture" parameter to our grid bitmap.
         planeGridRenderer = PlaneGridRenderer(arSceneView)
         planeGridRenderer.init()
         arSceneView.onSessionUpdated = { _, _ ->
@@ -210,7 +236,6 @@ class ARActivity : AppCompatActivity() {
             val wrapped = selectedModel ?: return@setOnClickListener
             isAnimationPlaying = !isAnimationPlaying
             wrapped.setAnimationPlaying(isAnimationPlaying)
-            // Tint the icon so the user knows whether animation is active
             animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
             statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on) else getString(R.string.animation_toggle_off)
         }
@@ -230,38 +255,6 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-//        unitButton.setOnClickListener {
-//            unit = when (unit) {
-//                DistanceUnit.METERS      -> DistanceUnit.CENTIMETERS
-//                DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
-//                DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
-//            }
-//            settings.distanceUnit = unit   // ← persist
-//            unitButton.text = when (unit) {
-//                DistanceUnit.METERS      -> getString(R.string.unit_m)
-//                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
-//                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
-//            }
-//            measureOverlay.setUnit(unit)
-//            modelControls.updateUnit(unit)
-//
-//            if (measurePointA != null && measurePointB != null) {
-//                val dist = distanceMeters(measurePointA!!, measurePointB!!)
-//                val (value, suffix) = unit.convert(dist)
-//                statusText.text = getString(R.string.measure_distance, value, suffix)
-//            }
-//
-//            if (dimensionHud.visibility == View.VISIBLE) {
-//                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
-//            }
-//        }
-
-//        unitButton.text = when (unit) {
-//            DistanceUnit.METERS      -> getString(R.string.unit_m)
-//            DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
-//            DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
-//        }
-
         statusText.text = getString(R.string.status_active_model, activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
 
         arSceneView.onTouchEvent = onTouchEvent@{ motionEvent, hitResult ->
@@ -270,21 +263,11 @@ class ARActivity : AppCompatActivity() {
 
             val nodeHit = hitResult?.node
 
-
-            // Replace lines 263–275 with this:
-
             val allowedPlaneTypes: Set<Plane.Type> = if (isWallMagnetVertical)
                 setOf(Plane.Type.VERTICAL)
             else
                 setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
 
-            // Always use a plane hit for model placement and dragging — plane hits
-            // carry a well-defined orientation (surface normal) that we use to build
-            // a clean upright anchor. DepthPoint hits have an arbitrary orientation
-            // and caused models to appear skewed or lying on their side, so they are
-            // intentionally excluded here. Measure-point placement (further below)
-            // still benefits from depth precision but only uses the position, not
-            // the orientation, so it also works fine with plane-only hits.
             val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
                 ?.firstOrNull { hit ->
                     val plane = hit.trackable as? Plane ?: return@firstOrNull false
@@ -364,7 +347,6 @@ class ARActivity : AppCompatActivity() {
                     if (moved) return@onTouchEvent false
 
                     if (isMeasureToolActive) {
-                        // NEW: guard against tapping into an unready scene
                         val isReady = arSceneView.frame?.camera?.trackingState == TrackingState.TRACKING
                                 && arSceneView.session?.getAllTrackables(Plane::class.java)
                             ?.any { it.trackingState == TrackingState.TRACKING } == true
@@ -419,28 +401,141 @@ class ARActivity : AppCompatActivity() {
         val newUnit = settings.distanceUnit
         if (newUnit != unit) {
             unit = newUnit
-//            unitButton.text = when (unit) {
-//                DistanceUnit.METERS      -> getString(R.string.unit_m)
-//                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
-//                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
-//            }
             measureOverlay.setUnit(unit)
             modelControls.updateUnit(unit)
         }
     }
 
-    // ── Measure tool ─────────────────────────────────────────────────────────
+    // ── Measure tool ──────────────────────────────────────────────────────────
 
     private fun toggleMeasureTool() {
         isMeasureToolActive = !isMeasureToolActive
         measureModeButton.alpha = if (isMeasureToolActive) 1.0f else 0.5f
+
         if (!isMeasureToolActive) {
             clearMeasurements()
+            btnMeasureDelete.visibility = View.GONE
+            btnMeasureRevert.visibility = View.GONE
             statusText.text = getString(R.string.status_active_model,
                 activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
+            deselectModel()
+            btnMeasureDelete.visibility = View.VISIBLE
+            btnMeasureRevert.visibility = View.VISIBLE
             statusText.text = getString(R.string.measure_tap_first)
         }
+    }
+
+    // ── Measure point placement ───────────────────────────────────────────────
+
+    private fun placeMeasurePoint(hitResult: HitResult) {
+        val pending = pendingMeasureNode
+
+        if (pending == null) {
+            // ── First tap: enforce line limit ─────────────────────────────────
+            if (measureLines.size >= MAX_MEASURE_LINES) {
+                statusText.text = "Maximum of $MAX_MEASURE_LINES measurements reached. Delete one to continue."
+                return
+            }
+
+            // Create the first anchor of a new line
+            val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
+            arSceneView.addChildNode(anchorNode)
+            placedMeasureNodes.add(anchorNode)
+
+            pendingMeasureNode = anchorNode
+            pushOverlayState()
+            statusText.text = getString(R.string.measure_tap_second)
+
+        } else {
+            // ── Second tap: commit the line ───────────────────────────────────
+            val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
+            arSceneView.addChildNode(anchorNode)
+            placedMeasureNodes.add(anchorNode)
+
+            measureLines.add(Pair(pending, anchorNode))
+            pendingMeasureNode = null
+            pushOverlayState()
+
+            // Report distance for the just-committed line
+            val a = pending.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val b = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val dist = distanceMeters(a, b)
+            val (value, suffix) = unit.convert(dist)
+
+            val linesLeft = MAX_MEASURE_LINES - measureLines.size
+            statusText.text = if (linesLeft > 0)
+                getString(R.string.measure_distance, value, suffix) + " · tap to add another"
+            else
+                getString(R.string.measure_distance, value, suffix) + " · limit reached"
+        }
+    }
+
+    /**
+     * Undo the last placed point:
+     * - If there is a pending (orphan) first-tap node, remove it.
+     * - Otherwise remove the second point of the last committed line (which
+     *   turns it back into a pending node — the first point stays anchored and
+     *   the user can tap a new second point to replace it).
+     */
+    private fun revertLastMeasurePoint() {
+        val pending = pendingMeasureNode
+        if (pending != null) {
+            // Remove the pending first-tap node
+            pending.anchor?.detach()
+            pending.parent = null
+            placedMeasureNodes.remove(pending)
+            pendingMeasureNode = null
+            pushOverlayState()
+
+            val linesCount = measureLines.size
+            statusText.text = if (linesCount == 0)
+                getString(R.string.measure_tap_first)
+            else
+                "Point removed · $linesCount line${if (linesCount != 1) "s" else ""} remaining"
+        } else if (measureLines.isNotEmpty()) {
+            // Pop the last committed line's second point; turn it back to pending
+            val lastLine = measureLines.removeAt(measureLines.size - 1)
+            val (nodeA, nodeB) = lastLine
+
+            // Detach and remove nodeB from the scene
+            nodeB.anchor?.detach()
+            nodeB.parent = null
+            placedMeasureNodes.remove(nodeB)
+
+            // nodeA becomes the pending node again
+            pendingMeasureNode = nodeA
+            pushOverlayState()
+            statusText.text = getString(R.string.measure_tap_second)
+        } else {
+            statusText.text = "Nothing to undo."
+        }
+    }
+
+    private fun clearMeasurements() {
+        pendingMeasureNode?.let {
+            it.anchor?.detach()
+            it.parent = null
+        }
+        pendingMeasureNode = null
+        measureLines.clear()
+
+        placedMeasureNodes.forEach {
+            it.anchor?.detach()
+            it.parent = null
+        }
+        placedMeasureNodes.clear()
+
+        measureOverlay.clear()
+
+        if (isMeasureToolActive) {
+            statusText.text = getString(R.string.measure_tap_first)
+        }
+    }
+
+    /** Push the current measure state to the overlay so it redraws correctly. */
+    private fun pushOverlayState() {
+        measureOverlay.setMeasureData(measureLines.toList(), pendingMeasureNode)
     }
 
     // ── Wall-magnet mode ──────────────────────────────────────────────────────
@@ -448,17 +543,10 @@ class ARActivity : AppCompatActivity() {
     private fun toggleWallMagnetMode() {
         isWallMagnetVertical = !isWallMagnetVertical
 
-        // Always keep HORIZONTAL_AND_VERTICAL so ARCore never stops tracking
-        // either plane type. Plane *visibility* is filtered every frame inside
-        // PlaneGridRenderer.update(), and hit-test filtering is in the touch
-        // handler — no session reconfiguration needed here.
-        // (Switching to VERTICAL-only mid-session caused already-detected
-        // horizontal planes to flicker or vanish on many devices.)
         arSceneView.configureSession { _, config ->
             config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
         }
 
-        // Force an immediate visibility pass so the change feels instant.
         planeGridRenderer.update(isWallMagnetVertical)
 
         if (isWallMagnetVertical) {
@@ -478,7 +566,6 @@ class ARActivity : AppCompatActivity() {
         lifecycleScope.launch {
 
             log("Loading path: $activeModelPath  isAsset: $activeModelIsAsset")
-            // ── Key distinction: asset path vs absolute file path ─────────────
 
             val modelInstance = if (activeModelIsAsset) {
                 arSceneView.modelLoader.createModelInstance(activeModelPath)
@@ -504,12 +591,6 @@ class ARActivity : AppCompatActivity() {
                 viewAttachmentManager = viewAttachmentManager
             )
 
-            // ── Build an upright anchor ───────────────────────────────────────
-            // hitResult.createAnchor() bakes the full hit pose (including surface-
-            // normal tilt) into the anchor, which makes the node inherit that tilt
-            // and appear skewed — especially on vertical planes and DepthPoint hits.
-            // Instead we create an anchor at the same world position but with an
-            // identity orientation so the node always starts axis-aligned.
             val hitPose = hitResult.hitPose
             val session = arSceneView.session ?: return@launch
             val uprightPose = Pose.makeTranslation(hitPose.tx(), hitPose.ty(), hitPose.tz())
@@ -519,20 +600,11 @@ class ARActivity : AppCompatActivity() {
             anchorNode.addChildNode(node)
             arSceneView.addChildNode(anchorNode)
 
-            // ── Wall-magnet: face the model outward from the wall ─────────────
-            // The hit pose's X-axis is the wall's horizontal "right" direction and
-            // its Z-axis points outward (the surface normal). We extract the yaw
-            // (rotation around world-Y) from that normal so the model faces out.
             if (isWallMagnetVertical) {
-                // Wall normal in world space = hit pose's +Z column
-                // quat → rotation matrix column 2 = (2(qx*qz+qy*qw),
-                //                                   2(qy*qz-qx*qw),
-                //                                   1-2(qx²+qy²))
                 val qx = hitPose.qx(); val qy = hitPose.qy()
                 val qz = hitPose.qz(); val qw = hitPose.qw()
                 val normalX =  2f * (qx * qz + qy * qw)
                 val normalZ =  1f - 2f * (qx * qx + qy * qy)
-                // atan2 gives the yaw angle that makes the model face the normal
                 val yawDeg = Math.toDegrees(atan2(normalX.toDouble(), normalZ.toDouble())).toFloat()
                 node.rotation = Float3(0f, yawDeg, 0f)
                 log("Wall placement: normal=($normalX, $normalZ) → yaw=$yawDeg°")
@@ -546,8 +618,6 @@ class ARActivity : AppCompatActivity() {
 
             selectModel(node)
 
-// Apply default profile AFTER selectModel() so the SelectedModelNode wrapper
-// exists, baseScale is Float3(1f), and bindToNode seeds sliders correctly.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
                 val selected = selectedModel ?: return@launch
@@ -567,7 +637,6 @@ class ARActivity : AppCompatActivity() {
     private fun selectModel(defaultNode: DefaultModelNode) {
         log("SELECT MODEL CALLED")
 
-        // Stop animation on the previously selected model before switching
         selectedModel?.let { currentWrapper ->
             if (isAnimationPlaying) {
                 currentWrapper.setAnimationPlaying(false)
@@ -579,7 +648,6 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-        // Reset animation state for the newly selected model
         isAnimationPlaying = false
         selectedModel?.setAnimationPlaying(false)
 
@@ -592,29 +660,25 @@ class ARActivity : AppCompatActivity() {
         animationToggleButton.alpha = 0.5f
 
         if (wrapped != null) {
-            // bindToNode seeds sliders from the node's actual scale/rotation,
-            // so a model placed with a default profile shows the right values.
             modelControls.bindToNode(wrapped)
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
             wireframeModeButton.alpha      = 0.5f
 
-            // ── Rotation ring: show and reset to visible state ────────────────
             isRotationRingVisible = true
             rotationRingToggleButton.alpha      = 1.0f
             rotationRingToggleButton.visibility = View.VISIBLE
 
-            // ── Animation button: show only if this model has animations ──────
             if (wrapped.hasAnimations()) {
                 animationToggleButton.visibility = View.VISIBLE
-                animationToggleButton.alpha      = 0.5f  // dim = stopped
+                animationToggleButton.alpha      = 0.5f
             } else {
                 animationToggleButton.visibility = View.GONE
             }
 
             wireframeModeButton.setOnClickListener {
                 val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
-                wireframeModeButton.alpha = if (isNowVisible) 1.0f else 0.5f   // ← add
+                wireframeModeButton.alpha = if (isNowVisible) 1.0f else 0.5f
                 if (isNowVisible) {
                     wrapped.getDimensionOverlay()?.let { overlay ->
                         updateDimensionHud(overlay.getDimensions())
@@ -632,7 +696,6 @@ class ARActivity : AppCompatActivity() {
     }
 
     private fun deselectModel() {
-        // Stop any running animation when deselecting
         if (isAnimationPlaying) {
             selectedModel?.setAnimationPlaying(false)
             isAnimationPlaying = false
@@ -664,43 +727,6 @@ class ARActivity : AppCompatActivity() {
         dimD.text = "D: ${"%.1f".format(dVal)} $suffix"
     }
 
-    // ── Measure points ────────────────────────────────────────────────────────
-    private val measureAnchorA: AnchorNode? get() = placedMeasureNodes.getOrNull(placedMeasureNodes.size - (if (measurePointB == null) 1 else 2))
-    private val measureAnchorB: AnchorNode? get() = if (placedMeasureNodes.size >= 2) placedMeasureNodes.last() else null
-
-    private fun placeMeasurePoint(hitResult: HitResult) {
-        val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
-        arSceneView.addChildNode(anchorNode)
-        placedMeasureNodes.add(anchorNode)
-
-        if (measurePointA == null || measurePointB != null) {
-            measurePointA = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
-            measurePointB = null
-            measureOverlay.setAnchorNodes(anchorNode, null)   // see MeasureTapeOverlayView change below
-            statusText.text = getString(R.string.measure_tap_second)
-            return
-        }
-
-        measurePointB = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
-        measureOverlay.setAnchorNodes(placedMeasureNodes[placedMeasureNodes.size - 2], anchorNode)
-
-        val dist = distanceMeters(measurePointA!!, measurePointB!!)
-        val (value, suffix) = unit.convert(dist)
-        statusText.text = getString(R.string.measure_distance, value, suffix)
-    }
-
-    private fun clearMeasurements() {
-        measurePointA = null
-        measurePointB = null
-        measureOverlay.clear()
-
-        placedMeasureNodes.forEach {
-            it.anchor?.detach()
-            it.parent = null
-        }
-        placedMeasureNodes.clear()
-    }
-
     // ── Profile dialog ────────────────────────────────────────────────────────
 
     private fun showProfileDialog() {
@@ -711,7 +737,6 @@ class ARActivity : AppCompatActivity() {
         val dialog = ProfilePickerDialog.newInstance(modelName)
 
         dialog.getCurrentProfile = {
-            // Snapshot the node's current physical scale and rotation.
             ModelProfile(
                 scaleX    = wrapped.scale.x,
                 scaleY    = wrapped.scale.y,
@@ -730,8 +755,6 @@ class ARActivity : AppCompatActivity() {
         }
 
         dialog.onLoadProfile = { profile ->
-            // Apply the profile to the node, then rebind so sliders seed from
-            // the node's new state.
             wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
             selected.syncBaseScale()
@@ -743,7 +766,6 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-
         dialog.onStatusUpdate = { message -> statusText.text = message }
 
         dialog.show(supportFragmentManager, "ProfilePickerDialog")
@@ -752,7 +774,6 @@ class ARActivity : AppCompatActivity() {
     // ── Model-picker sheet ────────────────────────────────────────────────────
 
     private fun showModelPicker() {
-        // We just set the listener and tell the popup to show itself
         modelPickerPopup.onModelPicked = { picked ->
             activeModelPath = picked.modelPath
             activeModelIsAsset = picked.isAsset
@@ -761,7 +782,6 @@ class ARActivity : AppCompatActivity() {
             statusText.text = getString(R.string.model_picker_prompt, label)
         }
 
-        // Highlighting logic is handled inside based on activeModelPath
         modelPickerPopup.show(btnLibrary, activeModelPath)
     }
 
@@ -771,7 +791,6 @@ class ARActivity : AppCompatActivity() {
         val selected   = selectedModel ?: return
         val anchorNode = selected.parent as? AnchorNode
 
-        // Stop animation before destroying the node
         if (isAnimationPlaying) {
             selected.setAnimationPlaying(false)
             isAnimationPlaying = false
@@ -824,22 +843,17 @@ class ARActivity : AppCompatActivity() {
         return true
     }
 
-
     private fun closeScene() {
         if (isClosing) return
         isClosing = true
 
-        // Stop any running animation
         if (isAnimationPlaying) {
             selectedModel?.setAnimationPlaying(false)
             isAnimationPlaying = false
         }
-        // Detach all anchors so ARCore releases tracking resources
         placedModelNodes.forEach { it.anchor?.detach() }
         placedMeasureNodes.forEach { it.anchor?.detach() }
-        // Destroy custom plane renderer before tearing down the scene
         planeGridRenderer.destroy()
-        // Pause and destroy the AR session before leaving
         arSceneView.session?.pause()
         arSceneView.destroy()
         finish()
@@ -847,25 +861,21 @@ class ARActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        // This is the standard way to ensure the AR session pauses
         arSceneView.session?.pause()
         viewAttachmentManager.onPause()
     }
 
     override fun onDestroy() {
-        // 1. Clear all nodes to release Sceneform/Sceneview references
         placedModelNodes.forEach { it.parent = null }
         placedModelNodes.clear()
         placedMeasureNodes.clear()
 
-        // 2. Only destroy the session if closeScene() hasn't already done it
         if (!isClosing) {
             planeGridRenderer.destroy()
             arSceneView.session?.pause()
             arSceneView.destroy()
         }
 
-        // 3. Clean up the ViewAttachmentManager
         viewAttachmentManager.onPause()
 
         super.onDestroy()

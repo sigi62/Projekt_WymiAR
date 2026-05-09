@@ -1,27 +1,11 @@
 
 
-  IMPLEMENTATION:
-
-  AR collision
+AR collision - if possible
 
 FIX THE DEFAULT PROFILES !!!!
+Rotation Handle not a ring
+Thumbnails for auto models are pre-made
 
-Add a toggle effect to MeasureTape
-
-Add the Unit Buttom FOR TAPE MEASYRE MODE  +
-
-
-
-  BUGS / FIXES
-
-  2. Rotation Handle not a ring
-  3. Thumbnails for auto models are pre-made
-
-
-
-
-  UI FIXES
-  Add a toggle effect to wireframe mode too ?? Button type special for selected?
 
 
 

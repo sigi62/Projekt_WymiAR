@@ -4,6 +4,8 @@
     ───────────────
     Added dimensionHud (include of view_model_dimension_label) in the
     bottom-start corner, above the model-controls strip.
+    Added measure-mode action buttons (delete / revert) at bottom-end,
+    shown only while measure mode is active.
 -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -150,6 +152,43 @@
             android:visibility="gone"/>
 
     </LinearLayout>
+
+    <!-- ── Measure-mode action buttons ─────────────────────────────────── -->
+    <!--
+        Shown only while measure mode is active (visibility toggled in code).
+        Delete  → bottom-start – clears all measure points.
+        Revert  → bottom-end   – undoes the last placed point (or last line).
+    -->
+
+    <!-- Delete – bottom-start -->
+    <ImageButton
+        android:id="@+id/btnMeasureDelete"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="24dp"
+        android:layout_marginStart="12dp"
+        android:src="@drawable/ic_delete"
+        android:background="@drawable/rounded_button"
+        android:scaleType="centerInside"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:contentDescription="Clear all measure points"/>
+
+    <!-- Revert – bottom-end -->
+    <ImageButton
+        android:id="@+id/btnMeasureRevert"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/ic_revert"
+        android:background="@drawable/rounded_button"
+        android:scaleType="centerInside"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:contentDescription="Undo last measure point"/>
 
     <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout

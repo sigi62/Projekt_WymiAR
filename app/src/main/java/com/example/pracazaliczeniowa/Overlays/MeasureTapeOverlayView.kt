@@ -19,29 +19,32 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Transparent overlay that draws a "measuring tape" line between two world-space points
- * (set by ARActivity) and shows the distance label at the midpoint.
+ * Transparent overlay that draws measuring-tape lines between committed pairs of
+ * world-space anchor nodes, plus an optional pending (first-tap) point that has
+ * no partner yet.  Supports up to MAX_LINES (5) complete line segments.
  */
 class MeasureTapeOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
+    companion object {
+        const val MAX_LINES = 5
+    }
+
     private var sceneView: ARSceneView? = null
 
+    /**
+     * Each entry is a committed pair (A, B) representing one finished measurement.
+     */
+    private val measureLines = mutableListOf<Pair<AnchorNode, AnchorNode>>()
 
-    private var anchorA: AnchorNode? = null
-    private var anchorB: AnchorNode? = null
+    /**
+     * The first tap of an in-progress line – drawn as a lone point with no label.
+     */
+    private var pendingAnchor: AnchorNode? = null
 
-    private var p0: Float3? = null
-    private var p1: Float3? = null
     private var unit: DistanceUnit = DistanceUnit.METERS
-
-
-    fun setAnchorNodes(a: AnchorNode?, b: AnchorNode?) {
-        anchorA = a
-        anchorB = b
-    }
 
     // ── Paints ────────────────────────────────────────────────────────────
 
@@ -80,7 +83,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
 
     private val proj = FloatArray(16)
     private val view = FloatArray(16)
-    private val vp = FloatArray(16)
+    private val vp   = FloatArray(16)
 
     // ── Choreographer (per-frame redraw) ──────────────────────────────────
 
@@ -99,32 +102,43 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    fun attach(sceneView: ARSceneView) {
-        this.sceneView = sceneView
+    // ── Public API ────────────────────────────────────────────────────────
+
+    fun attach(sv: ARSceneView) {
+        sceneView = sv
     }
 
+    /**
+     * Replace the full list of committed line segments and the current pending
+     * (single-tap, no partner yet) anchor.  Call this whenever ARActivity's
+     * measure state changes.
+     */
+    fun setMeasureData(
+        lines: List<Pair<AnchorNode, AnchorNode>>,
+        pending: AnchorNode?,
+    ) {
+        measureLines.clear()
+        measureLines.addAll(lines)
+        pendingAnchor = pending
+    }
+
+    fun setUnit(u: DistanceUnit) {
+        unit = u
+    }
+
+    /** Convenience – wipe everything (called by clearMeasurements). */
     fun clear() {
-        p0 = null
-        p1 = null
+        measureLines.clear()
+        pendingAnchor = null
     }
 
-    fun setPoints(a: Float3?, b: Float3?) {
-        p0 = a
-        p1 = b
-    }
-
-    fun setUnit(unit: DistanceUnit) {
-        this.unit = unit
-    }
+    // ── Drawing ───────────────────────────────────────────────────────────
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val sv = sceneView ?: return
-        val rawA = anchorA ?: return
-        val a = rawA.worldPosition.let { Float3(it.x, it.y, it.z) }
-
-        val frame = sv.frame ?: return
+        val sv    = sceneView ?: return
+        val frame = sv.frame  ?: return
         val camera = frame.camera
         if (camera.trackingState != TrackingState.TRACKING) return
 
@@ -135,34 +149,44 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         val sw = width.toFloat()
         val sh = height.toFloat()
 
-        val pa = project(a, sw, sh) ?: return
-        drawPoint(canvas, pa[0], pa[1])
+        // Draw every committed line
+        for ((nodeA, nodeB) in measureLines) {
+            val a = nodeA.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val b = nodeB.worldPosition.let { Float3(it.x, it.y, it.z) }
 
-        val b = anchorB?.worldPosition?.let { Float3(it.x, it.y, it.z) }
-        if (b != null) {
-            val pb = project(b, sw, sh) ?: return
+            val pa = project(a, sw, sh) ?: continue
+            val pb = project(b, sw, sh) ?: continue
+
             canvas.drawLine(pa[0], pa[1], pb[0], pb[1], linePaint)
+            drawPoint(canvas, pa[0], pa[1])
             drawPoint(canvas, pb[0], pb[1])
 
-            val mid = floatArrayOf((pa[0] + pb[0]) / 2f, (pa[1] + pb[1]) / 2f)
+            val mid  = floatArrayOf((pa[0] + pb[0]) / 2f, (pa[1] + pb[1]) / 2f)
             val dist = distanceMeters(a, b)
             val (value, suffix) = unit.convert(dist)
             drawLabel(canvas, String.format("%.1f %s", value, suffix), mid)
         }
+
+        // Draw the pending (orphan) point if present
+        pendingAnchor?.let { node ->
+            val p = node.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val sp = project(p, sw, sh) ?: return@let
+            drawPoint(canvas, sp[0], sp[1])
+        }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+
     private fun distanceMeters(a: Float3, b: Float3): Float {
-        val dx = a.x - b.x
-        val dy = a.y - b.y
-        val dz = a.z - b.z
+        val dx = a.x - b.x; val dy = a.y - b.y; val dz = a.z - b.z
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
     /** Column-major VP multiply then perspective divide → screen pixels. */
     private fun project(world: Float3, sw: Float, sh: Float): FloatArray? {
-        val x = vp[0] * world.x + vp[4] * world.y + vp[8] * world.z + vp[12]
-        val y = vp[1] * world.x + vp[5] * world.y + vp[9] * world.z + vp[13]
-        val w = vp[3] * world.x + vp[7] * world.y + vp[11] * world.z + vp[15]
+        val x = vp[0]*world.x + vp[4]*world.y + vp[8]*world.z  + vp[12]
+        val y = vp[1]*world.x + vp[5]*world.y + vp[9]*world.z  + vp[13]
+        val w = vp[3]*world.x + vp[7]*world.y + vp[11]*world.z + vp[15]
         if (abs(w) < 1e-6f || w < 0f) return null
         val ndcX = x / w
         val ndcY = -y / w
@@ -173,17 +197,12 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
     }
 
     private fun drawLabel(canvas: Canvas, text: String, mid: FloatArray) {
-        val tw = textPaint.measureText(text)
-        val th = textPaint.textSize
+        val tw  = textPaint.measureText(text)
+        val th  = textPaint.textSize
         val pad = 10f
-        val x = mid[0] - tw / 2f
-        val y = mid[1]
-
-        canvas.drawRoundRect(
-            x - pad, y - th - pad,
-            x + tw + pad, y + pad,
-            14f, 14f, bgPaint
-        )
+        val x   = mid[0] - tw / 2f
+        val y   = mid[1]
+        canvas.drawRoundRect(x - pad, y - th - pad, x + tw + pad, y + pad, 14f, 14f, bgPaint)
         canvas.drawText(text, x, y, textPaint)
     }
 
@@ -193,4 +212,3 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         canvas.drawCircle(x, y, r, pointStrokePaint)
     }
 }
-
