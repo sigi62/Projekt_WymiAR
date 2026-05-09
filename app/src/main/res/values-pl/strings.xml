@@ -82,10 +82,14 @@
     <string name="toast_delete_failed">Nie można było usunąć %1$s</string>
 
     <!-- Units -->
-    <string name="unit_label">Jednostka Miary:</string>
-    <string name="unit_mm">mm</string>
-    <string name="unit_cm">cm</string>
-    <string name="unit_m">m</string>
+    <string name="ar_controls_unit">JEDNOSTKI</string>
+    <string name="unit_label">JEDNOSTKA MIARY</string>
+    <string name="unit_desc">Jednostka używana do mierzenia dystansu</string>
+    <string-array name="unit_display_names">
+        <item>cm</item>
+        <item>m</item>
+        <item>mm</item>
+    </string-array>
     <string name="full_unit_m">Metry (m)</string>
     <string name="full_unit_cm">Centymetry (cm)</string>
     <string name="full_unit_mm">Milimetry (mm)</string>

@@ -4,20 +4,45 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView android:id="@+id/modeLabel"
-        android:layout_width="wrap_content"
+    <!-- Mode label row: label centred, unit button pinned to the right -->
+    <RelativeLayout
+        android:id="@+id/modeLabelRow"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="@android:color/white"
         android:paddingTop="8dp"
-        android:visibility="gone"
-        android:layout_gravity="center"/>
+        android:paddingBottom="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/modeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@android:color/white"
+            android:layout_centerInParent="true"/>
+
+        <!-- Unit toggle: only meaningful in POSITION mode, hidden otherwise -->
+        <Button
+            android:id="@+id/btnUnitToggle"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:paddingRight="10dp"
+            android:text="cm"
+            android:textSize="13sp"
+            android:textColor="@android:color/white"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
 
     <LinearLayout
         android:id="@+id/seekBarsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
+        android:paddingBottom="5dp"
         android:visibility="gone">
 
         <!-- X row -->
@@ -39,13 +64,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="1000" />
+                android:max="1000"/>
 
-            <!--
-                inputType="numberSigned|numberDecimal" allows negative values and
-                a decimal point.  imeOptions="actionDone" closes the keyboard and
-                triggers the IME action listener we attach in code.
-            -->
             <EditText
                 android:id="@+id/input1"
                 android:layout_width="70dp"
@@ -78,7 +98,7 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="1000" />
+                android:max="1000"/>
 
             <EditText
                 android:id="@+id/input2"
@@ -108,11 +128,11 @@
                 android:textColor="@android:color/white"/>
 
             <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
-            android:id="@+id/seek3"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_weight="1"
-            android:max="1000" />
+                android:id="@+id/seek3"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:max="1000"/>
 
             <EditText
                 android:id="@+id/input3"
@@ -131,7 +151,7 @@
         <LinearLayout
             android:id="@+id/layoutUniversalScale"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:visibility="gone">

@@ -16,6 +16,10 @@ class SettingsActivity : AppCompatActivity() {
 
     private lateinit var settings: AppSettings
 
+    private var refreshPosLabel: () -> Unit = {}
+    private var refreshPosEdit:  () -> Unit = {}
+
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_settings)
@@ -43,6 +47,37 @@ class SettingsActivity : AppCompatActivity() {
             )
             recreate()
         }
+
+
+        // ── Distance unit ────────────────────────────────────────────────────
+        val unitCodes   = listOf(
+            com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS,
+            com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS,
+            com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS
+        )
+        val spinnerUnit = findViewById<android.widget.Spinner>(R.id.spinnerUnit)
+
+        val unitAdapter = android.widget.ArrayAdapter.createFromResource(
+            this,
+            R.array.unit_display_names,
+            android.R.layout.simple_spinner_item
+        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
+
+        spinnerUnit.adapter = unitAdapter
+        spinnerUnit.setSelection(unitCodes.indexOf(settings.distanceUnit).coerceAtLeast(0))
+
+        spinnerUnit.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: android.view.View?, pos: Int, id: Long) {
+                val newUnit = unitCodes[pos]
+                if (newUnit == settings.distanceUnit) return
+                settings.distanceUnit = newUnit
+                refreshPosLabel()
+                refreshPosEdit()
+                // No recreate needed — the overlay picks it up in onResume via applySettings
+            }
+            override fun onNothingSelected(parent: android.widget.AdapterView<*>) {}
+        }
+
         // ── Language ─────────────────────────────────────────────────────────────
         val languageCodes = listOf("", "en", "pl")   // matches the string-array order
         val spinnerLanguage = findViewById<android.widget.Spinner>(R.id.spinnerLanguage)
@@ -73,33 +108,64 @@ class SettingsActivity : AppCompatActivity() {
         val posPlus  = findViewById<Button>(R.id.btnPosMidPlus)
         val posEdit  = findViewById<EditText>(R.id.etPosMid)
 
-        fun refreshPosLabel(v: Int) { posLabel.text = "±$v cm" }
+        refreshPosLabel = {
+            val value = settings.posMidInCurrentUnit()
+            val suffix = when (settings.distanceUnit) {
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> "m"
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> "cm"
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> "mm"
+            }
+            val formatted = if (settings.distanceUnit == com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS)
+                "±%.2f %s".format(value, suffix)
+            else
+                "±%.0f %s".format(value, suffix)
+            posLabel.text = formatted
+        }
 
-        posEdit.setText(settings.posMidDefault.toString())
-        refreshPosLabel(settings.posMidDefault)
+        refreshPosEdit = {
+            val value = settings.posMidInCurrentUnit()
+            posEdit.setText(
+                if (settings.distanceUnit == com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS)
+                    "%.2f".format(value)
+                else
+                    "%.0f".format(value)
+            )
+        }
+
+        posEdit.setText(/* remove old line, use: */ "".also { refreshPosEdit() })
+        refreshPosLabel()
+        refreshPosEdit()
 
         posEdit.addTextChangedListener(object : TextWatcher {
             override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
             override fun afterTextChanged(s: Editable?) {
-                val v = s?.toString()?.toIntOrNull() ?: return
-                settings.posMidDefault = v
-                refreshPosLabel(settings.posMidDefault)
+                val v = s?.toString()?.toFloatOrNull() ?: return
+                settings.setPosMidFromCurrentUnit(v)
+                refreshPosLabel()
             }
         })
 
         posMinus.setOnClickListener {
-            val step = if (settings.posMidDefault > 100) 100 else 10
-            settings.posMidDefault -= step
-            posEdit.setText(settings.posMidDefault.toString())
-            refreshPosLabel(settings.posMidDefault)
+            val step = when (settings.distanceUnit) {
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> if (settings.posMidDefault > 100) 100 else 10
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> if (settings.posMidDefault > 100) 100 else 10
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> if (settings.posMidDefault > 100) 100 else 10
+            }
+            settings.posMidDefault = (settings.posMidDefault - step).coerceAtLeast(1)
+            refreshPosEdit()
+            refreshPosLabel()
         }
 
         posPlus.setOnClickListener {
-            val step = if (settings.posMidDefault >= 100) 100 else 10
-            settings.posMidDefault += step
-            posEdit.setText(settings.posMidDefault.toString())
-            refreshPosLabel(settings.posMidDefault)
+            val step = when (settings.distanceUnit) {
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> if (settings.posMidDefault >= 100) 100 else 10
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
+                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
+            }
+            settings.posMidDefault = (settings.posMidDefault + step).coerceAtMost(1_000)
+            refreshPosEdit()
+            refreshPosLabel()
         }
 
         // ── Scale max ────────────────────────────────────────────────────

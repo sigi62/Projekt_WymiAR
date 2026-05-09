@@ -30,7 +30,7 @@ import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.PlaneGridRenderer
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 
-import com.example.pracazaliczeniowa.Overlays.DistanceUnit
+import com.example.pracazaliczeniowa.Helpers.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.google.ar.core.Config
@@ -57,6 +57,8 @@ class ARActivity : AppCompatActivity() {
     private lateinit var measureOverlay: MeasureTapeOverlayView
     private lateinit var modelPickerPopup: ModelPickerPopup
     private lateinit var profileManager: ProfileManager
+
+    private lateinit var settings: AppSettings
     private lateinit var measureModeButton: ImageButton
     private lateinit var wireframeModeButton: ImageButton
     private lateinit var animationToggleButton: ImageButton
@@ -67,7 +69,7 @@ class ARActivity : AppCompatActivity() {
     private var isWallMagnetVertical: Boolean = false
 
     private lateinit var btnLibrary : ImageButton
-    private lateinit var unitButton: Button
+    private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
     private lateinit var settingsButton: ImageButton
     private lateinit var backButton: ImageButton
 
@@ -83,7 +85,6 @@ class ARActivity : AppCompatActivity() {
     private lateinit var dimD: TextView
 
     private var isMeasureToolActive: Boolean = false
-    private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
 
     // ── Animation state ──────────────────────────────
     private var isAnimationPlaying: Boolean = false
@@ -122,6 +123,8 @@ class ARActivity : AppCompatActivity() {
         activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, true)
 
         profileManager = ProfileManager(this)
+        settings = AppSettings(this)
+        unit = settings.distanceUnit
         modelPickerPopup = ModelPickerPopup(this)
 
         arSceneView           = findViewById(R.id.arSceneView)
@@ -134,7 +137,6 @@ class ARActivity : AppCompatActivity() {
         animationToggleButton     = findViewById(R.id.btnAnimationToggle)
         rotationRingToggleButton  = findViewById(R.id.btnRotationRingToggle)
         wallMagnetButton          = findViewById(R.id.btnWallMagnet)
-        unitButton                = findViewById(R.id.btnUnit)
         settingsButton            = findViewById(R.id.btnSettings)
         btnLibrary                = findViewById<ImageButton>(R.id.btnLibrary)
 
@@ -145,6 +147,11 @@ class ARActivity : AppCompatActivity() {
         dimD = dimensionHud.findViewById(R.id.dimensionD)
 
         modelControls.applySettings(AppSettings(this))
+        modelControls.onUnitChanged = { newUnit ->
+            unit = newUnit
+            settings.distanceUnit = newUnit
+            measureOverlay.setUnit(newUnit)
+        }
 
         backButton.setOnClickListener { closeScene() }
 
@@ -222,30 +229,37 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-        unitButton.setOnClickListener {
-            unit = when (unit) {
-                DistanceUnit.METERS      -> DistanceUnit.CENTIMETERS
-                DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
-                DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
-            }
-            unitButton.text = when (unit) {
-                DistanceUnit.METERS      -> getString(R.string.unit_m)
-                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
-                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
-            }
-            measureOverlay.setUnit(unit)
-            modelControls.updateUnit(unit)
+//        unitButton.setOnClickListener {
+//            unit = when (unit) {
+//                DistanceUnit.METERS      -> DistanceUnit.CENTIMETERS
+//                DistanceUnit.CENTIMETERS -> DistanceUnit.MILLIMETERS
+//                DistanceUnit.MILLIMETERS -> DistanceUnit.METERS
+//            }
+//            settings.distanceUnit = unit   // ← persist
+//            unitButton.text = when (unit) {
+//                DistanceUnit.METERS      -> getString(R.string.unit_m)
+//                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
+//                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
+//            }
+//            measureOverlay.setUnit(unit)
+//            modelControls.updateUnit(unit)
+//
+//            if (measurePointA != null && measurePointB != null) {
+//                val dist = distanceMeters(measurePointA!!, measurePointB!!)
+//                val (value, suffix) = unit.convert(dist)
+//                statusText.text = getString(R.string.measure_distance, value, suffix)
+//            }
+//
+//            if (dimensionHud.visibility == View.VISIBLE) {
+//                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+//            }
+//        }
 
-            if (measurePointA != null && measurePointB != null) {
-                val dist = distanceMeters(measurePointA!!, measurePointB!!)
-                val (value, suffix) = unit.convert(dist)
-                statusText.text = getString(R.string.measure_distance, value, suffix)
-            }
-
-            if (dimensionHud.visibility == View.VISIBLE) {
-                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
-            }
-        }
+//        unitButton.text = when (unit) {
+//            DistanceUnit.METERS      -> getString(R.string.unit_m)
+//            DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
+//            DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
+//        }
 
         statusText.text = getString(R.string.status_active_model, activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
 
@@ -399,7 +413,19 @@ class ARActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         viewAttachmentManager.onResume()
-        modelControls.applySettings(AppSettings(this))
+        modelControls.applySettings(settings)
+
+        val newUnit = settings.distanceUnit
+        if (newUnit != unit) {
+            unit = newUnit
+//            unitButton.text = when (unit) {
+//                DistanceUnit.METERS      -> getString(R.string.unit_m)
+//                DistanceUnit.CENTIMETERS -> getString(R.string.unit_cm)
+//                DistanceUnit.MILLIMETERS -> getString(R.string.unit_mm)
+//            }
+            measureOverlay.setUnit(unit)
+            modelControls.updateUnit(unit)
+        }
     }
 
     // ── Measure tool ─────────────────────────────────────────────────────────

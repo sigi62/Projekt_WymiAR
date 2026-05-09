@@ -15,6 +15,7 @@ import android.widget.TextView
 import com.example.pracazaliczeniowa.Helpers.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
+import com.example.pracazaliczeniowa.Helpers.DistanceUnit
 
 fun log(msg: String) {
     Log.d("AR_CONTROL_DEBUG", msg)
@@ -102,11 +103,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     var onSaveRequested:   (() -> Unit)? = null
     var onDeleteRequested: (() -> Unit)? = null
+    var onUnitChanged: ((DistanceUnit) -> Unit)? = null
 
     // -------------------------------------------------------------------------
     // Views (lateinit — bound after inflation)
     // -------------------------------------------------------------------------
 
+    private lateinit var unitToggleBtn: Button
     private lateinit var s1: RulerSeekBar;   private lateinit var s2: RulerSeekBar;   private lateinit var s3: RulerSeekBar
     private lateinit var i1: EditText;  private lateinit var i2: EditText;  private lateinit var i3: EditText
     private lateinit var sUni: RulerSeekBar; private lateinit var iUni: EditText
@@ -226,20 +229,21 @@ class ModelControlOverlayView @JvmOverloads constructor(
         if (newPosMid > posDynMid) {
             posDynMid = newPosMid
             positionProgress = Triple(posDynMid, posDynMid, posDynMid)
-            log("Settings applied → posDynMid=$posDynMid")
         }
         if (newSclMax > sclDynMax) {
             sclDynMax = newSclMax
-            log("Settings applied → sclDynMax=$sclDynMax")
         }
+
+        // Apply unit — this rescales positionProgress and redraws
+        updateUnit(settings.distanceUnit)
 
         if (::s1.isInitialized) {
             withSync {
                 val dynMax = modeMax()
-                s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
+                s1.max = dynMax; s2.max = dynMax; s3.max = dynMax
                 sUni.max = sclDynMax
             }
-            updateRulerVisuals()   // ← new: ruler redraws with new ranges
+            updateRulerVisuals()
         }
     }
 
@@ -292,9 +296,12 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // -------------------------------------------------------------------------
 
     private fun setupUI() {
+        val modeLabelRow   = findViewById<View>(R.id.modeLabelRow)
         val modeLabel      = findViewById<TextView>(R.id.modeLabel)
         val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
         val layoutUni      = findViewById<LinearLayout>(R.id.layoutUniversalScale)
+        unitToggleBtn = findViewById(R.id.btnUnitToggle)
+
 
         s1   = findViewById(R.id.seek1);            s2   = findViewById(R.id.seek2)
         s3   = findViewById(R.id.seek3);            sUni = findViewById(R.id.seekUniversalScale)
@@ -302,7 +309,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         i3   = findViewById(R.id.input3);           iUni = findViewById(R.id.inputUniScale)
 
         seekBarsLayout.visibility = View.GONE
-        modeLabel.visibility      = View.GONE
+        modeLabelRow.visibility      = View.GONE
 
         // ------------------------------------------------------------------
         // SeekBar listener — single shared instance for s1/s2/s3/sUni
@@ -346,6 +353,18 @@ class ModelControlOverlayView @JvmOverloads constructor(
         attachEditTextListeners(i3) { commitEditTexts() }
         attachEditTextListeners(iUni) { commitUniScaleEditText() }
 
+
+        unitToggleBtn.setOnClickListener {
+            val newUnit = when (currentUnitFactor) {
+                1f    -> DistanceUnit.CENTIMETERS
+                100f  -> DistanceUnit.MILLIMETERS
+                else  -> DistanceUnit.METERS
+            }
+            updateUnit(newUnit)
+            // Notify the host (ARActivity) so measureOverlay and AppSettings stay in sync
+            onUnitChanged?.invoke(newUnit)
+            refreshUnitButton()
+        }
         // ------------------------------------------------------------------
         // Mode buttons
         // ------------------------------------------------------------------
@@ -353,13 +372,15 @@ class ModelControlOverlayView @JvmOverloads constructor(
         fun toggleMode(mode: String) {
             if (currentMode == mode && seekBarsLayout.visibility == View.VISIBLE) {
                 seekBarsLayout.visibility = View.GONE
-                modeLabel.visibility      = View.GONE
+                modeLabelRow.visibility      = View.GONE
             } else {
                 currentMode = mode
                 seekBarsLayout.visibility = View.VISIBLE
-                modeLabel.visibility      = View.VISIBLE
+                modeLabelRow.visibility      = View.VISIBLE
                 modeLabel.text            = currentMode
                 layoutUni.visibility      = if (mode == "SCALE") View.VISIBLE else View.GONE
+                unitToggleBtn.visibility  = if (mode == "POSITION") View.VISIBLE else View.GONE  // ← add
+
 
                 refreshSlidersForMode()
             }
@@ -508,6 +529,15 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
+    private fun refreshUnitButton() {
+        if (!::unitToggleBtn.isInitialized) return
+        unitToggleBtn.text = when (currentUnitFactor) {
+            1f    -> "m"
+            100f  -> "cm"
+            else  -> "mm"
+        }
+    }
+
     private fun saveCurrentProgress() {
         when (currentMode) {
             "ROTATE"   -> rotateProgress    = Triple(s1.progress, s2.progress, s3.progress)
@@ -539,7 +569,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private fun progressToValue(progress: Int): Float = when (currentMode) {
         // progress 0..2*posDynMid  →  value in cm  →  (progress - mid) / 10
-        "POSITION" -> (progress - posDynMid).toFloat() / 10f
+        "POSITION" -> (progress - posDynMid).toFloat() * (currentUnitFactor / 100f)
         // progress 0..3600  →  (progress - 1800) / 10  →  -180..+180 degrees
         "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
         // progress 1..sclDynMax  →  progress / 100  →  0.01..100×
@@ -549,7 +579,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private fun valueToProgress(value: Float): Int = when (currentMode) {
         // inverse of (progress - posDynMid) / 10  →  value * 10 + posDynMid
-        "POSITION" -> (value * 10f + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
+        "POSITION" -> (value / (currentUnitFactor / 100f) + posDynMid).toInt()
+            .coerceIn(POS_MIN, 2 * posDynMid)
         // inverse of (progress - ROT_MID) / 10  →  value * 10 + ROT_MID
         "ROTATE"   -> (value * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         // inverse of progress / SCL_MID  →  value * SCL_MID
@@ -570,7 +601,8 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 }
             }
             "POSITION" -> {
-                val posMax = posDynMid / 10f
+                val posMaxCm = posDynMid.toFloat()
+                val posMax = posMaxCm * (currentUnitFactor / 100f)
                 val major = (posMax / 2f).coerceAtLeast(1f)
                 val minor = (posMax / 10f).coerceAtLeast(0.1f)
                 sliders.forEach {
@@ -596,10 +628,10 @@ class ModelControlOverlayView @JvmOverloads constructor(
         var expanded = false
         when (currentMode) {
             "POSITION" -> {
-                val needed = kotlin.math.abs(value * 10f).toInt()  // value is cm, mid is 10× cm
+                val valueCm = value / (currentUnitFactor / 100f)
+                val needed = kotlin.math.abs(valueCm).toInt()
                 if (needed > posDynMid) {
                     posDynMid = needed.coerceAtMost(POS_MID_HARD)
-                    log("Position range expanded → ±${posDynMid / 10f} cm")
                     expanded = true
                 }
             }
@@ -607,7 +639,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 val neededMax = (value * SCL_MID).toInt()
                 if (neededMax > sclDynMax) {
                     sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
-                    log("Scale range expanded → max progress $sclDynMax (${sclDynMax / SCL_MID.toFloat()}×)")
                     expanded = true
                 }
             }
@@ -644,6 +675,10 @@ class ModelControlOverlayView @JvmOverloads constructor(
             (((positionProgress.second - posDynMid) * multiplier) + posDynMid).toInt(),
             (((positionProgress.third - posDynMid) * multiplier) + posDynMid).toInt()
         )
-        refreshSlidersForMode()
+        if (::s1.isInitialized) {
+            updateRulerVisuals()
+            refreshSlidersForMode()
+        }
+        refreshUnitButton()
     }
 }

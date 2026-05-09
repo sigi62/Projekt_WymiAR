@@ -55,14 +55,52 @@ class AppSettings(context: Context) {
     // ModelControlOverlayView – position default half-range (cm)
     // -------------------------------------------------------------------------
 
+    var distanceUnit: DistanceUnit
+        get() = when (prefs.getString(KEY_DISTANCE_UNIT, "cm")) {
+            "m"  -> DistanceUnit.METERS
+            "mm" -> DistanceUnit.MILLIMETERS
+            else -> DistanceUnit.CENTIMETERS
+        }
+        set(value) {
+            val tag = when (value) {
+                DistanceUnit.METERS      -> "m"
+                DistanceUnit.CENTIMETERS -> "cm"
+                DistanceUnit.MILLIMETERS -> "mm"
+            }
+            prefs.edit().putString(KEY_DISTANCE_UNIT, tag).apply()
+        }
+
     /**
      * Default half-range for the position seekbar, in centimetres.
      * The seekbar will span from  –[posMidDefault]  to  +[posMidDefault].
      * Valid range: 1..1000  (hard ceiling from ModelControlOverlayView).
      */
+
+
     var posMidDefault: Int
         get() = prefs.getInt(KEY_POS_MID, 100).coerceIn(1, 1_000)
         set(value) { prefs.edit().putInt(KEY_POS_MID, value.coerceIn(1, 1_000)).apply() }
+
+
+    /**
+     * Returns posMidDefault converted to the current distanceUnit for display.
+     */
+    fun posMidInCurrentUnit(): Float = when (distanceUnit) {
+        DistanceUnit.METERS      -> posMidDefault / 100f
+        DistanceUnit.CENTIMETERS -> posMidDefault.toFloat()
+        DistanceUnit.MILLIMETERS -> posMidDefault * 10f
+    }
+
+    /**
+     * Sets posMidDefault from a value expressed in the current distanceUnit.
+     */
+    fun setPosMidFromCurrentUnit(value: Float) {
+        posMidDefault = when (distanceUnit) {
+            DistanceUnit.METERS      -> (value * 100f).toInt()
+            DistanceUnit.CENTIMETERS -> value.toInt()
+            DistanceUnit.MILLIMETERS -> (value / 10f).toInt()
+        }.coerceIn(1, 1_000)
+    }
 
     // -------------------------------------------------------------------------
     // ModelControlOverlayView – scale default max progress
@@ -94,6 +132,8 @@ class AppSettings(context: Context) {
     companion object {
         private const val PREFS_NAME  = "app_settings"
         private const val KEY_DARK_MODE = "dark_mode"
+
+        private const val KEY_DISTANCE_UNIT = "distance_unit"
         private const val KEY_POS_MID   = "pos_mid_default"
         private const val KEY_SCL_MAX   = "scl_max_default"
         private const val KEY_LANGUAGE = "language_override"

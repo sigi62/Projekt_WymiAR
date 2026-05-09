@@ -11,6 +11,7 @@ import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
 import com.google.ar.core.TrackingState
+import com.example.pracazaliczeniowa.Helpers.DistanceUnit
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode
@@ -191,16 +192,5 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         canvas.drawCircle(x, y, r, pointFillPaint)
         canvas.drawCircle(x, y, r, pointStrokePaint)
     }
-}
-
-enum class DistanceUnit {
-    METERS, CENTIMETERS, MILLIMETERS;
-
-    fun convert(meters: Float): Pair<Float, String> =
-        when (this) {
-            METERS      -> meters to "m"
-            CENTIMETERS -> (meters * 100f) to "cm"
-            MILLIMETERS -> (meters * 1000f) to "mm"
-        }
 }
 
