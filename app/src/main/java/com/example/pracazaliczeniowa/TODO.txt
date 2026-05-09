@@ -2,7 +2,7 @@
 
 AR collision - if possible
 
-FIX THE DEFAULT PROFILES !!!!
+Change the ActionBar Color - priamry default is still purple ??
 Rotation Handle not a ring
 Thumbnails for auto models are pre-made
 

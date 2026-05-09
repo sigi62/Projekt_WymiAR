@@ -616,17 +616,23 @@ class ARActivity : AppCompatActivity() {
             models.add(node)
             node.setAnimationPlaying(false)
 
-            selectModel(node)
-
+            // Apply the default profile to the node BEFORE selectModel() so that
+            // bindToNode() seeds the sliders from the already-correct scale/rotation.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
-                val selected = selectedModel ?: return@launch
-                val wrapped   = selected.getWrappedNode() ?: return@launch
-                wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-                wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
-                selected.syncBaseScale()
-                selected.syncBaseRotation()
-                selected.refreshRingScale()
+                node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+                node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+            }
+
+            selectModel(node)
+
+            // After selectModel the SelectedModelNode wrapper exists; sync its
+            // base so pinch/rotation deltas are relative to the profile values.
+            if (profile != null) {
+                val sel = selectedModel ?: return@launch
+                sel.syncBaseScale()
+                sel.syncBaseRotation()
+                sel.refreshRingScale()
                 modelControls.resetSlidersToNeutral()
             }
         }
@@ -747,11 +753,30 @@ class ARActivity : AppCompatActivity() {
             )
         }
 
-        dialog.onProfileSaved = {
-            selectedModel?.syncBaseScale()
-            selectedModel?.syncBaseRotation()
-            modelControls.resetSlidersToNeutral()
-            statusText.text = getString(R.string.status_profile_saved)
+        dialog.onProfileSaved = { savedProfile ->
+            // Grab the current state
+            val sel = selectedModel
+            val wrp = sel?.getWrappedNode()
+
+            // Use a standard 'if' instead of 'return@onProfileSaved'
+            if (sel != null && wrp != null) {
+                // Apply the saved values back onto the live node
+                wrp.scale = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
+                wrp.rotation = Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ)
+
+                sel.syncBaseScale()
+                sel.syncBaseRotation()
+                sel.refreshRingScale()
+
+                // Re-seed sliders so they show the saved values as neutral
+                modelControls.bindToNode(sel)
+                modelControls.resetSlidersToNeutral()
+
+                if (dimensionHud.visibility == View.VISIBLE) {
+                    sel.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+                }
+                statusText.text = getString(R.string.status_profile_saved)
+            }
         }
 
         dialog.onLoadProfile = { profile ->

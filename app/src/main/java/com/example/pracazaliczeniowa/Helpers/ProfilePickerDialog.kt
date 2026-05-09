@@ -46,7 +46,7 @@ class ProfilePickerDialog : DialogFragment() {
      * Use this to reset the overlay's sliders to neutral so the saved values
      * become the new baseline.
      */
-    var onProfileSaved: (() -> Unit)? = null
+    var onProfileSaved: ((ModelProfile) -> Unit)? = null
     /** Called on save/delete to update the AR status bar. */
     var onStatusUpdate: ((String) -> Unit)? = null
     /** Must be set – provides the live scale/rotation to snapshot. */
@@ -116,7 +116,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_saved_default))
-                onProfileSaved?.invoke()
+                onProfileSaved?.invoke(current)
                 buildList()
             }
         }
@@ -148,7 +148,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveNamed(modelName, slotName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_updated_named, slotName))
-                onProfileSaved?.invoke()
+                onProfileSaved?.invoke(current)
                 buildList()
             }
         }
@@ -199,7 +199,7 @@ class ProfilePickerDialog : DialogFragment() {
                 when (profileManager.saveNamed(modelName, name, current)) {
                     ProfileSaveResult.Success -> {
                         onStatusUpdate?.invoke(getString(R.string.profile_saved_named, name))
-                        onProfileSaved?.invoke()
+                        onProfileSaved?.invoke(current)
                         buildList()
                     }
                     ProfileSaveResult.TooManyProfiles -> {
@@ -244,7 +244,7 @@ class ProfilePickerDialog : DialogFragment() {
                 profileManager.saveDefault(modelName, original)
                 dismiss()
                 onLoadProfile?.invoke(original)
-                onProfileSaved?.invoke()
+                onProfileSaved?.invoke(original)
                 onResetDefault?.invoke()
                 onStatusUpdate?.invoke(getString(R.string.status_reset_done))
             }
