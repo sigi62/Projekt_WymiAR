@@ -15,18 +15,29 @@ class RulerSeekBar @JvmOverloads constructor(
     // --- Dynamic Properties — each setter triggers a redraw ---
 
     var minValue: Float = -180f
-        set(value) { field = value; invalidate() }
-
     var maxValue: Float = 180f
-        set(value) { field = value; invalidate() }
-
     var centerValue: Float = 0f
-        set(value) { field = value; invalidate() }
-
     var majorTickInterval: Float = 30f
-        set(value) { field = value; invalidate() }
-
     var minorTickInterval: Float = 10f
+
+
+    fun updateRange(
+        min: Float,
+        max: Float,
+        center: Float,
+        major: Float,
+        minor: Float
+    ) {
+        minValue = min
+        maxValue = max
+        centerValue = center
+        majorTickInterval = major
+        minorTickInterval = minor
+        invalidate()
+    }
+
+
+    var decimalPlaces: Int = 1
         set(value) { field = value; invalidate() }
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -39,22 +50,25 @@ class RulerSeekBar @JvmOverloads constructor(
         thumb = null
         background = null
         progressDrawable = null
-        setPadding(60, 120, 60, 60)
+        setPadding(60, 0, 60, 0)
     }
 
     override fun onDraw(canvas: Canvas) {
         val width = width.toFloat()
         val height = height.toFloat()
-        val centerY = height / 2
+        val centerY = height * 90f / 140f
+
         val usableWidth = width - paddingLeft - paddingRight
         val totalRange = maxValue - minValue
         if (totalRange == 0f) return
 
         val rulerColor = androidx.core.content.ContextCompat.getColor(context, R.color.icon_tint)
         paint.color = rulerColor
+        paint.color = rulerColor
         paint.isAntiAlias = true
 
         // 1. Draw Ticks
+        if (minorTickInterval <= 0f) return
         var currentVal = minValue
         while (currentVal <= maxValue + 0.001f) {
             val relativePos = (currentVal - minValue) / totalRange
@@ -62,13 +76,10 @@ class RulerSeekBar @JvmOverloads constructor(
 
             val isBoundary = currentVal <= minValue + 0.001f || currentVal >= maxValue - 0.001f
             val isCenter   = Math.abs(currentVal - centerValue) < 0.001f
-            val isMajor    = Math.abs(currentVal % majorTickInterval) < 0.001f ||
-                    Math.abs(currentVal % majorTickInterval - majorTickInterval) < 0.001f
-            val isMinor    = Math.abs(currentVal % minorTickInterval) < 0.001f ||
-                    Math.abs(currentVal % minorTickInterval - minorTickInterval) < 0.001f
-
+            val isMajor    = currentVal.isNearMultipleOf(majorTickInterval)
+            val isMinor    = currentVal.isNearMultipleOf(minorTickInterval)
             when {
-                isBoundary || isCenter -> {
+                isBoundary -> {
                     paint.strokeWidth = 6f
                     val tickHeight = 50f
                     canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
@@ -76,6 +87,12 @@ class RulerSeekBar @JvmOverloads constructor(
                     paint.isFakeBoldText = true
                     val label = if (maxValue <= 10f) "%.1f".format(currentVal) else currentVal.toInt().toString()
                     canvas.drawText(label, x, centerY - (tickHeight / 2) - 20f, paint)
+                }
+                isCenter -> {
+                    paint.strokeWidth = 6f
+                    val tickHeight = 50f
+                    canvas.drawLine(x, centerY - tickHeight / 2, x, centerY + tickHeight / 2, paint)
+                    // no label — tick height is sufficient as a landmark
                 }
                 isMajor -> {
                     paint.strokeWidth = 4f
@@ -109,7 +126,24 @@ class RulerSeekBar @JvmOverloads constructor(
         paint.textSize = 40f
         paint.isFakeBoldText = true
         val realValue = minValue + (progressPercent * totalRange)
-        canvas.drawText("%.1f".format(realValue), thumbX, centerY - 70f, paint)
+        val fmt = "%.${decimalPlaces}f"
+        canvas.drawText(fmt.format(realValue), thumbX, centerY - 70f, paint)
         paint.isFakeBoldText = false
+    }
+
+    fun Float.isNearMultipleOf(interval: Float): Boolean {
+        if (interval <= 0f) return false
+        val remainder = Math.abs(this) % interval
+        return remainder < 0.001f || (interval - remainder) < 0.001f
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec)
+        // The ruler draws: value label at centerY-70, top tick at centerY-25,
+        // bottom tick at centerY+25, plus some margin.
+        // We need at least 160px total so nothing clips.
+        val minHeight = (160 + paddingTop + paddingBottom)
+        val resolvedHeight = maxOf(measuredHeight, minHeight)
+        setMeasuredDimension(measuredWidth, resolvedHeight)
     }
 }

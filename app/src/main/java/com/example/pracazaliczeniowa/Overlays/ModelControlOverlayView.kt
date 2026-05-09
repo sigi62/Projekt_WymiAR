@@ -47,7 +47,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
         // Default half-range → ±100 cm  (seekbar 0..200, mid=100)
         const val POS_MID_DEFAULT = 100
         // Hard ceiling: ±1000 cm
-        const val POS_MID_HARD    = 1_000
+        const val POS_MID_HARD    = 10_000
 
         const val MIN_SCALE_VALUE = 0.01f
 
@@ -562,35 +562,26 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val sliders = listOf(s1, s2, s3)
         when (currentMode) {
             "SCALE" -> {
-                val scaleMax = sclDynMax / SCL_MID.toFloat()   // e.g. 5.0 or 100.0
+                val scaleMax = sclDynMax / SCL_MID.toFloat()
+                val minor = if (scaleMax > 20f) 1f else 0.2f
                 sliders.plus(sUni).forEach {
-                    it.minValue         = 0f
-                    it.maxValue         = scaleMax
-                    it.centerValue      = 1f                   // 1× is the "natural" landmark
-                    it.majorTickInterval = 1f
-                    it.minorTickInterval = if (scaleMax > 20f) 1f else 0.2f
-                    it.invalidate()
+                    it.updateRange(min = 0f, max = scaleMax, center = 1f, major = 1f, minor = minor)
+                    it.decimalPlaces = 2
                 }
             }
             "POSITION" -> {
-                val posMax = posDynMid / 10f                   // e.g. 10.0 cm or 100.0 cm
+                val posMax = posDynMid / 10f
+                val major = (posMax / 2f).coerceAtLeast(1f)
+                val minor = (posMax / 10f).coerceAtLeast(0.1f)
                 sliders.forEach {
-                    it.minValue         = -posMax
-                    it.maxValue         =  posMax
-                    it.centerValue      = 0f
-                    it.majorTickInterval = (posMax / 2f).coerceAtLeast(1f)
-                    it.minorTickInterval = (posMax / 10f).coerceAtLeast(0.1f)
-                    it.invalidate()
+                    it.updateRange(min = -posMax, max = posMax, center = 0f, major = major, minor = minor)
+                    it.decimalPlaces = 1
                 }
             }
             "ROTATE" -> {
                 sliders.forEach {
-                    it.minValue         = -180f
-                    it.maxValue         =  180f
-                    it.centerValue      = 0f
-                    it.majorTickInterval = 30f
-                    it.minorTickInterval = 10f
-                    it.invalidate()
+                    it.updateRange(min = -180f, max = 180f, center = 0f, major = 30f, minor = 10f)
+                    it.decimalPlaces = 1
                 }
             }
         }
@@ -634,8 +625,10 @@ class ModelControlOverlayView @JvmOverloads constructor(
         else       -> sclDynMax
     }
 
-    private fun formatValue(value: Float) = String.format("%.1f", value)
-
+    private fun formatValue(value: Float) = when (currentMode) {
+        "SCALE"    -> "%.2f".format(value)
+        else       -> "%.1f".format(value)
+    }
     private var currentUnitFactor: Float = 100f
     fun updateUnit(unit: DistanceUnit) {
         val oldFactor = currentUnitFactor

@@ -23,7 +23,7 @@
         <!-- X row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
@@ -62,7 +62,7 @@
         <!-- Y row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
@@ -96,7 +96,7 @@
         <!-- Z row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 

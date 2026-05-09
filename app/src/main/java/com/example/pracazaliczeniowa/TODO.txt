@@ -4,9 +4,10 @@
 
   AR collision
 
+FIX THE DEFAULT PROFILES !!!!
 
-Model appear skewed with new planeBuilder
-Fix rulerSeekBar top cut
+Add the Unit Buttom + wire it up to all valus!!
+
 make deleteThumbnail Button appear only when thumbnai laviable
 
   BUGS / FIXES
