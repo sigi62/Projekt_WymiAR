@@ -6,9 +6,11 @@
 
 FIX THE DEFAULT PROFILES !!!!
 
-Add the Unit Buttom + wire it up to all valus!!
+Add a toggle effect to MeasureTape
 
-make deleteThumbnail Button appear only when thumbnai laviable
+Add the Unit Buttom FOR TAPE MEASYRE MODE  +
+
+
 
   BUGS / FIXES
 
@@ -19,7 +21,6 @@ make deleteThumbnail Button appear only when thumbnai laviable
 
 
   UI FIXES
-  Add a toggle effect to MeasureTape
   Add a toggle effect to wireframe mode too ?? Button type special for selected?
 
 

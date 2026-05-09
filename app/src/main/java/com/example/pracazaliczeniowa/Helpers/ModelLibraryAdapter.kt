@@ -122,8 +122,9 @@ class ModelLibraryAdapter(
             val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
             PopupMenu(context, anchor).apply {
                 menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
-                menu.add(0, MENU_DELETE_THUMB,  1, context.getString(R.string.menu_delete_thumbnail))
-                    .isEnabled = cached.exists()
+                if (cached.exists()) {
+                    menu.add(0, MENU_DELETE_THUMB, 1, context.getString(R.string.menu_delete_thumbnail))
+                }
                 menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
                 if (!item.isAsset) {
                     menu.add(0, MENU_DELETE_MODEL, 3, context.getString(R.string.menu_delete_model))

@@ -199,6 +199,7 @@ class ARActivity : AppCompatActivity() {
         measureOverlay.attach(arSceneView)
         measureOverlay.setUnit(unit)
 
+        measureModeButton.alpha = 0.5f
         measureModeButton.setOnClickListener { toggleMeasureTool() }
 
         // ── Wall-magnet toggle click ───────────────────────────────────────────
@@ -432,9 +433,11 @@ class ARActivity : AppCompatActivity() {
 
     private fun toggleMeasureTool() {
         isMeasureToolActive = !isMeasureToolActive
+        measureModeButton.alpha = if (isMeasureToolActive) 1.0f else 0.5f
         if (!isMeasureToolActive) {
             clearMeasurements()
-            statusText.text = getString(R.string.status_active_model, activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
+            statusText.text = getString(R.string.status_active_model,
+                activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
             statusText.text = getString(R.string.measure_tap_first)
         }
@@ -594,6 +597,7 @@ class ARActivity : AppCompatActivity() {
             modelControls.bindToNode(wrapped)
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
+            wireframeModeButton.alpha      = 0.5f
 
             // ── Rotation ring: show and reset to visible state ────────────────
             isRotationRingVisible = true
@@ -610,6 +614,7 @@ class ARActivity : AppCompatActivity() {
 
             wireframeModeButton.setOnClickListener {
                 val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
+                wireframeModeButton.alpha = if (isNowVisible) 1.0f else 0.5f   // ← add
                 if (isNowVisible) {
                     wrapped.getDimensionOverlay()?.let { overlay ->
                         updateDimensionHud(overlay.getDimensions())
@@ -640,6 +645,7 @@ class ARActivity : AppCompatActivity() {
         selectedModel = null
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
+        wireframeModeButton.alpha      = 0.5f
         animationToggleButton.visibility    = View.GONE
         rotationRingToggleButton.visibility = View.GONE
         dimensionHud.visibility             = View.GONE
