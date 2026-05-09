@@ -234,6 +234,15 @@ class ModelControlOverlayView @JvmOverloads constructor(
             sclDynMax = newSclMax
         }
 
+        // Seed the factor immediately so that if setupUI() is triggered for the
+        // first time during updateUnit() below, refreshUnitButton() already reads
+        // the correct value rather than the hardcoded 100f fallback.
+        currentUnitFactor = when (settings.distanceUnit) {
+            DistanceUnit.METERS      -> 1f
+            DistanceUnit.CENTIMETERS -> 100f
+            DistanceUnit.MILLIMETERS -> 1000f
+        }
+
         // Apply unit — this rescales positionProgress and redraws
         updateUnit(settings.distanceUnit)
 
@@ -392,6 +401,10 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         findViewById<Button>(R.id.btnModelSaveProfile).setOnClickListener { onSaveRequested?.invoke()  }
         findViewById<Button>(R.id.btnModelDelete).setOnClickListener      { onDeleteRequested?.invoke() }
+
+        // Populate the unit button text immediately from the current unit factor
+        // so it never shows the XML placeholder when first made visible.
+        refreshUnitButton()
     }
 
     // -------------------------------------------------------------------------
@@ -660,6 +673,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
         "SCALE"    -> "%.2f".format(value)
         else       -> "%.1f".format(value)
     }
+    // Seeded to CENTIMETERS as a safe fallback; applySettings() corrects this
+    // from AppSettings before any UI is shown, so the unit button always
+    // reflects the user's persisted choice on first display.
     private var currentUnitFactor: Float = 100f
     fun updateUnit(unit: DistanceUnit) {
         val oldFactor = currentUnitFactor
