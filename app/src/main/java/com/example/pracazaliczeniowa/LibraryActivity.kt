@@ -43,6 +43,7 @@ class LibraryActivity : AppCompatActivity() {
         "model/gltf-binary",
         "model/gltf+json",
         "application/sla",
+        "model/fbx",
         "application/octet-stream" // The "catch-all" for binary files like .obj/.stl
     )
 
@@ -74,7 +75,7 @@ class LibraryActivity : AppCompatActivity() {
 
         val fileName  = getFileName(uri) ?: "unknown"
         val extension = fileName.substringAfterLast(".", "").lowercase()
-        val allowed   = setOf("obj", "stl", "glb", "gltf")
+        val allowed   = setOf("obj", "stl", "glb", "gltf", "fbx")
 
         if (extension in allowed) {
             processImport(uri)

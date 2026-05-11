@@ -24,14 +24,21 @@ class LibraryFilterManager(
      * (so tapping the same chip a second time reverses the direction).
      */
     fun select(filter: Filter) {
-        if (current == filter && filter.hasDirection) {
-            ascending = !ascending
+        if (current == filter) {
+            when {
+                // Direction-toggleable filters: flip direction on re-tap
+                filter.hasDirection -> ascending = !ascending
+                // Exclusive filters (IMPORTED, SAVED): re-tapping deselects → fall back to ALL
+                else -> {
+                    current = Filter.ALL
+                    ascending = false
+                }
+            }
         } else {
             current = filter
-            // Sensible defaults per filter
             ascending = when (filter) {
-                Filter.ALPHABETICAL -> true   // A → Z
-                else                -> false  // newest first
+                Filter.ALPHABETICAL -> true
+                else                -> false
             }
         }
     }

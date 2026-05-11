@@ -8,11 +8,18 @@ import com.example.pracazaliczeniowa.Converter.ConverterRegistry
 import java.io.File
 
 /**
- * Handles importing user-picked .glb / .obj / .stl files from external storage
- * into the app's private internal storage at [Context.filesDir]/models/.
+ * Handles importing user-picked .glb / .obj / .stl / .fbx files from external
+ * storage into the app's private internal storage at [Context.filesDir]/models/.
  *
- * OBJ and STL files are converted to GLB via the :converter dynamic feature
- * module (accessed through [ConverterRegistry]) before being stored.
+ * OBJ, STL, and FBX files are converted to GLB via the :converter dynamic
+ * feature module (accessed through [ConverterRegistry]) before being stored.
+ *
+ * OBJ imports also attempt to copy the companion .mtl file into the same cache
+ * directory so Assimp can resolve materials during conversion.  Due to Android's
+ * per-URI permission model this only works when the file is exposed via a
+ * content:// URI that grants access to sibling files (e.g. a file manager that
+ * supports it).  If the .mtl cannot be read the import continues anyway and
+ * Assimp falls back to the default PBR material.
  *
  * All public methods that touch the filesystem are safe to call from a
  * background thread (Dispatchers.IO). Never call [importFromUri] on the
@@ -35,10 +42,11 @@ object ModelImportManager {
 
         val isGlb         = fileName.endsWith(".glb", ignoreCase = true)
         val isConvertible = fileName.endsWith(".obj", ignoreCase = true) ||
-                fileName.endsWith(".stl", ignoreCase = true)
+                fileName.endsWith(".stl", ignoreCase = true) ||
+                fileName.endsWith(".fbx", ignoreCase = true)
 
         if (!isGlb && !isConvertible) {
-            log("Import FAILED: unsupported file type '$fileName'. Use .glb, .obj, or .stl")
+            log("Import FAILED: unsupported file type '$fileName'. Use .glb, .obj, .stl, or .fbx")
             return null
         }
 
@@ -65,7 +73,21 @@ object ModelImportManager {
                     tempFile.outputStream().use { output -> input.copyTo(output) }
                 }
 
-                // 2. Make sure the :converter dynamic feature has registered itself.
+                // 2. For OBJ files, also try to copy the companion .mtl sidecar.
+                //    Assimp looks for the .mtl in the same directory as the .obj,
+                //    so it must land in cacheDir alongside tempFile.
+                //
+                //    Android's content:// permission model grants access only to
+                //    the single URI the user picked, not to sibling files in the
+                //    same folder.  The attempt below works when the file manager
+                //    exposes sibling files under predictable URIs (some do, some
+                //    don't).  If it fails we log and continue — Assimp will use
+                //    the default PBR material injected by the native converter.
+                if (fileName.endsWith(".obj", ignoreCase = true)) {
+                    copyMtlSidecar(context, uri, fileName)
+                }
+
+                // 3. Make sure the :converter dynamic feature has registered itself.
                 //    We use reflection so :app has no compile-time dependency on :converter.
                 ensureConverterInitialized()
 
@@ -75,13 +97,16 @@ object ModelImportManager {
                     return null
                 }
 
-                // 3. Run the native conversion.
+                // 4. Run the native conversion.
                 log("Converting $fileName → ${dest.name}")
                 val success = ConverterRegistry.instance!!.convertToGlb(
                     tempFile.absolutePath,
                     dest.absolutePath
                 )
+
+                // Clean up temp files regardless of outcome
                 tempFile.delete()
+                cleanMtlSidecar(context, fileName)
 
                 if (!success) {
                     log("Conversion FAILED for $fileName")
@@ -97,7 +122,7 @@ object ModelImportManager {
             }
 
             val displayName = dest.nameWithoutExtension
-            val bounds = ModelFileUtils.readBounds(dest)   // ← add this line
+            val bounds = ModelFileUtils.readBounds(dest)
             log("Import SUCCESS: $displayName (${dest.length()} bytes), bounds=$bounds")
             ModelItem(
                 name          = displayName,
@@ -105,7 +130,7 @@ object ModelImportManager {
                 thumbnailRes  = null,
                 isAsset       = false,
                 createdAt     = System.currentTimeMillis(),
-                defaultSizeM  = bounds       // ← and this
+                defaultSizeM  = bounds
             )
 
         } catch (e: Exception) {
@@ -130,7 +155,7 @@ object ModelImportManager {
                     thumbnailRes = null,
                     isAsset      = false,
                     createdAt    = file.lastModified(),
-                    defaultSizeM = ModelFileUtils.readBounds(file)  // ← add this
+                    defaultSizeM = ModelFileUtils.readBounds(file)
                 )
             }
             ?: emptyList()
@@ -230,7 +255,60 @@ object ModelImportManager {
         return uri.lastPathSegment?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
     }
 
+    /**
+     * Attempts to copy the .mtl sidecar that accompanies an .obj file into
+     * [Context.cacheDir] so Assimp finds it next to the temp .obj during conversion.
+     *
+     * Strategy: build a sibling URI by replacing the .obj filename with .mtl in
+     * the original URI string.  This works for file managers that expose files
+     * under predictable content:// URIs (e.g. Files by Google, most OEM pickers).
+     * It silently does nothing when the .mtl is inaccessible — conversion
+     * continues and the native layer injects a default PBR material instead.
+     */
+    private fun copyMtlSidecar(context: Context, objUri: Uri, objFileName: String) {
+        val mtlFileName = "${objFileName.substringBeforeLast('.')}.mtl"
+        val tempMtl     = File(context.cacheDir, mtlFileName)
 
+        // Attempt 1: replace the last path segment of the URI with the .mtl name.
+        // Works for content:// URIs where the filename is the last segment.
+        val mtlUriString = objUri.toString()
+            .substringBeforeLast('/') + "/$mtlFileName"
+
+        try {
+            context.contentResolver.openInputStream(Uri.parse(mtlUriString))?.use { input ->
+                tempMtl.outputStream().use { output -> input.copyTo(output) }
+                log("MTL sidecar copied: $mtlFileName")
+                return
+            }
+        } catch (_: Exception) { /* URI not accessible — try next strategy */ }
+
+        // Attempt 2: for file:// URIs, check if the .mtl sits next to the .obj on disk.
+        if (objUri.scheme == "file") {
+            val objFile = File(objUri.path ?: return)
+            val siblingMtl = File(objFile.parentFile, mtlFileName)
+            if (siblingMtl.exists() && siblingMtl.canRead()) {
+                try {
+                    siblingMtl.copyTo(tempMtl, overwrite = true)
+                    log("MTL sidecar copied from filesystem: $mtlFileName")
+                    return
+                } catch (e: Exception) {
+                    log("MTL sidecar copy from filesystem failed: ${e.message}")
+                }
+            }
+        }
+
+        log("MTL sidecar not found or inaccessible for $objFileName — " +
+                "conversion will use default PBR material")
+    }
+
+    /**
+     * Deletes the temp .mtl file from [Context.cacheDir] after conversion,
+     * whether or not it was successfully copied in.
+     */
+    private fun cleanMtlSidecar(context: Context, objFileName: String) {
+        val mtlFileName = "${objFileName.substringBeforeLast('.')}.mtl"
+        File(context.cacheDir, mtlFileName).delete()
+    }
 
     /**
      * Triggers the GlbConverter object's init block via reflection so it
