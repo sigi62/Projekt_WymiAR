@@ -8,11 +8,21 @@ import com.example.pracazaliczeniowa.Converter.ConverterRegistry
 import java.io.File
 
 /**
- * Handles importing user-picked .glb / .obj / .stl / .fbx files from external
- * storage into the app's private internal storage at [Context.filesDir]/models/.
+ * Handles importing user-picked 3D model files from external storage into the
+ * app's private internal storage at [Context.filesDir]/models/.
  *
- * OBJ, STL, and FBX files are converted to GLB via the :converter dynamic
- * feature module (accessed through [ConverterRegistry]) before being stored.
+ * Supported formats:
+ *   • .glb  — copied directly (no conversion)
+ *   • .obj  — converted via native Assimp; .mtl sidecar copy attempted
+ *   • .stl  — converted via native Assimp
+ *   • .fbx  — converted via native Assimp
+ *   • .dae  — converted via native Assimp (Collada)
+ *   • .gltf — converted via native Assimp (text glTF → binary .glb)
+ *   • .3ds  — converted via native Assimp (legacy Autodesk 3DS)
+ *   • .ply  — converted via native Assimp (3D scan / photogrammetry)
+ *
+ * Conversion is performed by the :converter dynamic feature module accessed
+ * through [ConverterRegistry].
  *
  * OBJ imports also attempt to copy the companion .mtl file into the same cache
  * directory so Assimp can resolve materials during conversion.  Due to Android's
@@ -29,6 +39,23 @@ object ModelImportManager {
 
     private const val MODELS_DIR = "models"
 
+    /** Extensions accepted as direct GLB (no conversion needed). */
+    private val GLB_EXTENSIONS = setOf("glb")
+
+    /**
+     * Extensions that require native conversion before storage.
+     * Must stay in sync with detectFormat() in glb_converter.cpp.
+     */
+    private val CONVERTIBLE_EXTENSIONS = setOf(
+        "obj",
+        "stl",
+        "fbx",
+        "dae",
+        "gltf",
+        "3ds",
+        "ply"
+    )
+
     /**
      * Copies or converts the file at [uri] into internal storage.
      *
@@ -40,19 +67,20 @@ object ModelImportManager {
             return null
         }
 
-        val isGlb         = fileName.endsWith(".glb", ignoreCase = true)
-        val isConvertible = fileName.endsWith(".obj", ignoreCase = true) ||
-                fileName.endsWith(".stl", ignoreCase = true) ||
-                fileName.endsWith(".fbx", ignoreCase = true)
+        val ext           = fileName.substringAfterLast('.', "").lowercase()
+        val isGlb         = ext in GLB_EXTENSIONS
+        val isConvertible = ext in CONVERTIBLE_EXTENSIONS
 
         if (!isGlb && !isConvertible) {
-            log("Import FAILED: unsupported file type '$fileName'. Use .glb, .obj, .stl, or .fbx")
+            log("Import FAILED: unsupported file type '$fileName'. " +
+                    "Supported: .glb, .obj, .stl, .fbx, .dae, .gltf, .3ds, .ply")
             return null
         }
 
-        val modelsDir     = File(context.filesDir, MODELS_DIR).also { it.mkdirs() }
-        val finalFileName = if (isGlb) fileName else "${fileName.substringBeforeLast('.')}.glb"
-        val dest          = File(modelsDir, finalFileName).canonicalFile
+        val modelsDir      = File(context.filesDir, MODELS_DIR).also { it.mkdirs() }
+        val baseName       = fileName.substringBeforeLast('.')
+        val finalFileName  = if (isGlb) fileName else "$baseName.glb"
+        val dest           = resolveUniqueFile(modelsDir, finalFileName)
 
         return try {
             val stream = context.contentResolver.openInputStream(uri) ?: run {
@@ -79,11 +107,11 @@ object ModelImportManager {
                 //
                 //    Android's content:// permission model grants access only to
                 //    the single URI the user picked, not to sibling files in the
-                //    same folder.  The attempt below works when the file manager
+                //    same folder. The attempt below works when the file manager
                 //    exposes sibling files under predictable URIs (some do, some
-                //    don't).  If it fails we log and continue — Assimp will use
+                //    don't). If it fails we log and continue — Assimp will use
                 //    the default PBR material injected by the native converter.
-                if (fileName.endsWith(".obj", ignoreCase = true)) {
+                if (ext == "obj") {
                     copyMtlSidecar(context, uri, fileName)
                 }
 
@@ -106,7 +134,7 @@ object ModelImportManager {
 
                 // Clean up temp files regardless of outcome
                 tempFile.delete()
-                cleanMtlSidecar(context, fileName)
+                if (ext == "obj") cleanMtlSidecar(context, fileName)
 
                 if (!success) {
                     log("Conversion FAILED for $fileName")
@@ -256,11 +284,35 @@ object ModelImportManager {
     }
 
     /**
+     * Returns a [File] inside [dir] that does not yet exist, appending a
+     * numeric suffix when necessary so existing files are never overwritten.
+     *
+     * Examples:
+     *   "chair.glb"        → no conflict      → returns "chair.glb"
+     *   "chair.glb" exists → conflict         → returns "chair_1.glb"
+     *   "chair_1.glb" also exists             → returns "chair_2.glb"
+     */
+    private fun resolveUniqueFile(dir: File, fileName: String): File {
+        val base = fileName.substringBeforeLast('.')
+        val ext  = fileName.substringAfterLast('.')
+        var candidate = File(dir, fileName).canonicalFile
+        var counter   = 1
+        while (candidate.exists()) {
+            candidate = File(dir, "${base}_$counter.$ext").canonicalFile
+            counter++
+        }
+        if (counter > 1) {
+            log("Name conflict: '$fileName' already exists — saving as '${candidate.name}'")
+        }
+        return candidate
+    }
+
+    /**
      * Attempts to copy the .mtl sidecar that accompanies an .obj file into
      * [Context.cacheDir] so Assimp finds it next to the temp .obj during conversion.
      *
      * Strategy: build a sibling URI by replacing the .obj filename with .mtl in
-     * the original URI string.  This works for file managers that expose files
+     * the original URI string. This works for file managers that expose files
      * under predictable content:// URIs (e.g. Files by Google, most OEM pickers).
      * It silently does nothing when the .mtl is inaccessible — conversion
      * continues and the native layer injects a default PBR material instead.
@@ -321,7 +373,7 @@ object ModelImportManager {
     private fun ensureConverterInitialized() {
         if (ConverterRegistry.isAvailable()) return // already registered, skip reflection
         try {
-            val clazz    = Class.forName("com.example.pracazaliczeniowa.converter.GlbConverter")
+            val clazz = Class.forName("com.example.pracazaliczeniowa.converter.GlbConverter")
             // Accessing INSTANCE triggers the companion/object init block
             clazz.getDeclaredField("INSTANCE").also { it.isAccessible = true }.get(null)
             log("Converter initialized via reflection")

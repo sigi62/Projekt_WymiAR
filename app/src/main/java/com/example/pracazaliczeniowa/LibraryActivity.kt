@@ -39,12 +39,15 @@ class LibraryActivity : AppCompatActivity() {
 
     val modelMimeTypes = arrayOf(
         "model/obj",
-        "model/stl",
-        "model/gltf-binary",
-        "model/gltf+json",
-        "application/sla",
-        "model/fbx",
-        "application/octet-stream" // The "catch-all" for binary files like .obj/.stl
+        "model/stl",                  // STL — may not be recognised by all pickers
+        "application/sla",            // STL alternative MIME (most common on Android)
+        "application/vnd.ms-pki.stl", // STL second alternative used by some OEM pickers
+        "model/gltf-binary",          // GLB
+        "model/gltf+json",            // GLTF text
+        "model/fbx",                  // FBX — not formally registered; may not be honoured by all pickers
+        "model/vnd.collada+xml",      // DAE (Collada)
+        "image/x-3ds",                // 3DS — non-standard but used by some file managers
+        "application/octet-stream"    // catch-all for binary formats (.fbx, .ply, .3ds, .stl, etc.)
     )
 
     // ── Result launchers ──────────────────────────────────────────────────────
@@ -75,7 +78,7 @@ class LibraryActivity : AppCompatActivity() {
 
         val fileName  = getFileName(uri) ?: "unknown"
         val extension = fileName.substringAfterLast(".", "").lowercase()
-        val allowed   = setOf("obj", "stl", "glb", "gltf", "fbx")
+        val allowed   = setOf("obj", "stl", "glb", "gltf", "fbx", "dae", "3ds", "ply")
 
         if (extension in allowed) {
             processImport(uri)
@@ -240,18 +243,20 @@ class LibraryActivity : AppCompatActivity() {
      *             the picker so the user can pick the same file again.
      */
     private fun processImport(uri: Uri) {
-        val fileName      = ModelImportManager.resolveFileName(this, uri) ?: ""
-        val needsConvert  = fileName.endsWith(".obj", ignoreCase = true) ||
-                fileName.endsWith(".stl", ignoreCase = true)
+        val fileName = ModelImportManager.resolveFileName(this, uri) ?: ""
+        val ext      = fileName.substringAfterLast('.', "").lowercase()
+
+        // Any format other than .glb needs the native converter module.
+        val needsConvert = ext != "glb"
 
         if (!needsConvert) {
-            // Standard GLB path — fast, fine on the main thread briefly,
-            // but we still dispatch to IO to avoid ANR on large files.
+            // GLB — direct copy, no converter module required.
             runImportAsync(uri)
             return
         }
 
-        // OBJ / STL — make sure the converter module is present first.
+        // All other formats (.obj, .stl, .fbx, .dae, .gltf, .3ds, .ply) —
+        // make sure the converter module is present first.
         val manager = SplitInstallManagerFactory.create(this)
         if (manager.installedModules.contains("converter")) {
             runImportAsync(uri)
