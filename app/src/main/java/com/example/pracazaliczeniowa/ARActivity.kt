@@ -205,13 +205,18 @@ class ARActivity : AppCompatActivity() {
         planeGridRenderer = PlaneGridRenderer(arSceneView)
         planeGridRenderer.init()
         arSceneView.onSessionUpdated = { _, _ ->
-            planeGridRenderer.update(isWallMagnetVertical)
+            if (!isClosing) {
+            if (arSceneView.session != null) {
+                planeGridRenderer.update(isWallMagnetVertical)
+            }
+        }
         }
 
         lifecycleScope.launch {
             val env = arSceneView.environmentLoader.loadHDREnvironment("envs/environment.hdr")
-            arSceneView.indirectLight = env?.indirectLight
-            arSceneView.skybox        = env?.skybox
+            arSceneView.indirectLight = env?.indirectLight?.apply { intensity = 40_000F }
+            arSceneView.skybox        = null
+            arSceneView.lightEstimator = null
         }
 
         modelControls.onSaveRequested   = { showProfileDialog() }
@@ -395,6 +400,7 @@ class ARActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        isClosing = false
         viewAttachmentManager.onResume()
         modelControls.applySettings(settings)
 
@@ -876,9 +882,31 @@ class ARActivity : AppCompatActivity() {
             selectedModel?.setAnimationPlaying(false)
             isAnimationPlaying = false
         }
-        placedModelNodes.forEach { it.anchor?.detach() }
-        placedMeasureNodes.forEach { it.anchor?.detach() }
+
+        arSceneView.onSessionUpdated = null
+        arSceneView.onTouchEvent = null
+        // 1. Deselect cleanly first (destroys rotation ring, overlays, etc.)
+        selectedModel?.let { deselectModel() }
+
+        // 2. Remove all model nodes from the scene graph
+        placedModelNodes.forEach { anchorNode ->
+            anchorNode.childNodes.toList().forEach { it.parent = null }
+            anchorNode.parent = null
+            anchorNode.anchor?.detach()
+        }
+        placedModelNodes.clear()
+
+        // 3. Remove all measure nodes
+        placedMeasureNodes.forEach { anchorNode ->
+            anchorNode.parent = null
+            anchorNode.anchor?.detach()
+        }
+        placedMeasureNodes.clear()
+        models.clear()
+
+        // 4. Now safe to destroy
         planeGridRenderer.destroy()
+
         arSceneView.session?.pause()
         arSceneView.destroy()
         finish()
@@ -886,23 +914,30 @@ class ARActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
-        arSceneView.session?.pause()
+        if (!isClosing) {
+            arSceneView.session?.pause()
+        }
         viewAttachmentManager.onPause()
     }
 
     override fun onDestroy() {
-        placedModelNodes.forEach { it.parent = null }
-        placedModelNodes.clear()
-        placedMeasureNodes.clear()
-
         if (!isClosing) {
+
+            arSceneView.onSessionUpdated = null
+            arSceneView.onTouchEvent = null
+            selectedModel?.let { deselectModel() }
+
+            placedModelNodes.forEach { it.childNodes.toList().forEach { c -> c.parent = null }; it.parent = null; it.anchor?.detach() }
+            placedModelNodes.clear()
+            placedMeasureNodes.forEach { it.parent = null; it.anchor?.detach() }
+            placedMeasureNodes.clear()
+            models.clear()
+
             planeGridRenderer.destroy()
             arSceneView.session?.pause()
             arSceneView.destroy()
         }
-
         viewAttachmentManager.onPause()
-
         super.onDestroy()
     }
 }

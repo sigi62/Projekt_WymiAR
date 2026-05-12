@@ -1,13 +1,18 @@
 package com.example.pracazaliczeniowa.Nodes
 
+import android.util.Log
 import androidx.compose.ui.graphics.Color
+import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
+import com.example.pracazaliczeniowa.Nodes.DimensionOverlayNode
 import com.google.android.filament.Engine
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import dev.romainguy.kotlin.math.Float3
+import dev.romainguy.kotlin.math.Quaternion
 import io.github.sceneview.SceneView
-import io.github.sceneview.node.CylinderNode
+import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.launch
 
 class SelectedModelNode(
     engine: Engine,
@@ -20,7 +25,7 @@ class SelectedModelNode(
     private var dimensionOverlay: DimensionOverlayNode? = null
 
     private var initialWorldPos = Float3(0f)
-    private var initialWorldQuat = dev.romainguy.kotlin.math.Quaternion()
+    private var initialWorldQuat = Quaternion()
     private var baseScale = Float3(1f)
 
     private var cachedSceneView: SceneView? = null
@@ -130,7 +135,7 @@ class SelectedModelNode(
     }
 
     fun updateRotation(xDeg: Float, yDeg: Float, zDeg: Float) {
-        val extraRot = dev.romainguy.kotlin.math.Quaternion.fromEuler(Float3(xDeg, yDeg, zDeg))
+        val extraRot = Quaternion.fromEuler(Float3(xDeg, yDeg, zDeg))
         this.worldQuaternion = initialWorldQuat * extraRot
     }
 
@@ -173,32 +178,53 @@ class SelectedModelNode(
     }
 
     // ---------------------------------------------------------------
-    // Rotation handle – flat CylinderNode, sized via Node.scale
+    // Rotation handle – pointerRing.glb (flat ring with forward triangle)
+    //
+    // The .glb is authored at radius = 1.0 unit, flat on the XZ plane,
+    // with the triangle pointer aimed toward +Z (glTF forward).
+    // We scale it the same way the old CylinderNode was scaled:
+    //   handle.scale = Float3(outerR, 1f, outerR)
+    // so no changes to the sizing math are needed.
     // ---------------------------------------------------------------
 
-    private var rotationHandle: CylinderNode? = null
+    private var rotationHandle: ModelNode? = null
 
+    /**
+     * Loads pointerRing.glb from assets and attaches it as the rotation handle.
+     * The load is async; [refreshRingScale] is called once the model is ready
+     * so the ring immediately fits the wrapped node.
+     */
     fun showRotationHandle(engine: Engine, sceneView: SceneView) {
         if (rotationHandle != null) return
         val target = wrappedNode ?: return
         cachedSceneView = sceneView
 
-        rotationHandle = CylinderNode(
-            engine = engine,
-            radius = 1f,
-            height = 0.0001f,
-            materialInstance = sceneView.materialLoader.createColorInstance(
-                Color.White.copy(alpha = 0.5f)
-            )
-        ).apply {
-            name = "rotation_handle"
-            isEditable = false
+        scope.launch {
+            // loadModelGlb returns a ModelInstance (nullable on failure).
+            val instance = sceneView.modelLoader.loadModelInstance(
+                fileLocation = "pointerRing.glb"
+            ) ?: run {
+                Log.w("SelectedModelNode", "pointerRing.glb failed to load")
+                return@launch
+            }
+
+            val handle = ModelNode(
+                modelInstance = instance,
+                autoAnimate   = false,
+                scaleToUnits  = null,   // we scale manually in refreshRingScale
+                centerOrigin  = null    // keep the model's own pivot
+            ).apply {
+                name       = "rotation_handle"
+                isEditable = false
+            }
+
+            rotationHandle = handle
+            this@SelectedModelNode.addChildNode(handle)
+
+            // Size it immediately once geometry is available.
+            refreshRingScale()
         }
-
-        this.addChildNode(rotationHandle!!)
-        refreshRingScale()
     }
-
     fun refreshRingScale() {
         val handle = rotationHandle ?: return
         val target = wrappedNode ?: return
@@ -206,6 +232,9 @@ class SelectedModelNode(
         val outerR = computeOuterRadius(target)
         val yOff   = computeYOffset(target)
 
+        // Same math as the old CylinderNode (radius = 1 unit in the .glb):
+        // X and Z scale the ring outward; Y stays 1 so the flat geometry
+        // isn't squashed.
         handle.scale    = Float3(outerR, 1f, outerR)
         handle.position = Float3(0f, yOff, 0f)
     }

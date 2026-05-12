@@ -3,7 +3,12 @@
 AR collision - if possible
 
 Change the ActionBar Color - priamry default is still purple ??
-Rotation Handle not a ring
+
+
+Rotation Handle user choice
+App working wihtout debugger
+Profile Export - size rotation (?)
+Measurements more accurate
 Thumbnails for auto models are pre-made
 
 
