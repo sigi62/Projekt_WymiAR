@@ -7,6 +7,7 @@ Change the ActionBar Color - priamry default is still purple ??
 
 Rotation Handle user choice
 App working wihtout debugger
+Two models in AR  resets profile saved values from MCOV
 Profile Export - size rotation (?)
 Measurements more accurate
 Thumbnails for auto models are pre-made

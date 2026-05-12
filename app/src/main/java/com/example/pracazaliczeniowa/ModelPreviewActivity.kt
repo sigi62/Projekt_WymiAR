@@ -1,6 +1,7 @@
 package com.example.pracazaliczeniowa
 
 
+import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
@@ -207,6 +208,13 @@ class ModelPreviewActivity : AppCompatActivity() {
             pendingCropRect = cropOverlay.getCropRect()
             hideCropOverlay()
             captureNextFrame = true
+        }
+        findViewById<Button>(R.id.btnOpenInAR).setOnClickListener {
+            val intent = Intent(this, ARActivity::class.java).apply {
+                putExtra(LibraryActivity.EXTRA_MODEL_PATH,    modelPath)
+                putExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, modelIsAsset)
+            }
+            startActivity(intent)
         }
 
         // ── Animation toggle ──────────────────────────────────────────────────

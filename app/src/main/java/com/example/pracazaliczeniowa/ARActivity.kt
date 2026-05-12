@@ -639,7 +639,7 @@ class ARActivity : AppCompatActivity() {
                 sel.syncBaseScale()
                 sel.syncBaseRotation()
                 sel.refreshRingScale()
-                modelControls.resetSlidersToNeutral()
+               // modelControls.resetSlidersToNeutral()
             }
         }
     }
@@ -887,26 +887,32 @@ class ARActivity : AppCompatActivity() {
         arSceneView.onTouchEvent = null
         // 1. Deselect cleanly first (destroys rotation ring, overlays, etc.)
         selectedModel?.let { deselectModel() }
+        selectedModel = null
 
         // 2. Remove all model nodes from the scene graph
         placedModelNodes.forEach { anchorNode ->
-            anchorNode.childNodes.toList().forEach { it.parent = null }
+            anchorNode.childNodes.toList().forEach { child ->
+                // Destroy the DefaultModelNode (which owns the ModelInstance/materials)
+                (child as? DefaultModelNode)?.destroy()
+                child.parent = null
+            }
             anchorNode.parent = null
             anchorNode.anchor?.detach()
         }
         placedModelNodes.clear()
+        models.clear()
 
         // 3. Remove all measure nodes
         placedMeasureNodes.forEach { anchorNode ->
+            anchorNode.childNodes.toList().forEach { it.parent = null }
             anchorNode.parent = null
             anchorNode.anchor?.detach()
         }
         placedMeasureNodes.clear()
-        models.clear()
 
-        // 4. Now safe to destroy
+        try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
+
         planeGridRenderer.destroy()
-
         arSceneView.session?.pause()
         arSceneView.destroy()
         finish()
@@ -922,16 +928,31 @@ class ARActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (!isClosing) {
-
             arSceneView.onSessionUpdated = null
             arSceneView.onTouchEvent = null
-            selectedModel?.let { deselectModel() }
 
-            placedModelNodes.forEach { it.childNodes.toList().forEach { c -> c.parent = null }; it.parent = null; it.anchor?.detach() }
+            selectedModel?.let { deselectModel() }
+            selectedModel = null
+
+            placedModelNodes.forEach { anchorNode ->
+                anchorNode.childNodes.toList().forEach { child ->
+                    (child as? DefaultModelNode)?.destroy()
+                    child.parent = null
+                }
+                anchorNode.parent = null
+                anchorNode.anchor?.detach()
+            }
             placedModelNodes.clear()
-            placedMeasureNodes.forEach { it.parent = null; it.anchor?.detach() }
-            placedMeasureNodes.clear()
             models.clear()
+
+            placedMeasureNodes.forEach { anchorNode ->
+                anchorNode.childNodes.toList().forEach { it.parent = null }
+                anchorNode.parent = null
+                anchorNode.anchor?.detach()
+            }
+            placedMeasureNodes.clear()
+
+            try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
 
             planeGridRenderer.destroy()
             arSceneView.session?.pause()
