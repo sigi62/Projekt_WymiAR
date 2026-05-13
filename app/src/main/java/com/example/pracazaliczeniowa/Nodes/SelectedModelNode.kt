@@ -27,7 +27,7 @@ class SelectedModelNode(
     private var initialWorldPos = Float3(0f)
     private var initialWorldQuat = Quaternion()
     private var baseScale = Float3(1f)
-
+    private var baseRotation = Float3(0f)
     private var cachedSceneView: SceneView? = null
 
     fun getWrappedNode(): DefaultModelNode? = wrappedNode
@@ -268,6 +268,13 @@ class SelectedModelNode(
         return bottomY + 0.005f
     }
 
+    fun setBaseScale(base: Float3) {
+        baseScale = base
+    }
+    fun setBaseRotation(euler: Float3) {
+        baseRotation = euler
+        initialWorldQuat = Quaternion.fromEuler(euler)  // slider delta is relative to this
+    }
     companion object {
         const val PINCH_SENSITIVITY = 2.0f
     }

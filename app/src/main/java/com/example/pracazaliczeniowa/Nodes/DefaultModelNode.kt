@@ -41,7 +41,9 @@ class DefaultModelNode(
     autoAnimate = false          // ← default: animation stopped on load
 ) {
 
-
+    var profileApplied: Boolean = false
+    var currentRelativeRotation: Float3 = Float3(0f)
+    var currentRelativeScale: Float3 = Float3(1f)
     // ── Animation helpers ─────────────────────────────────────────────────────
 
     /** True if the model has at least one animation track. */

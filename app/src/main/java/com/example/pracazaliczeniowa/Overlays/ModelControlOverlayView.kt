@@ -16,6 +16,7 @@ import com.example.pracazaliczeniowa.Helpers.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
 import com.example.pracazaliczeniowa.Helpers.DistanceUnit
+import dev.romainguy.kotlin.math.Float3
 
 fun log(msg: String) {
     Log.d("AR_CONTROL_DEBUG", msg)
@@ -104,6 +105,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
     var onSaveRequested:   (() -> Unit)? = null
     var onDeleteRequested: (() -> Unit)? = null
     var onUnitChanged: ((DistanceUnit) -> Unit)? = null
+    var onRelativeValuesChanged: ((scaleX: Float, scaleY: Float, scaleZ: Float, rotX: Float, rotY: Float, rotZ: Float) -> Unit)? = null
 
     // -------------------------------------------------------------------------
     // Views (lateinit — bound after inflation)
@@ -190,6 +192,33 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
+    fun bindToNodeWithRelativeValues(node: SelectedModelNode, relX: Float, relY: Float, relZ: Float, relativeRotation: Float3 = Float3(0f)) {
+        targetNode = node
+
+        val savedMode = currentMode
+
+        currentMode = "SCALE"
+        maybeExpandRange(relX); maybeExpandRange(relY); maybeExpandRange(relZ)
+        scaleProgress = Triple(valueToProgress(relX), valueToProgress(relY), valueToProgress(relZ))
+        universalScaleProgress = valueToProgress((relX + relY + relZ) / 3f).coerceIn(SCL_MIN, sclDynMax)
+
+
+        currentMode = "ROTATE"
+        rotateProgress = Triple(
+            valueToProgress(relativeRotation.x),
+            valueToProgress(relativeRotation.y),
+            valueToProgress(relativeRotation.z)
+        )
+
+        currentMode = savedMode   // restore to default mode
+        positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+
+        if (::s1.isInitialized) {
+            refreshSlidersForMode()
+        } else {
+            setupUI()
+        }
+    }
     /**
      * Resets all sliders to neutral (scale 1×, rotation 0°, position 0).
      *
@@ -571,8 +600,24 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         when (currentMode) {
             "POSITION" -> node.updatePosition(v1 / currentUnitFactor, v2 / currentUnitFactor, v3 / currentUnitFactor)
-            "ROTATE"   -> node.updateRotation(v1, v2, v3)
-            "SCALE"    -> node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
+            "ROTATE"   -> {
+                node.updateRotation(v1, v2, v3)
+                onRelativeValuesChanged?.invoke(
+                    progressToValue(scaleProgress.first),
+                    progressToValue(scaleProgress.second),
+                    progressToValue(scaleProgress.third),
+                    v1, v2, v3
+                )
+            }
+            "SCALE"    -> {
+            node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
+            onRelativeValuesChanged?.invoke(
+                v1, v2, v3,
+                progressToValue(rotateProgress.first),
+                progressToValue(rotateProgress.second),
+                progressToValue(rotateProgress.third)
+            )
+        }
         }
     }
 

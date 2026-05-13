@@ -219,9 +219,15 @@ class ARActivity : AppCompatActivity() {
             arSceneView.lightEstimator = null
         }
 
-        modelControls.onSaveRequested   = { showProfileDialog() }
+        modelControls.onSaveRequested = { showProfileDialog() }
         modelControls.onDeleteRequested = { deleteSelectedModel() }
+        modelControls.onRelativeValuesChanged = { sx, sy, sz, rx, ry, rz ->
+            selectedModel?.getWrappedNode()?.apply {
+                currentRelativeScale = Float3(sx, sy, sz)
+                currentRelativeRotation = Float3(rx, ry, rz)
+            }
 
+        }
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
         animationToggleButton.visibility    = View.GONE
@@ -632,15 +638,7 @@ class ARActivity : AppCompatActivity() {
 
             selectModel(node)
 
-            // After selectModel the SelectedModelNode wrapper exists; sync its
-            // base so pinch/rotation deltas are relative to the profile values.
-            if (profile != null) {
-                val sel = selectedModel ?: return@launch
-                sel.syncBaseScale()
-                sel.syncBaseRotation()
-                sel.refreshRingScale()
-               // modelControls.resetSlidersToNeutral()
-            }
+
         }
     }
 
@@ -653,6 +651,8 @@ class ARActivity : AppCompatActivity() {
             if (isAnimationPlaying) {
                 currentWrapper.setAnimationPlaying(false)
             }
+            currentWrapper.syncBaseScale()
+            currentWrapper.syncBaseRotation()
             val returnedNode = currentWrapper.unwrap()
             if (returnedNode != null && !models.contains(returnedNode)) {
                 log("Adding returning model back to model list")
@@ -672,7 +672,38 @@ class ARActivity : AppCompatActivity() {
         animationToggleButton.alpha = 0.5f
 
         if (wrapped != null) {
-            modelControls.bindToNode(wrapped)
+            // The base is always the default profile (or raw 1.0 if none).
+            // Sliders are always multipliers ON TOP of this base.
+            val profile = profileManager.loadDefault(defaultNode.getModeleName())
+            val profileScale = if (profile != null)
+                Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+            else
+                Float3(1f)
+
+
+
+            // First-time placement: apply the profile to the node
+            if (!defaultNode.profileApplied && profile != null) {
+                defaultNode.scale = profileScale
+                defaultNode.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+                defaultNode.profileApplied = true
+            }
+
+            // Always lock baseScale to the profile, never to the live scale.
+            // This means slider 1.0 always = profile scale, slider 1.6 = 1.6× the profile.
+            wrapped.setBaseScale(profileScale)
+            wrapped.refreshRingScale()
+
+            // Now seed sliders: current scale divided by baseScale = the relative multiplier
+            // the sliders should show.
+            val currentScale = wrapped.getWrappedNode()?.scale ?: profileScale
+            val relX = currentScale.x / profileScale.x
+            val relY = currentScale.y / profileScale.y
+            val relZ = currentScale.z / profileScale.z
+            val relRot = defaultNode.currentRelativeRotation
+
+            modelControls.bindToNodeWithRelativeValues(wrapped, relX, relY, relZ, relRot)
+            // No resetSlidersToNeutral — sliders now correctly show the relative value
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
             wireframeModeButton.alpha      = 0.5f
