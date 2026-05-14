@@ -67,6 +67,17 @@
     <string name="toast_import_verify_failed">File imported but verification failed</string>
     <string name="toast_import_added">%1$s added to library</string>
 
+    <!-- Exporting -->
+    <string name="menu_export_profile">Export with profile…</string>
+    <string name="dialog_export_title">Export "%s"</string>
+    <string name="dialog_export_pick_profile">Export "%s" — choose profile</string>
+    <string name="dialog_export_no_profiles">No profiles saved yet. Export the model at its original size?</string>
+    <string name="btn_export_as_is">Export as-is</string>
+    <string name="toast_export_success">Model exported successfully</string>
+    <string name="toast_no_profile_to_export">Model doesn\'t have a profile to export yet</string>
+    <string name="toast_export_failed">Export failed: %s</string>
+    <string name="toast_export_prepare_failed">Could not prepare model for export</string>
+    <string name="btn_export">Export</string>
 
     <!-- Library Options -->
 

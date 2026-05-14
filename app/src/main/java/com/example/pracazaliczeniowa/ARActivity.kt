@@ -790,30 +790,25 @@ class ARActivity : AppCompatActivity() {
             )
         }
 
-        dialog.onProfileSaved = { savedProfile ->
-            // Grab the current state
-            val sel = selectedModel
-            val wrp = sel?.getWrappedNode()
-
-            // Use a standard 'if' instead of 'return@onProfileSaved'
-            if (sel != null && wrp != null) {
-                // Apply the saved values back onto the live node
-                wrp.scale = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
-                wrp.rotation = Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ)
-
-                sel.syncBaseScale()
-                sel.syncBaseRotation()
-                sel.refreshRingScale()
-
-                // Re-seed sliders so they show the saved values as neutral
-                modelControls.bindToNode(sel)
-                modelControls.resetSlidersToNeutral()
-
-                if (dimensionHud.visibility == View.VISIBLE) {
-                    sel.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
-                }
-                statusText.text = getString(R.string.status_profile_saved)
+        dialog.onDefaultProfileSaved = onDefaultProfileSaved@{ savedProfile ->
+            val sel = selectedModel ?: return@onDefaultProfileSaved
+            val wrp = sel.getWrappedNode() ?: return@onDefaultProfileSaved
+            wrp.scale    = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
+            wrp.rotation = Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ)
+            sel.syncBaseScale()
+            sel.syncBaseRotation()
+            sel.refreshRingScale()
+            modelControls.bindToNode(sel)
+            modelControls.resetSlidersToNeutral()
+            if (dimensionHud.visibility == View.VISIBLE) {
+                sel.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
             }
+            statusText.text = getString(R.string.status_profile_saved)
+        }
+
+        dialog.onNamedProfileSaved = { name, _ ->
+            // Named profile is just a bookmark — don't touch the live node or sliders.
+            statusText.text = getString(R.string.status_profile_saved)
         }
 
         dialog.onLoadProfile = { profile ->

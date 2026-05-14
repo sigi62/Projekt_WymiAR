@@ -4,14 +4,16 @@ AR collision - if possible
 
 Change the ActionBar Color - priamry default is still purple ??
 
+Profiles FIX :
+ -not seeing rotation correctly
+ -overwritte button not seeing changes -> doesnt' save, doesn't close, doesn't toast
+ -export exported profile resets scale??
+ - exported profile with rotation applies it before rotation handle ? meaning its weird af
 
-Rotation Handle user choice
-App working wihtout debugger
-Profile Export - size rotation (?)
+Rotation Handle user choice (?)
 Measurements more accurate
 Thumbnails for auto models are pre-made
 
 Dodać tutorial???
-Dodanie naturalnych cieni??/
-Sprawdzanie i redukcja dużej ilości polygonów??
+Dodanie naturalnych cieni??
 

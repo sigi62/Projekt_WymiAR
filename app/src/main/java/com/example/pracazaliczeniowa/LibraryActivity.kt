@@ -15,9 +15,11 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.pracazaliczeniowa.Helpers.ExportProfilePickerDialog
+import com.example.pracazaliczeniowa.Helpers.GlbTransformExporter
 import com.example.pracazaliczeniowa.Helpers.ModelImportManager
 import com.example.pracazaliczeniowa.Helpers.ModelItem
-import com.example.pracazaliczeniowa.Helpers.ModelLibraryAdapter
+import com.example.pracazaliczeniowa.Helpers.ModelLibraryManager
 import com.example.pracazaliczeniowa.Helpers.ProfileManager
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
@@ -28,6 +30,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import com.example.pracazaliczeniowa.Helpers.LibraryFilterManager
 import com.example.pracazaliczeniowa.Helpers.ModelFileUtils
+import com.example.pracazaliczeniowa.Helpers.ModelProfile
 
 class LibraryActivity : AppCompatActivity() {
 
@@ -95,10 +98,11 @@ class LibraryActivity : AppCompatActivity() {
 
     private var selectedModelKey: String? = null
     private lateinit var recyclerView: RecyclerView
-    private lateinit var adapter: ModelLibraryAdapter
+    private lateinit var adapter: ModelLibraryManager
 
     private lateinit var filterManager: LibraryFilterManager
     private val allModels = mutableListOf<ModelItem>()
+
 
     // SplitInstall listener — kept as a field so we can unregister it
 
@@ -195,7 +199,7 @@ class LibraryActivity : AppCompatActivity() {
         recyclerView.layoutManager = GridLayoutManager(this, 2)
 
 
-        adapter = ModelLibraryAdapter(
+        adapter = ModelLibraryManager(
             items            = allModels.toList(),
             savedProfiles    = savedProfiles,
             selectedKey      = selectedModelKey,
@@ -219,6 +223,7 @@ class LibraryActivity : AppCompatActivity() {
                 )
             },
             onDeleteImported = { deleteImportedModel(it) },
+            onExportWithProfile = { startExportFlow(it) },
             onRenameImported = { showRenameDialog(it) },
             loadDefaultProfile = { key -> profileManager.loadDefault(key) }
         )
@@ -227,10 +232,6 @@ class LibraryActivity : AppCompatActivity() {
         updateCountLabel()
     }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        SplitInstallManagerFactory.create(this).unregisterListener(splitInstallListener)
-    }
 
     // ── Import flow ───────────────────────────────────────────────────────────
 
@@ -310,6 +311,99 @@ class LibraryActivity : AppCompatActivity() {
 
             Toast.makeText(this@LibraryActivity,
                 getString(R.string.toast_import_added, imported.name), Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    // ── Export state ──────────────────────────────────────────────────────────
+    private var pendingExportItem: ModelItem?    = null
+    private var pendingExportBytes: ByteArray?   = null
+
+    private val exportFileLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("model/gltf-binary")
+    ) { uri ->
+        uri ?: run { pendingExportBytes = null; pendingExportItem = null; return@registerForActivityResult }
+        val bytes = pendingExportBytes ?: return@registerForActivityResult
+        pendingExportBytes = null
+        pendingExportItem  = null
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@LibraryActivity,
+                        getString(R.string.toast_export_success), Toast.LENGTH_SHORT).show()
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    Toast.makeText(this@LibraryActivity,
+                        getString(R.string.toast_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
+                }
+            }
+        }
+    }
+
+// ── Export flow ───────────────────────────────────────────────────────────
+
+    private fun startExportFlow(item: ModelItem) {
+        val profiles = profileManager.listExportableProfiles(item.profileKey)
+
+        if (profiles.isEmpty()) {
+            // Shouldn't normally be reachable since the menu item is hidden,
+            // but guard just in case.
+            Toast.makeText(this, getString(R.string.toast_no_profile_to_export), Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        ExportProfilePickerDialog.newInstance(item.profileKey, item.name).apply {
+            onProfileSelected = { _, profile ->
+                launchExportWithProfile(item, profile)
+            }
+        }.show(supportFragmentManager, "export_profile")
+    }
+
+    /**
+     * Applies [profile] to the GLB on a background thread, then opens the
+     * system file picker so the user can choose where to save the result.
+     * Pass null to export the file unchanged.
+     */
+    private fun launchExportWithProfile(item: ModelItem, profile: ModelProfile?) {
+        pendingExportItem = item
+
+        lifecycleScope.launch {
+            val bytes = withContext(Dispatchers.IO) {
+                if (profile == null) {
+                    // No transform — just read the raw bytes
+                    if (item.isAsset) {
+                        runCatching {
+                            assets.open(item.modelPath).use { it.readBytes() }
+                        }.getOrNull()
+                    } else {
+                        runCatching {
+                            java.io.File(item.modelPath).readBytes()
+                        }.getOrNull()
+                    }
+                } else {
+                    if (item.isAsset) {
+                        val raw = runCatching {
+                            assets.open(item.modelPath).use { it.readBytes() }
+                        }.getOrNull() ?: return@withContext null
+                        GlbTransformExporter.applyProfileToBytes(raw, item.modelPath, profile)
+                    } else {
+                        GlbTransformExporter.applyProfileToGlb(java.io.File(item.modelPath), profile)
+                    }
+                }
+            }
+
+            if (bytes == null) {
+                Toast.makeText(this@LibraryActivity,
+                    getString(R.string.toast_export_prepare_failed), Toast.LENGTH_LONG).show()
+                pendingExportItem = null
+                return@launch
+            }
+
+            pendingExportBytes = bytes
+            exportFileLauncher.launch("${item.name}.glb")
         }
     }
 
@@ -486,5 +580,10 @@ class LibraryActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, getString(R.string.toast_delete_failed, item.name), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        SplitInstallManagerFactory.create(this).unregisterListener(splitInstallListener)
     }
 }

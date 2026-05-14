@@ -92,6 +92,8 @@ class ProfileManager(context: Context) {
         fileFor(modelName).writeText(json.encodeToString(bundle))
     }
 
+
+
     // ── Default profile ──────────────────────────────────────────────────────
 
     /** Returns the default profile, or null if none has been saved yet. */
@@ -117,6 +119,13 @@ class ProfileManager(context: Context) {
     fun loadNamed(modelName: String, slotName: String): ModelProfile? =
         loadBundle(modelName).named[slotName]
 
+    fun listExportableProfiles(modelName: String): List<Pair<String, ModelProfile>> {
+        val bundle = loadBundle(modelName)
+        val result = mutableListOf<Pair<String, ModelProfile>>()
+        bundle.default?.let { result.add("Default" to it) }
+        bundle.named.forEach { (name, profile) -> result.add(name to profile) }
+        return result
+    }
     /**
      * Saves (or overwrites) a named profile.
      * Fails with [ProfileSaveResult.TooManyProfiles] if the slot name is new

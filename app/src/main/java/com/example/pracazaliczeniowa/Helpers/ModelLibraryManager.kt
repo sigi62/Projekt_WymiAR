@@ -18,7 +18,7 @@ import java.util.Date
 import java.util.Locale
 import com.example.pracazaliczeniowa.R
 
-class ModelLibraryAdapter(
+class ModelLibraryManager(
     items: List<ModelItem>,
     /** Set of profileKeys that already have a saved JSON profile. */
     private val savedProfiles: Set<String>,
@@ -39,13 +39,16 @@ class ModelLibraryAdapter(
      * Never called for bundled asset models.
      */
     private val onRenameImported: (ModelItem) -> Unit,
+
+
+    private val onExportWithProfile: (ModelItem) -> Unit,
     /**
      * Provides the default [ModelProfile] for a given profileKey, or null if
      * none has been saved yet. Used to compute the scaled dimension string.
      * Inject via: { key -> profileManager.loadDefault(key) }
      */
     private val loadDefaultProfile: (profileKey: String) -> ModelProfile?
-) : RecyclerView.Adapter<ModelLibraryAdapter.ViewHolder>() {
+) : RecyclerView.Adapter<ModelLibraryManager.ViewHolder>() {
 
     private val items: MutableList<ModelItem> = items.toMutableList()
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
@@ -126,14 +129,18 @@ class ModelLibraryAdapter(
                     menu.add(0, MENU_DELETE_THUMB, 1, context.getString(R.string.menu_delete_thumbnail))
                 }
                 menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
+                if (item.profileKey in savedProfiles) {
+                    menu.add(0, MENU_EXPORT_PROFILE, 3, context.getString(R.string.menu_export_profile))
+                }
                 if (!item.isAsset) {
-                    menu.add(0, MENU_DELETE_MODEL, 3, context.getString(R.string.menu_delete_model))
+                    menu.add(0, MENU_DELETE_MODEL, 4, context.getString(R.string.menu_delete_model))
                 }
                 setOnMenuItemClickListener { menuItem ->
                     when (menuItem.itemId) {
                         MENU_PREVIEW      -> { onPreviewClick(item); true }
                         MENU_DELETE_THUMB -> { deleteThumbnail(cached, item, holder); true }
                         MENU_RENAME       -> { onRenameImported(item); true }
+                        MENU_EXPORT_PROFILE -> { onExportWithProfile(item); true }
                         MENU_DELETE_MODEL -> { confirmDeleteModel(context, item); true }
                         else              -> false
                     }
@@ -266,6 +273,7 @@ class ModelLibraryAdapter(
         private const val MENU_PREVIEW       = 1
         private const val MENU_DELETE_THUMB  = 2
         private const val MENU_RENAME        = 3
-        private const val MENU_DELETE_MODEL  = 4
+        private const val MENU_EXPORT_PROFILE =4
+        private const val MENU_DELETE_MODEL  = 5
     }
 }

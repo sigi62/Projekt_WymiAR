@@ -46,8 +46,11 @@ class ProfilePickerDialog : DialogFragment() {
      * Use this to reset the overlay's sliders to neutral so the saved values
      * become the new baseline.
      */
-    var onProfileSaved: ((ModelProfile) -> Unit)? = null
-    /** Called on save/delete to update the AR status bar. */
+    /** Called after the DEFAULT profile is saved/overwritten. */
+    var onDefaultProfileSaved: ((ModelProfile) -> Unit)? = null
+
+    /** Called after a NAMED profile is saved/overwritten. No node changes needed. */
+    var onNamedProfileSaved: ((String, ModelProfile) -> Unit)? = null
     var onStatusUpdate: ((String) -> Unit)? = null
     /** Must be set – provides the live scale/rotation to snapshot. */
     var getCurrentProfile: (() -> ModelProfile)? = null
@@ -116,7 +119,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_saved_default))
-                onProfileSaved?.invoke(current)
+                onDefaultProfileSaved?.invoke(current)
                 buildList()
             }
         }
@@ -148,7 +151,7 @@ class ProfilePickerDialog : DialogFragment() {
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveNamed(modelName, slotName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_updated_named, slotName))
-                onProfileSaved?.invoke(current)
+                onNamedProfileSaved?.invoke(slotName, current)
                 buildList()
             }
         }
@@ -199,7 +202,7 @@ class ProfilePickerDialog : DialogFragment() {
                 when (profileManager.saveNamed(modelName, name, current)) {
                     ProfileSaveResult.Success -> {
                         onStatusUpdate?.invoke(getString(R.string.profile_saved_named, name))
-                        onProfileSaved?.invoke(current)
+                        onNamedProfileSaved?.invoke(name, current)
                         buildList()
                     }
                     ProfileSaveResult.TooManyProfiles -> {
@@ -244,7 +247,7 @@ class ProfilePickerDialog : DialogFragment() {
                 profileManager.saveDefault(modelName, original)
                 dismiss()
                 onLoadProfile?.invoke(original)
-                onProfileSaved?.invoke(original)
+                onDefaultProfileSaved?.invoke(original)
                 onResetDefault?.invoke()
                 onStatusUpdate?.invoke(getString(R.string.status_reset_done))
             }

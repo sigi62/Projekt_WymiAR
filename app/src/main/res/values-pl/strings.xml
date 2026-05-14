@@ -68,6 +68,18 @@
     <string name="toast_import_added">%1$s został dodany do biblioteki</string>
 
 
+    <!-- Exporting -->
+    <string name="menu_export_profile">Eksportuj model z profilem</string>
+    <string name="dialog_export_title">Eksportowanie "%s"</string>
+    <string name="dialog_export_pick_profile">Eksportowanie "%s" — wybierz profil</string>
+    <string name="dialog_export_no_profiles">Model nie posiada profilu. Eksportować model w oryginalnym rozmiarze?</string>
+    <string name="btn_export_as_is">Eksportuj jak jest</string>
+    <string name="toast_export_success">Moedl został pomyśle eksportowany</string>
+    <string name="toast_export_failed">Eksport się nie powiódł: %s</string>
+    <string name="toast_no_profile_to_export">Model nie posiada żadnego profilu do eksportu</string>
+    <string name="toast_export_prepare_failed">Nie można było przygotować modelu do eksportu</string>
+    <string name="btn_export">Eksportuj</string>
+
     <!-- Library Options -->
 
     <string name="library_tittle">Biblioteka modeli</string>
