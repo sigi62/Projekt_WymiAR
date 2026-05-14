@@ -1,16 +1,18 @@
-package com.example.pracazaliczeniowa
-
+package com.example.pracazaliczeniowa.Activities
 
 import android.content.Intent
 import android.content.SharedPreferences
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RectF
+import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.Gravity
+import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.View
 import android.widget.Button
@@ -20,7 +22,6 @@ import android.widget.RadioButton
 import android.widget.RadioGroup
 import android.widget.SeekBar
 import android.widget.TextView
-import android.widget.Toast
 import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.blue
@@ -28,20 +29,21 @@ import androidx.core.graphics.green
 import androidx.core.graphics.red
 import androidx.lifecycle.lifecycleScope
 import com.example.pracazaliczeniowa.Helpers.HsvColorPicker
+import com.example.pracazaliczeniowa.Helpers.RulerSeekBar
 import com.example.pracazaliczeniowa.Overlays.CropOverlayView
-import com.example.pracazaliczeniowa.Overlays.RulerSeekBar
-import io.github.sceneview.math.Position
-import io.github.sceneview.math.Rotation
-import io.github.sceneview.SceneView
-import io.github.sceneview.node.ModelNode
-import io.github.sceneview.node.Node
+import com.example.pracazaliczeniowa.R
+import com.google.android.filament.Box
 import com.google.android.filament.Engine
+import com.google.android.filament.IndexBuffer
+import com.google.android.filament.MaterialInstance
 import com.google.android.filament.RenderableManager
 import com.google.android.filament.VertexBuffer
-import com.google.android.filament.IndexBuffer
-import com.google.android.filament.Box
-import com.google.android.filament.MaterialInstance
 import com.google.android.material.bottomsheet.BottomSheetDialog
+import io.github.sceneview.SceneView
+import io.github.sceneview.math.Position
+import io.github.sceneview.math.Rotation
+import io.github.sceneview.node.ModelNode
+import io.github.sceneview.node.Node
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -50,7 +52,6 @@ import java.io.FileOutputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.cos
-import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -116,10 +117,14 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var studioBackWallNode: Node? = null
     private var studioSideWallNode: Node? = null
 
-    @ColorInt private var studioVoidColor     = Color.parseColor("#DCDCDC")
-    @ColorInt private var studioFloorColor    = Color.parseColor("#C8C8C8")
-    @ColorInt private var studioBackWallColor = Color.parseColor("#E0E0E0")
-    @ColorInt private var studioSideWallColor = Color.parseColor("#B0B0B0")
+    @ColorInt
+    private var studioVoidColor     = Color.parseColor("#DCDCDC")
+    @ColorInt
+    private var studioFloorColor    = Color.parseColor("#C8C8C8")
+    @ColorInt
+    private var studioBackWallColor = Color.parseColor("#E0E0E0")
+    @ColorInt
+    private var studioSideWallColor = Color.parseColor("#B0B0B0")
 
     private var modelRadius = 1f
     private var captureNextFrame = false
@@ -236,7 +241,7 @@ class ModelPreviewActivity : AppCompatActivity() {
                     modelRotationY = (progress.toFloat() - ROT_MID) / 10f
 
                     // Now modelRotationY is a proper degree value (e.g., 15.5)
-                    modelNode?.rotation = Rotation(0f, modelRotationY, 0f)
+                    modelNode?.rotation = io.github.sceneview.math.Rotation(0f, modelRotationY, 0f)
                 }
             }
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
@@ -435,7 +440,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         root.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams((40 * dp).toInt(), (4 * dp).toInt()).also {
-                it.gravity = android.view.Gravity.CENTER_HORIZONTAL
+                it.gravity = Gravity.CENTER_HORIZONTAL
                 it.bottomMargin = (16 * dp).toInt()
             }
             setBackgroundColor(Color.parseColor("#44888888"))
@@ -444,7 +449,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             text = title
             textSize = 15f
             setTextColor(Color.WHITE)
-            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -461,7 +466,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         val previewRow = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
-            gravity = android.view.Gravity.CENTER_VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT
@@ -549,19 +554,23 @@ class ModelPreviewActivity : AppCompatActivity() {
         )
 
         studioFloorNode = buildPlaneNode(engine, floorVerts, indices, studioFloorColor,
-            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "floor")?.also { sceneView.addChildNode(it) }
+            io.github.sceneview.math.Position(0f, 0f, 0f),
+            io.github.sceneview.math.Rotation(0f, 0f, 0f), "floor")?.also { sceneView.addChildNode(it) }
 
         studioBackWallNode = buildPlaneNode(engine, backWallVerts, indices, studioBackWallColor,
-            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "backWall")?.also { sceneView.addChildNode(it) }
+            io.github.sceneview.math.Position(0f, 0f, 0f),
+            io.github.sceneview.math.Rotation(0f, 0f, 0f), "backWall")?.also { sceneView.addChildNode(it) }
 
         studioSideWallNode = buildPlaneNode(engine, sideWallVerts, indices, studioSideWallColor,
-            Position(0f, 0f, 0f), Rotation(0f, 0f, 0f), "sideWall")?.also { sceneView.addChildNode(it) }
+            io.github.sceneview.math.Position(0f, 0f, 0f),
+            io.github.sceneview.math.Rotation(0f, 0f, 0f), "sideWall")?.also { sceneView.addChildNode(it) }
     }
 
     private fun buildPlaneNode(engine: Engine, vertices: FloatArray, indices: ShortArray, @ColorInt color: Int, pos: Position, rot: Rotation, label: String): Node? {
         val r = color.red / 255f; val g = color.green / 255f; val b = color.blue / 255f
         return try {
-            val vBuf = VertexBuffer.Builder().vertexCount(vertices.size / 3).bufferCount(1).attribute(VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12).build(engine)
+            val vBuf = VertexBuffer.Builder().vertexCount(vertices.size / 3).bufferCount(1).attribute(
+                VertexBuffer.VertexAttribute.POSITION, 0, VertexBuffer.AttributeType.FLOAT3, 0, 12).build(engine)
             val vData = ByteBuffer.allocateDirect(vertices.size * 4).order(ByteOrder.nativeOrder()).apply { vertices.forEach { putFloat(it) }; flip() }
             vBuf.setBufferAt(engine, 0, vData)
             val iBuf = IndexBuffer.Builder().indexCount(indices.size).bufferType(IndexBuffer.Builder.IndexType.USHORT).build(engine)
@@ -578,7 +587,16 @@ class ModelPreviewActivity : AppCompatActivity() {
                 if (vertices[i + 1] < minY) minY = vertices[i + 1]; if (vertices[i + 1] > maxY) maxY = vertices[i + 1]
                 if (vertices[i + 2] < minZ) minZ = vertices[i + 2]; if (vertices[i + 2] > maxZ) maxZ = vertices[i + 2]
             }
-            RenderableManager.Builder(1).geometry(0, RenderableManager.PrimitiveType.TRIANGLES, vBuf, iBuf).material(0, mat).boundingBox(Box((minX + maxX) / 2f, (minY + maxY) / 2f, (minZ + maxZ) / 2f, (maxX - minX) / 2f, (maxY - minY) / 2f, (maxZ - minZ) / 2f)).culling(false).receiveShadows(true).castShadows(false).build(engine, node.entity)
+            RenderableManager.Builder(1).geometry(0, RenderableManager.PrimitiveType.TRIANGLES, vBuf, iBuf).material(0, mat).boundingBox(
+                Box(
+                    (minX + maxX) / 2f,
+                    (minY + maxY) / 2f,
+                    (minZ + maxZ) / 2f,
+                    (maxX - minX) / 2f,
+                    (maxY - minY) / 2f,
+                    (maxZ - minZ) / 2f
+                )
+            ).culling(false).receiveShadows(true).castShadows(false).build(engine, node.entity)
             node.position = pos; node.rotation = rot; node
         } catch (e: Exception) { null }
     }
@@ -633,10 +651,15 @@ class ModelPreviewActivity : AppCompatActivity() {
                 sceneView.modelLoader.createModelInstance(buffer = ByteBuffer.wrap(bytes))
             }
 
-            modelNode = ModelNode(instance!!, false, 1.0f, Position(0f, 0f, 0f)).apply {
+            modelNode = ModelNode(
+                instance!!,
+                false,
+                1.0f,
+                io.github.sceneview.math.Position(0f, 0f, 0f)
+            ).apply {
                 isScaleEditable    = false
                 isRotationEditable = false
-                rotation           = Rotation(0f, modelRotationY, 0f)
+                rotation           = io.github.sceneview.math.Rotation(0f, modelRotationY, 0f)
                 // autoAnimate is not set here — ModelNode defaults vary by SceneView version.
                 // We control playback explicitly via playAnimation / stopAnimation below.
 
@@ -664,14 +687,18 @@ class ModelPreviewActivity : AppCompatActivity() {
     private fun computeModelRadius() {
         try {
             val box = modelNode!!.boundingBox
-            modelRadius = sqrt(box.halfExtent[0]*box.halfExtent[0] + box.halfExtent[1]*box.halfExtent[1] + box.halfExtent[2]*box.halfExtent[2]).coerceAtLeast(0.1f)
+            modelRadius = sqrt(box.halfExtent[0] * box.halfExtent[0] + box.halfExtent[1] * box.halfExtent[1] + box.halfExtent[2] * box.halfExtent[2]).coerceAtLeast(0.1f)
         } catch (e: Exception) { modelRadius = 1f }
     }
 
     private fun updateCamera() {
         val elev = Math.toRadians(camElevDeg).toFloat(); val azim = Math.toRadians(camAzimDeg).toFloat()
-        sceneView.cameraNode.position = Position(camDist * cos(elev) * sin(azim), camDist * sin(elev), camDist * cos(elev) * cos(azim))
-        sceneView.cameraNode.lookAt(Position(0f, 0f, 0f))
+        sceneView.cameraNode.position = io.github.sceneview.math.Position(
+            camDist * cos(elev) * sin(azim),
+            camDist * sin(elev),
+            camDist * cos(elev) * cos(azim)
+        )
+        sceneView.cameraNode.lookAt(io.github.sceneview.math.Position(0f, 0f, 0f))
     }
 
     // Add this private helper:
@@ -694,9 +721,9 @@ class ModelPreviewActivity : AppCompatActivity() {
     private fun setupTouchListener() {
         sceneView.setOnTouchListener { _, event ->
             when (event.actionMasked) {
-                android.view.MotionEvent.ACTION_DOWN -> { lastTouchX = event.x; lastTouchY = event.y; isTwoFinger = false }
-                android.view.MotionEvent.ACTION_POINTER_DOWN -> if (event.pointerCount == 2) { isTwoFinger = true; initialPinchDist = fingerSpacing(event); initialCamDist = camDist }
-                android.view.MotionEvent.ACTION_MOVE -> {
+                MotionEvent.ACTION_DOWN -> { lastTouchX = event.x; lastTouchY = event.y; isTwoFinger = false }
+                MotionEvent.ACTION_POINTER_DOWN -> if (event.pointerCount == 2) { isTwoFinger = true; initialPinchDist = fingerSpacing(event); initialCamDist = camDist }
+                MotionEvent.ACTION_MOVE -> {
                     if (isTwoFinger && event.pointerCount >= 2) {
                         val dist = fingerSpacing(event)
                         if (initialPinchDist > 0f) { camDist = (initialCamDist * initialPinchDist / dist).coerceIn(CAM_DIST_MIN, CAM_DIST_MAX); updateCamera() }
@@ -711,7 +738,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
     }
 
-    private fun fingerSpacing(e: android.view.MotionEvent): Float {
+    private fun fingerSpacing(e: MotionEvent): Float {
         val x = e.getX(0) - e.getX(1); val y = e.getY(0) - e.getY(1); return sqrt(x * x + y * y)
     }
 
@@ -762,7 +789,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         super.onStop()
     }
-    
+
     override fun onDestroy() {
         try {
             // Stop animation before touching Filament resources

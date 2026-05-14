@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Objects
 
 enum class DistanceUnit {
     METERS, CENTIMETERS, MILLIMETERS;

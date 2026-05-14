@@ -1,5 +1,7 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Managers
 
+import android.app.AlertDialog
+import android.content.Context
 import android.graphics.BitmapFactory
 import android.view.LayoutInflater
 import android.view.View
@@ -12,11 +14,12 @@ import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
+import com.example.pracazaliczeniowa.Objects.ModelItem
+import com.example.pracazaliczeniowa.R
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import com.example.pracazaliczeniowa.R
 
 class ModelLibraryManager(
     items: List<ModelItem>,
@@ -54,12 +57,12 @@ class ModelLibraryManager(
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        val thumbnail: ImageView    = view.findViewById(R.id.imgModelThumbnail)
-        val name: TextView          = view.findViewById(R.id.tvModelName)
-        val fileSize: TextView      = view.findViewById(R.id.tvFileSize)
-        val dimensions: TextView    = view.findViewById(R.id.tvDimensions)
-        val editDate: TextView      = view.findViewById(R.id.tvEditDate)
-        val savedBadge: TextView    = view.findViewById(R.id.tvSavedBadge)
+        val thumbnail: ImageView = view.findViewById(R.id.imgModelThumbnail)
+        val name: TextView = view.findViewById(R.id.tvModelName)
+        val fileSize: TextView = view.findViewById(R.id.tvFileSize)
+        val dimensions: TextView = view.findViewById(R.id.tvDimensions)
+        val editDate: TextView = view.findViewById(R.id.tvEditDate)
+        val savedBadge: TextView = view.findViewById(R.id.tvSavedBadge)
         val importedBadge: TextView = view.findViewById(R.id.tvImportedBadge)
         val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
     }
@@ -199,7 +202,7 @@ class ModelLibraryManager(
 
     // ── Thumbnail helpers ─────────────────────────────────────────────────────
 
-    private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: java.io.File) {
+    private fun bindThumbnail(imageView: ImageView, item: ModelItem, filesDir: File) {
         imageView.setImageDrawable(null)
         val cached = File(filesDir, "thumbnails/${item.profileKey}.jpg")
         val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
@@ -220,8 +223,8 @@ class ModelLibraryManager(
         }
     }
 
-    private fun confirmDeleteModel(context: android.content.Context, item: ModelItem) {
-        android.app.AlertDialog.Builder(context)
+    private fun confirmDeleteModel(context: Context, item: ModelItem) {
+        AlertDialog.Builder(context)
             .setTitle(context.getString(R.string.dialog_delete_model_title, item.name))
             .setMessage(context.getString(R.string.dialog_delete_model_msg))
             .setPositiveButton(context.getString(R.string.delete)) { _, _ -> onDeleteImported(item) }
@@ -229,7 +232,7 @@ class ModelLibraryManager(
             .show()
     }
 
-    private fun getFileSizeLabel(context: android.content.Context, item: ModelItem): String {
+    private fun getFileSizeLabel(context: Context, item: ModelItem): String {
         val bytes = if (item.isAsset) {
             try {
                 context.assets.open(item.modelPath).use { it.available().toLong() }
@@ -245,7 +248,7 @@ class ModelLibraryManager(
         }
     }
 
-    private fun resolveDateLabel(context: android.content.Context, item: ModelItem): Pair<Boolean, String> {
+    private fun resolveDateLabel(context: Context, item: ModelItem): Pair<Boolean, String> {
         val fmt = dateFormat
         // A saved/modified profile exists → show "Modified: {date}"
         if (item.lastModified > 0L) {

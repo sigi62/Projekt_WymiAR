@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Objects
 
 /**
  * Represents a 3D model available in the library.

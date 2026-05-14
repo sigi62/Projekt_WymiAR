@@ -1,7 +1,7 @@
 package com.example.pracazaliczeniowa
 
 import android.app.Application
-import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Objects.AppSettings
 
 /**
  * Custom Application class.

@@ -12,10 +12,11 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
-import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
-import com.example.pracazaliczeniowa.Helpers.DistanceUnit
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import dev.romainguy.kotlin.math.Float3
 
 fun log(msg: String) {

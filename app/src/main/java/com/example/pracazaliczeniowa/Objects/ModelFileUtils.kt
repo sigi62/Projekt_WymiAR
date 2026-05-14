@@ -1,7 +1,8 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Objects
 
 import android.content.Context
-import com.example.pracazaliczeniowa.log
+import com.example.pracazaliczeniowa.Activities.log
+import org.json.JSONObject
 import java.io.File
 
 object ModelFileUtils {
@@ -45,7 +46,7 @@ object ModelFileUtils {
         return try {
             val jsonLen = readInt32LE(bytes, 12)
             val jsonStr = String(bytes, 20, minOf(jsonLen, bytes.size - 20), Charsets.UTF_8)
-            val json      = org.json.JSONObject(jsonStr)
+            val json      = JSONObject(jsonStr)
             val accessors = json.optJSONArray("accessors") ?: return null
             val nodes     = json.optJSONArray("nodes")     ?: return null
             val meshes    = json.optJSONArray("meshes")    ?: return null
@@ -139,7 +140,7 @@ object ModelFileUtils {
             val w = (rawW * unitScale).coerceAtLeast(0.001f)
             val h = (rawH * unitScale).coerceAtLeast(0.001f)
             val d = (rawD * unitScale).coerceAtLeast(0.001f)
-            log("GLB bounds [$label]: ${w*100}×${h*100}×${d*100} cm (unitScale=$unitScale)")
+            log("GLB bounds [$label]: ${w * 100}×${h * 100}×${d * 100} cm (unitScale=$unitScale)")
             Triple(w, h, d)
 
         } catch (e: Exception) {
@@ -156,7 +157,7 @@ object ModelFileUtils {
 
         val jsonLen = readInt32LE(bytes, 12)
         val jsonStr = String(bytes, 20, minOf(jsonLen, bytes.size - 20), Charsets.UTF_8)
-        val json      = org.json.JSONObject(jsonStr)
+        val json      = JSONObject(jsonStr)
         val accessors = json.optJSONArray("accessors") ?: return
         val meshes    = json.optJSONArray("meshes")    ?: return
 
@@ -167,8 +168,10 @@ object ModelFileUtils {
                 val scale  = node.optJSONArray("scale")
                 val matrix = node.optJSONArray("matrix")
                 if (scale != null || matrix != null) {
-                    log("NODE[$ni] name=${node.optString("name")} " +
-                            "scale=$scale matrix=$matrix")
+                    log(
+                        "NODE[$ni] name=${node.optString("name")} " +
+                                "scale=$scale matrix=$matrix"
+                    )
                 }
             }
         }
@@ -183,9 +186,19 @@ object ModelFileUtils {
                 val acc    = accessors.getJSONObject(posIdx)
                 val minArr = acc.optJSONArray("min") ?: continue
                 val maxArr = acc.optJSONArray("max") ?: continue
-                log("RAW [$assetPath] mesh=$mi prim=$pi " +
-                        "min=(${minArr.getDouble(0)}, ${minArr.getDouble(1)}, ${minArr.getDouble(2)}) " +
-                        "max=(${maxArr.getDouble(0)}, ${maxArr.getDouble(1)}, ${maxArr.getDouble(2)})")
+                log(
+                    "RAW [$assetPath] mesh=$mi prim=$pi " +
+                            "min=(${minArr.getDouble(0)}, ${minArr.getDouble(1)}, ${
+                                minArr.getDouble(
+                                    2
+                                )
+                            }) " +
+                            "max=(${maxArr.getDouble(0)}, ${maxArr.getDouble(1)}, ${
+                                maxArr.getDouble(
+                                    2
+                                )
+                            })"
+                )
             }
         }
     }

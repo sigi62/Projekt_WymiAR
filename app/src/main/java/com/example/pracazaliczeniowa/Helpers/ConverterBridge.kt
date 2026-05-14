@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.Converter
+package com.example.pracazaliczeniowa.Helpers
 
 /**
  * Interface defined in :app so it has no dependency on :converter.

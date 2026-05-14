@@ -1,8 +1,9 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Objects
 
 import android.content.Context
 import android.content.SharedPreferences
 import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 
 /**
  * Centralised access to all persisted app settings.
@@ -30,7 +31,7 @@ class AppSettings(context: Context) {
 
     /**
      * Applies the stored theme preference to the whole process via
-     * [AppCompatDelegate.setDefaultNightMode].  Call this from Application.onCreate()
+     * [androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode].  Call this from Application.onCreate()
      * *and* from [SettingsActivity] immediately after the user toggles the switch.
      */
     fun applyTheme() {
@@ -45,11 +46,11 @@ class AppSettings(context: Context) {
         val tag = languageOverride
         val locale = if (tag.isEmpty()) {
             // Restore system default
-            androidx.core.os.LocaleListCompat.getEmptyLocaleList()
+            LocaleListCompat.getEmptyLocaleList()
         } else {
-            androidx.core.os.LocaleListCompat.forLanguageTags(tag)
+            LocaleListCompat.forLanguageTags(tag)
         }
-        androidx.appcompat.app.AppCompatDelegate.setApplicationLocales(locale)
+        AppCompatDelegate.setApplicationLocales(locale)
     }
     // -------------------------------------------------------------------------
     // ModelControlOverlayView – position default half-range (cm)

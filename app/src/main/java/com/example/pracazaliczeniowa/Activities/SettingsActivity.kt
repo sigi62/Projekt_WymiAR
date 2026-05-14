@@ -1,16 +1,22 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Activities
 
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.View
+import android.widget.AdapterView
+import android.widget.ArrayAdapter
 import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.Spinner
 import android.widget.Switch
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.app.AppCompatDelegate
-import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Objects.AppSettings
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
+import com.example.pracazaliczeniowa.R
 
 class SettingsActivity : AppCompatActivity() {
 
@@ -51,13 +57,13 @@ class SettingsActivity : AppCompatActivity() {
 
         // ── Distance unit ────────────────────────────────────────────────────
         val unitCodes   = listOf(
-            com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS,
-            com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS,
-            com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS
+            DistanceUnit.CENTIMETERS,
+            DistanceUnit.METERS,
+            DistanceUnit.MILLIMETERS
         )
-        val spinnerUnit = findViewById<android.widget.Spinner>(R.id.spinnerUnit)
+        val spinnerUnit = findViewById<Spinner>(R.id.spinnerUnit)
 
-        val unitAdapter = android.widget.ArrayAdapter.createFromResource(
+        val unitAdapter = ArrayAdapter.createFromResource(
             this,
             R.array.unit_display_names,
             android.R.layout.simple_spinner_item
@@ -66,8 +72,8 @@ class SettingsActivity : AppCompatActivity() {
         spinnerUnit.adapter = unitAdapter
         spinnerUnit.setSelection(unitCodes.indexOf(settings.distanceUnit).coerceAtLeast(0))
 
-        spinnerUnit.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: android.view.View?, pos: Int, id: Long) {
+        spinnerUnit.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
                 val newUnit = unitCodes[pos]
                 if (newUnit == settings.distanceUnit) return
                 settings.distanceUnit = newUnit
@@ -75,14 +81,14 @@ class SettingsActivity : AppCompatActivity() {
                 refreshPosEdit()
                 // No recreate needed — the overlay picks it up in onResume via applySettings
             }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>) {}
+            override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
         // ── Language ─────────────────────────────────────────────────────────────
         val languageCodes = listOf("", "en", "pl")   // matches the string-array order
-        val spinnerLanguage = findViewById<android.widget.Spinner>(R.id.spinnerLanguage)
+        val spinnerLanguage = findViewById<Spinner>(R.id.spinnerLanguage)
 
-        val adapter = android.widget.ArrayAdapter.createFromResource(
+        val adapter = ArrayAdapter.createFromResource(
             this,
             R.array.language_display_names,
             android.R.layout.simple_spinner_item
@@ -91,15 +97,15 @@ class SettingsActivity : AppCompatActivity() {
         spinnerLanguage.adapter = adapter
         spinnerLanguage.setSelection(languageCodes.indexOf(settings.languageOverride).coerceAtLeast(0))
 
-        spinnerLanguage.onItemSelectedListener = object : android.widget.AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: android.widget.AdapterView<*>, view: android.view.View?, pos: Int, id: Long) {
+        spinnerLanguage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
+            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
                 val newCode = languageCodes[pos]
                 if (newCode == settings.languageOverride) return   // no change, avoid recreate loop
                 settings.languageOverride = newCode
                 settings.applyLocale(this@SettingsActivity)
                 recreate()   // redraw the settings screen in the new language
             }
-            override fun onNothingSelected(parent: android.widget.AdapterView<*>) {}
+            override fun onNothingSelected(parent: AdapterView<*>) {}
         }
 
         // ── Position half-range ──────────────────────────────────────────
@@ -111,11 +117,11 @@ class SettingsActivity : AppCompatActivity() {
         refreshPosLabel = {
             val value = settings.posMidInCurrentUnit()
             val suffix = when (settings.distanceUnit) {
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> "m"
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> "cm"
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> "mm"
+                DistanceUnit.METERS      -> "m"
+                DistanceUnit.CENTIMETERS -> "cm"
+                DistanceUnit.MILLIMETERS -> "mm"
             }
-            val formatted = if (settings.distanceUnit == com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS)
+            val formatted = if (settings.distanceUnit == DistanceUnit.METERS)
                 "±%.2f %s".format(value, suffix)
             else
                 "±%.0f %s".format(value, suffix)
@@ -125,7 +131,7 @@ class SettingsActivity : AppCompatActivity() {
         refreshPosEdit = {
             val value = settings.posMidInCurrentUnit()
             posEdit.setText(
-                if (settings.distanceUnit == com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS)
+                if (settings.distanceUnit == DistanceUnit.METERS)
                     "%.2f".format(value)
                 else
                     "%.0f".format(value)
@@ -148,9 +154,9 @@ class SettingsActivity : AppCompatActivity() {
 
         posMinus.setOnClickListener {
             val step = when (settings.distanceUnit) {
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> if (settings.posMidDefault > 100) 100 else 10
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> if (settings.posMidDefault > 100) 100 else 10
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> if (settings.posMidDefault > 100) 100 else 10
+                DistanceUnit.METERS      -> if (settings.posMidDefault > 100) 100 else 10
+                DistanceUnit.CENTIMETERS -> if (settings.posMidDefault > 100) 100 else 10
+                DistanceUnit.MILLIMETERS -> if (settings.posMidDefault > 100) 100 else 10
             }
             settings.posMidDefault = (settings.posMidDefault - step).coerceAtLeast(1)
             refreshPosEdit()
@@ -159,9 +165,9 @@ class SettingsActivity : AppCompatActivity() {
 
         posPlus.setOnClickListener {
             val step = when (settings.distanceUnit) {
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.METERS      -> if (settings.posMidDefault >= 100) 100 else 10
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.CENTIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
-                com.example.pracazaliczeniowa.Helpers.DistanceUnit.MILLIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
+                DistanceUnit.METERS      -> if (settings.posMidDefault >= 100) 100 else 10
+                DistanceUnit.CENTIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
+                DistanceUnit.MILLIMETERS -> if (settings.posMidDefault >= 100) 100 else 10
             }
             settings.posMidDefault = (settings.posMidDefault + step).coerceAtMost(1_000)
             refreshPosEdit()

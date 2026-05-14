@@ -1,9 +1,7 @@
 package com.example.pracazaliczeniowa.converter
 
-import com.example.pracazaliczeniowa.Converter.ConverterBridge
-import com.example.pracazaliczeniowa.Converter.ConverterRegistry
-import java.io.File
-
+import com.example.pracazaliczeniowa.Helpers.ConverterBridge
+import com.example.pracazaliczeniowa.Helpers.ConverterRegistry
 
 
 object GlbConverter : ConverterBridge {

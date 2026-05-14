@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Managers
 
 import android.content.Context
 import kotlinx.serialization.Serializable

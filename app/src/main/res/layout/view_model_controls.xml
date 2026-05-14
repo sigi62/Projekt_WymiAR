@@ -59,7 +59,7 @@
                 android:text="@string/label_axis_x"
                 android:textColor="@android:color/white"/>
 
-            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -93,7 +93,7 @@
                 android:text="@string/label_axis_y"
                 android:textColor="@android:color/white"/>
 
-            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -127,7 +127,7 @@
                 android:text="@string/label_axis_z"
                 android:textColor="@android:color/white"/>
 
-            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -162,7 +162,7 @@
                 android:text="@string/label_axis_uni"
                 android:textColor="@android:color/white"/>
 
-            <com.example.pracazaliczeniowa.Overlays.RulerSeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seekUniversalScale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

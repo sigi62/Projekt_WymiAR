@@ -1,5 +1,6 @@
 package com.example.pracazaliczeniowa.Helpers
 
+
 import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
@@ -8,6 +9,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.*
 import androidx.fragment.app.DialogFragment
+import com.example.pracazaliczeniowa.Managers.ModelProfile
+import com.example.pracazaliczeniowa.Managers.ProfileManager
+import com.example.pracazaliczeniowa.Managers.ProfileSaveResult
 import com.example.pracazaliczeniowa.R
 
 /**

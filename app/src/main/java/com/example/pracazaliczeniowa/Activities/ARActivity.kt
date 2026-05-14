@@ -1,10 +1,10 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Activities
 
 import android.content.Intent
+import android.graphics.PointF
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
-import android.widget.Button
 import android.widget.ImageButton
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -20,25 +20,26 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import kotlin.math.sqrt
 import android.util.Log
-import com.example.pracazaliczeniowa.Helpers.AppSettings
+import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Helpers.ModelPickerPopup
-import com.example.pracazaliczeniowa.Helpers.ModelProfile
-import com.example.pracazaliczeniowa.Helpers.ProfileManager
+import com.example.pracazaliczeniowa.Managers.ModelProfile
+import com.example.pracazaliczeniowa.Managers.ProfileManager
 import com.example.pracazaliczeniowa.Helpers.ProfilePickerDialog
+import com.example.pracazaliczeniowa.Activities.LibraryActivity
 
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.PlaneGridRenderer
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 
-import com.example.pracazaliczeniowa.Helpers.DistanceUnit
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
+import com.example.pracazaliczeniowa.R
+import com.example.pracazaliczeniowa.Activities.SettingsActivity
 import com.google.ar.core.Config
 import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
 import kotlin.math.atan2
-import kotlin.math.cos
-import kotlin.math.sin
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import io.github.sceneview.node.Node
 import java.io.File
@@ -124,7 +125,7 @@ class ARActivity : AppCompatActivity() {
     private var isRotating   = false
 
     private var initialPinchDistance    = 0f
-    private var touchStartPos           = android.graphics.PointF()
+    private var touchStartPos           = PointF()
     private val MOVE_THRESHOLD          = 20f
     private var initialModelRotationY   = 0f
 
@@ -140,8 +141,8 @@ class ARActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_ar)
 
-        activeModelPath    = intent.getStringExtra(LibraryActivity.EXTRA_MODEL_PATH)    ?: "models/cat.glb"
-        activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, true)
+        activeModelPath    = intent.getStringExtra(LibraryActivity.Companion.EXTRA_MODEL_PATH)    ?: "models/cat.glb"
+        activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.Companion.EXTRA_MODEL_IS_ASSET, true)
 
         profileManager = ProfileManager(this)
         settings = AppSettings(this)
@@ -248,7 +249,8 @@ class ARActivity : AppCompatActivity() {
             isAnimationPlaying = !isAnimationPlaying
             wrapped.setAnimationPlaying(isAnimationPlaying)
             animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
-            statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on) else getString(R.string.animation_toggle_off)
+            statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on) else getString(
+                R.string.animation_toggle_off)
         }
 
         // ── Rotation ring toggle click ────────────────────────────────────────
@@ -428,7 +430,8 @@ class ARActivity : AppCompatActivity() {
             clearMeasurements()
             btnMeasureDelete.visibility = View.GONE
             btnMeasureRevert.visibility = View.GONE
-            statusText.text = getString(R.string.status_active_model,
+            statusText.text = getString(
+                R.string.status_active_model,
                 activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
             deselectModel()

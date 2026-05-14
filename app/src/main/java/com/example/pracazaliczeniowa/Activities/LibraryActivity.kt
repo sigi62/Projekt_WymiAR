@@ -1,13 +1,15 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Activities
 
-import android.app.Activity
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.provider.OpenableColumns
 import android.text.InputFilter
 import android.text.InputType
+import android.view.inputmethod.InputMethodManager
 import android.widget.EditText
 import android.widget.ImageButton
+import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
@@ -15,12 +17,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.example.pracazaliczeniowa.Helpers.ExportProfilePickerDialog
+import com.example.pracazaliczeniowa.Dialogs.ExportProfilePickerDialog
 import com.example.pracazaliczeniowa.Helpers.GlbTransformExporter
-import com.example.pracazaliczeniowa.Helpers.ModelImportManager
-import com.example.pracazaliczeniowa.Helpers.ModelItem
-import com.example.pracazaliczeniowa.Helpers.ModelLibraryManager
-import com.example.pracazaliczeniowa.Helpers.ProfileManager
+import com.example.pracazaliczeniowa.Managers.LibraryFilterManager
+import com.example.pracazaliczeniowa.Managers.ModelImportManager
+import com.example.pracazaliczeniowa.Managers.ModelLibraryManager
+import com.example.pracazaliczeniowa.Managers.ModelProfile
+import com.example.pracazaliczeniowa.Managers.ProfileManager
+import com.example.pracazaliczeniowa.Activities.ModelPreviewActivity
+import com.example.pracazaliczeniowa.Objects.ModelFileUtils
+import com.example.pracazaliczeniowa.Objects.ModelItem
+import com.example.pracazaliczeniowa.R
+import com.example.pracazaliczeniowa.Activities.SettingsActivity
+import com.google.android.material.chip.Chip
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
 import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener
@@ -28,9 +37,7 @@ import com.google.android.play.core.splitinstall.model.SplitInstallSessionStatus
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import com.example.pracazaliczeniowa.Helpers.LibraryFilterManager
-import com.example.pracazaliczeniowa.Helpers.ModelFileUtils
-import com.example.pracazaliczeniowa.Helpers.ModelProfile
+import java.io.File
 
 class LibraryActivity : AppCompatActivity() {
 
@@ -58,7 +65,7 @@ class LibraryActivity : AppCompatActivity() {
     private val settingsLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode == Activity.RESULT_OK) recreate()
+        if (result.resultCode == RESULT_OK) recreate()
     }
 
     private val arLauncher = registerForActivityResult(
@@ -76,7 +83,7 @@ class LibraryActivity : AppCompatActivity() {
     private val importLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
-        if (result.resultCode != Activity.RESULT_OK) return@registerForActivityResult
+        if (result.resultCode != RESULT_OK) return@registerForActivityResult
         val uri = result.data?.data ?: return@registerForActivityResult
 
         val fileName  = getFileName(uri) ?: "unknown"
@@ -110,7 +117,8 @@ class LibraryActivity : AppCompatActivity() {
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
             SplitInstallSessionStatus.INSTALLED -> {
-                Toast.makeText(this, getString(R.string.toast_converter_ready), Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, getString(R.string.toast_converter_ready), Toast.LENGTH_SHORT)
+                    .show()
                 importLauncher.launch(
                     Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                         addCategory(Intent.CATEGORY_OPENABLE)
@@ -119,13 +127,25 @@ class LibraryActivity : AppCompatActivity() {
                     }
                 )
             }
+
             SplitInstallSessionStatus.FAILED -> {
-                Toast.makeText(this, getString(R.string.toast_converter_failed, state.errorCode().toString()), Toast.LENGTH_LONG).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_converter_failed, state.errorCode().toString()),
+                    Toast.LENGTH_LONG
+                ).show()
             }
+
             SplitInstallSessionStatus.DOWNLOADING -> {
-                Toast.makeText(this, getString(R.string.toast_converter_downloading), Toast.LENGTH_SHORT).show()
+                Toast.makeText(
+                    this,
+                    getString(R.string.toast_converter_downloading),
+                    Toast.LENGTH_SHORT
+                ).show()
             }
-            else -> { /* PENDING, REQUIRES_USER_CONFIRMATION, etc. — ignore */ }
+
+            else -> { /* PENDING, REQUIRES_USER_CONFIRMATION, etc. — ignore */
+            }
         }
     }
 
@@ -139,15 +159,21 @@ class LibraryActivity : AppCompatActivity() {
 
     private val bundledModels: List<ModelItem> by lazy {
         listOf(
-            ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder,
+            ModelItem(
+                "Cat", "models/cat.glb", R.drawable.ic_model_placeholder,
                 isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this,"models/cat.glb")),   // ~25×20×30 cm — adjust to reality
-            ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder,
+                defaultSizeM = ModelFileUtils.readBounds(this, "models/cat.glb")
+            ),   // ~25×20×30 cm — adjust to reality
+            ModelItem(
+                "Dog", "models/dog.glb", R.drawable.ic_model_placeholder,
                 isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this,"models/dog.glb")),
-            ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder,
+                defaultSizeM = ModelFileUtils.readBounds(this, "models/dog.glb")
+            ),
+            ModelItem(
+                "Van", "models/van.glb", R.drawable.ic_model_placeholder,
                 isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this,"models/van.glb"))
+                defaultSizeM = ModelFileUtils.readBounds(this, "models/van.glb")
+            )
         )
     }
 
@@ -200,25 +226,34 @@ class LibraryActivity : AppCompatActivity() {
 
 
         adapter = ModelLibraryManager(
-            items            = allModels.toList(),
-            savedProfiles    = savedProfiles,
-            selectedKey      = selectedModelKey,
-            onItemClick      = { selectedModel ->
+            items = allModels.toList(),
+            savedProfiles = savedProfiles,
+            selectedKey = selectedModelKey,
+            onItemClick = { selectedModel ->
                 selectedModelKey = selectedModel.profileKey
                 adapter.updateSelection(selectedModelKey)
                 arLauncher.launch(
                     Intent(this, ARActivity::class.java).apply {
-                        putExtra(EXTRA_MODEL_PATH,     selectedModel.modelPath)
+                        putExtra(EXTRA_MODEL_PATH, selectedModel.modelPath)
                         putExtra(EXTRA_MODEL_IS_ASSET, selectedModel.isAsset)
                     }
                 )
             },
-            onPreviewClick   = { selectedModel ->
+            onPreviewClick = { selectedModel ->
                 previewLauncher.launch(
                     Intent(this, ModelPreviewActivity::class.java).apply {
-                        putExtra(ModelPreviewActivity.EXTRA_MODEL_PATH,     selectedModel.modelPath)
-                        putExtra(ModelPreviewActivity.EXTRA_MODEL_IS_ASSET, selectedModel.isAsset)
-                        putExtra(ModelPreviewActivity.EXTRA_PROFILE_KEY,    selectedModel.profileKey)
+                        putExtra(
+                            ModelPreviewActivity.Companion.EXTRA_MODEL_PATH,
+                            selectedModel.modelPath
+                        )
+                        putExtra(
+                            ModelPreviewActivity.Companion.EXTRA_MODEL_IS_ASSET,
+                            selectedModel.isAsset
+                        )
+                        putExtra(
+                            ModelPreviewActivity.Companion.EXTRA_PROFILE_KEY,
+                            selectedModel.profileKey
+                        )
                     }
                 )
             },
@@ -331,13 +366,17 @@ class LibraryActivity : AppCompatActivity() {
             try {
                 contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LibraryActivity,
-                        getString(R.string.toast_export_success), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        this@LibraryActivity,
+                        getString(R.string.toast_export_success), Toast.LENGTH_SHORT
+                    ).show()
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
-                    Toast.makeText(this@LibraryActivity,
-                        getString(R.string.toast_export_failed, e.message ?: ""), Toast.LENGTH_LONG).show()
+                    Toast.makeText(
+                        this@LibraryActivity,
+                        getString(R.string.toast_export_failed, e.message ?: ""), Toast.LENGTH_LONG
+                    ).show()
                 }
             }
         }
@@ -355,7 +394,7 @@ class LibraryActivity : AppCompatActivity() {
             return
         }
 
-        ExportProfilePickerDialog.newInstance(item.profileKey, item.name).apply {
+        ExportProfilePickerDialog.Companion.newInstance(item.profileKey, item.name).apply {
             onProfileSelected = { _, profile ->
                 launchExportWithProfile(item, profile)
             }
@@ -380,7 +419,7 @@ class LibraryActivity : AppCompatActivity() {
                         }.getOrNull()
                     } else {
                         runCatching {
-                            java.io.File(item.modelPath).readBytes()
+                            File(item.modelPath).readBytes()
                         }.getOrNull()
                     }
                 } else {
@@ -390,7 +429,7 @@ class LibraryActivity : AppCompatActivity() {
                         }.getOrNull() ?: return@withContext null
                         GlbTransformExporter.applyProfileToBytes(raw, item.modelPath, profile)
                     } else {
-                        GlbTransformExporter.applyProfileToGlb(java.io.File(item.modelPath), profile)
+                        GlbTransformExporter.applyProfileToGlb(File(item.modelPath), profile)
                     }
                 }
             }
@@ -410,7 +449,7 @@ class LibraryActivity : AppCompatActivity() {
     // ── Rename flow ───────────────────────────────────────────────────────────
 
     /**
-     * Shows an [AlertDialog] with an [EditText] pre-filled with the current
+     * Shows an [androidx.appcompat.app.AlertDialog] with an [android.widget.EditText] pre-filled with the current
      * model name. On confirmation, renames the file on a background thread
      * and refreshes the grid on success.
      */
@@ -438,8 +477,8 @@ class LibraryActivity : AppCompatActivity() {
         input.post {
             input.setSelection(input.text.length)
             val imm = getSystemService(INPUT_METHOD_SERVICE)
-                    as android.view.inputmethod.InputMethodManager
-            imm.showSoftInput(input, android.view.inputmethod.InputMethodManager.SHOW_IMPLICIT)
+                    as InputMethodManager
+            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
         }
     }
 
@@ -491,8 +530,8 @@ class LibraryActivity : AppCompatActivity() {
 
     private fun wireFilterChips() {
         // Chips that carry a direction icon (togglable)
-        val chipAlphabetical = findViewById<com.google.android.material.chip.Chip>(R.id.chipAlphabetical)
-        val chipRecent       = findViewById<com.google.android.material.chip.Chip>(R.id.chipRecent)
+        val chipAlphabetical = findViewById<Chip>(R.id.chipAlphabetical)
+        val chipRecent       = findViewById<Chip>(R.id.chipRecent)
 
         // Simple chips — no direction icon
         val simpleChips = mapOf(
@@ -535,7 +574,7 @@ class LibraryActivity : AppCompatActivity() {
         }
 
         simpleChips.forEach { (id, filter) ->
-            findViewById<com.google.android.material.chip.Chip>(id).setOnClickListener {
+            findViewById<Chip>(id).setOnClickListener {
                 filterManager.select(filter)
                 applyAndRefresh()
             }
@@ -547,17 +586,17 @@ class LibraryActivity : AppCompatActivity() {
 
     private fun updateCountLabel() {
         val count = filterManager.apply(allModels).size
-        findViewById<android.widget.TextView>(R.id.tvItemCount)
+        findViewById<TextView>(R.id.tvItemCount)
             .text = getString(R.string.library_item_count, count)
     }
 
-    private fun getFileName(uri: android.net.Uri): String? {
+    private fun getFileName(uri: Uri): String? {
         var result: String? = null
         if (uri.scheme == "content") {
             val cursor = contentResolver.query(uri, null, null, null, null)
             cursor.use { c ->
                 if (c != null && c.moveToFirst()) {
-                    val index = c.getColumnIndex(android.provider.OpenableColumns.DISPLAY_NAME)
+                    val index = c.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                     if (index != -1) result = c.getString(index)
                 }
             }

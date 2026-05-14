@@ -1,13 +1,16 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Dialogs
 
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.fragment.app.DialogFragment
+import com.example.pracazaliczeniowa.Managers.ModelProfile
+import com.example.pracazaliczeniowa.Managers.ProfileManager
 import com.example.pracazaliczeniowa.R
 
 /**
@@ -42,7 +45,7 @@ class ExportProfilePickerDialog : DialogFragment() {
     private lateinit var modelName:      String
     private lateinit var displayName:    String
     private lateinit var profileManager: ProfileManager
-    private lateinit var container:      LinearLayout
+    private lateinit var container: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,7 +84,7 @@ class ExportProfilePickerDialog : DialogFragment() {
 
             // Only the Export button is relevant here — hide the others
             row.findViewById<Button>(R.id.btnSlotOverwrite).visibility = View.GONE
-            row.findViewById<android.widget.ImageButton>(R.id.btnSlotDelete).visibility = View.GONE
+            row.findViewById<ImageButton>(R.id.btnSlotDelete).visibility = View.GONE
 
             row.findViewById<Button>(R.id.btnSlotLoad).apply {
                 text = getString(R.string.btn_export)

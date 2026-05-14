@@ -1,4 +1,6 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Managers
+
+import com.example.pracazaliczeniowa.Objects.ModelItem
 
 /**
  * Owns filter and sort state for the library grid.

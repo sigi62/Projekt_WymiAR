@@ -11,6 +11,8 @@ import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.example.pracazaliczeniowa.Managers.ModelImportManager
+import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
 import java.io.File
 

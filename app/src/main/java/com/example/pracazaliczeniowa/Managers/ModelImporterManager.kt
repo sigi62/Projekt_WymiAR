@@ -1,10 +1,12 @@
-package com.example.pracazaliczeniowa.Helpers
+package com.example.pracazaliczeniowa.Managers
 
 import android.content.Context
 import android.net.Uri
 import android.provider.OpenableColumns
-import com.example.pracazaliczeniowa.log
-import com.example.pracazaliczeniowa.Converter.ConverterRegistry
+import com.example.pracazaliczeniowa.Activities.log
+import com.example.pracazaliczeniowa.Helpers.ConverterRegistry
+import com.example.pracazaliczeniowa.Objects.ModelFileUtils
+import com.example.pracazaliczeniowa.Objects.ModelItem
 import java.io.File
 
 /**
@@ -153,12 +155,12 @@ object ModelImportManager {
             val bounds = ModelFileUtils.readBounds(dest)
             log("Import SUCCESS: $displayName (${dest.length()} bytes), bounds=$bounds")
             ModelItem(
-                name          = displayName,
-                modelPath     = dest.absolutePath,
-                thumbnailRes  = null,
-                isAsset       = false,
-                createdAt     = System.currentTimeMillis(),
-                defaultSizeM  = bounds
+                name = displayName,
+                modelPath = dest.absolutePath,
+                thumbnailRes = null,
+                isAsset = false,
+                createdAt = System.currentTimeMillis(),
+                defaultSizeM = bounds
             )
 
         } catch (e: Exception) {
@@ -178,11 +180,11 @@ object ModelImportManager {
             ?.sortedBy { it.nameWithoutExtension }
             ?.map { file ->
                 ModelItem(
-                    name         = file.nameWithoutExtension,
-                    modelPath    = file.canonicalPath,
+                    name = file.nameWithoutExtension,
+                    modelPath = file.canonicalPath,
                     thumbnailRes = null,
-                    isAsset      = false,
-                    createdAt    = file.lastModified(),
+                    isAsset = false,
+                    createdAt = file.lastModified(),
                     defaultSizeM = ModelFileUtils.readBounds(file)
                 )
             }
@@ -239,11 +241,11 @@ object ModelImportManager {
         return if (oldFile.renameTo(newFile)) {
             log("Rename SUCCESS: '${item.name}' → '$sanitised'")
             ModelItem(
-                name         = sanitised,
-                modelPath    = newFile.canonicalPath,
+                name = sanitised,
+                modelPath = newFile.canonicalPath,
                 thumbnailRes = item.thumbnailRes,
-                isAsset      = false,
-                createdAt    = item.createdAt
+                isAsset = false,
+                createdAt = item.createdAt
             )
         } else {
             log("Rename FAILED: File.renameTo returned false for '${item.name}'")

@@ -10,6 +10,9 @@ Profiles FIX :
  -export exported profile resets scale??
  - exported profile with rotation applies it before rotation handle ? meaning its weird af
 
+DimensionOverlayNode doesn't update with changes, only toggle
+
+once again the ARActivity destroy crashes
 Rotation Handle user choice (?)
 Measurements more accurate
 Thumbnails for auto models are pre-made

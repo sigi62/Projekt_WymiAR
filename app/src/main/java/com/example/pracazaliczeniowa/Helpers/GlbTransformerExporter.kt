@@ -1,12 +1,13 @@
 package com.example.pracazaliczeniowa.Helpers
 
-import com.example.pracazaliczeniowa.log
+import com.example.pracazaliczeniowa.Managers.ModelProfile
+import com.example.pracazaliczeniowa.Activities.log
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
 /**
- * Writes a [ModelProfile]'s scale and rotation into the root node transform
+ * Writes a [com.example.pracazaliczeniowa.Managers.ModelProfile]'s scale and rotation into the root node transform
  * of a GLB file by surgically splicing into the JSON chunk.
  *
  * We deliberately avoid re-serialising the whole JSON through org.json because:
@@ -137,20 +138,28 @@ object GlbTransformExporter {
         label: String
     ): String? {
         return try {
-            // We use JSONObject only to locate and patch the single node object.
-            // All other top-level keys (images, buffers, bufferViews, accessors…)
-            // are carried through as-is via string replacement, not re-serialised.
             val root  = org.json.JSONObject(json)
             val nodes = root.getJSONArray("nodes")
             val node  = nodes.getJSONObject(nodeIdx)
 
-            // Build the transform fragment
-            val quat = eulerDegreesToQuaternion(profile.rotationX, profile.rotationY, profile.rotationZ)
+            // ✅ Read the node's existing (native/baked) scale, default to [1,1,1]
+            val existingScale = node.optJSONArray("scale")
+            val nativeX = existingScale?.optDouble(0, 1.0)?.toFloat() ?: 1f
+            val nativeY = existingScale?.optDouble(1, 1.0)?.toFloat() ?: 1f
+            val nativeZ = existingScale?.optDouble(2, 1.0)?.toFloat() ?: 1f
+
+
+            // ✅ Multiply profile scale ON TOP of native scale
             node.put("scale", org.json.JSONArray().apply {
-                put(profile.scaleX.toDouble())
-                put(profile.scaleY.toDouble())
-                put(profile.scaleZ.toDouble())
+                put((nativeX * profile.scaleX).toDouble())
+                put((nativeY * profile.scaleY).toDouble())
+                put((nativeZ * profile.scaleZ).toDouble())
             })
+
+            val localQuat = eulerDegreesToQuaternion(profile.rotationX, 0f, profile.rotationZ)
+            val yawQuat   = eulerDegreesToQuaternion(0f, profile.rotationY, 0f)
+            val quat      = multiplyQuaternions(yawQuat, localQuat)  // yaw * local
+
             node.put("rotation", org.json.JSONArray().apply {
                 put(quat[0].toDouble())
                 put(quat[1].toDouble())
@@ -158,12 +167,7 @@ object GlbTransformExporter {
                 put(quat[3].toDouble())
             })
             nodes.put(nodeIdx, node)
-
-            // ── Now do a surgical string replacement ──────────────────────────
-            // Find the original node[nodeIdx] object boundaries in the raw string,
-            // replace only that substring, leave the rest byte-identical.
             replaceNodeInJsonString(json, nodeIdx, node.toString())
-
         } catch (e: Exception) {
             log("GlbExport splice FAILED [$label]: ${e.message}")
             null
@@ -220,6 +224,17 @@ object GlbTransformExporter {
         return jsonStr.substring(0, nodeStart) + newNodeJson + jsonStr.substring(nodeEnd)
     }
 
+
+    private fun multiplyQuaternions(a: FloatArray, b: FloatArray): FloatArray {
+        // a = [ax, ay, az, aw], b = [bx, by, bz, bw]
+        // result = a * b  (applies b first, then a)
+        return floatArrayOf(
+            a[3]*b[0] + a[0]*b[3] + a[1]*b[2] - a[2]*b[1],
+            a[3]*b[1] - a[0]*b[2] + a[1]*b[3] + a[2]*b[0],
+            a[3]*b[2] + a[0]*b[1] - a[1]*b[0] + a[2]*b[3],
+            a[3]*b[3] - a[0]*b[0] - a[1]*b[1] - a[2]*b[2]
+        )
+    }
     /** Returns the index of '[' that opens the top-level "nodes" array. */
     private fun findTopLevelNodesArray(json: String): Int? {
         var depth = 0

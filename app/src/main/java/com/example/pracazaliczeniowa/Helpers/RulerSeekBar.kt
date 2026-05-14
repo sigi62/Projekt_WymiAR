@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.Overlays
+package com.example.pracazaliczeniowa.Helpers
 
 import android.content.Context
 import android.graphics.Canvas
@@ -6,6 +6,7 @@ import android.graphics.Color
 import android.graphics.Paint
 import android.util.AttributeSet
 import androidx.appcompat.widget.AppCompatSeekBar
+import androidx.core.content.ContextCompat
 import com.example.pracazaliczeniowa.R
 
 class RulerSeekBar @JvmOverloads constructor(
@@ -62,7 +63,7 @@ class RulerSeekBar @JvmOverloads constructor(
         val totalRange = maxValue - minValue
         if (totalRange == 0f) return
 
-        val rulerColor = androidx.core.content.ContextCompat.getColor(context, R.color.icon_tint)
+        val rulerColor = ContextCompat.getColor(context, R.color.icon_tint)
         paint.color = rulerColor
         paint.color = rulerColor
         paint.isAntiAlias = true

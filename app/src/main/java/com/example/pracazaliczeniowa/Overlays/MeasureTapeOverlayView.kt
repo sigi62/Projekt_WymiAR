@@ -11,7 +11,7 @@ import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
 import com.google.ar.core.TrackingState
-import com.example.pracazaliczeniowa.Helpers.DistanceUnit
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.ar.node.AnchorNode

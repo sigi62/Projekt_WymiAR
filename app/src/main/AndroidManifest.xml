@@ -27,7 +27,7 @@
         <!-- ARCore meta data -->
         <meta-data android:name="com.google.ar.core" android:value="required" tools:replace="android:value" />
         <activity
-            android:name=".MainActivity"
+            android:name=".Activities.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.PracaZaliczeniowa">
@@ -39,20 +39,20 @@
         </activity>
 
         <activity
-            android:name=".ARActivity"
+            android:name=".Activities.ARActivity"
             android:exported="false"
             android:theme="@style/Theme.ARActivity" />
         <activity
-            android:name=".LibraryActivity"
+            android:name=".Activities.LibraryActivity"
             android:exported="false"
             android:theme="@style/Theme.LibraryActivity"/>
 
         <activity
-            android:name=".SettingsActivity"
-            android:parentActivityName=".LibraryActivity"
+            android:name=".Activities.SettingsActivity"
+            android:parentActivityName=".Activities.LibraryActivity"
             android:label="Settings" />
         <activity
-            android:name=".ModelPreviewActivity"
+            android:name=".Activities.ModelPreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.ARActivity"/>
     </application>

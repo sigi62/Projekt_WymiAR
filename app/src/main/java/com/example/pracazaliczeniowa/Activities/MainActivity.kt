@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa
+package com.example.pracazaliczeniowa.Activities
 
 import android.content.Intent
 import android.os.Bundle
