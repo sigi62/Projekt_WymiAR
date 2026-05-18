@@ -46,15 +46,16 @@
             android:name=".Activities.LibraryActivity"
             android:exported="false"
             android:theme="@style/Theme.LibraryActivity"/>
-
-        <activity
-            android:name=".Activities.SettingsActivity"
-            android:parentActivityName=".Activities.LibraryActivity"
-            android:label="Settings" />
         <activity
             android:name=".Activities.ModelPreviewActivity"
             android:exported="false"
             android:theme="@style/Theme.ARActivity"/>
+        <activity
+            android:name=".Activities.SettingsActivity"
+            android:parentActivityName=".Activities.LibraryActivity"
+            android:label="Settings" />
+
+        <activity android:name=".Activities.SettingScreens.StorageActivity" />
     </application>
 
 </manifest>

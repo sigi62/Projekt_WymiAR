@@ -38,4 +38,8 @@
     <!-- Badge: Imported (green tint) -->
     <color name="badge_imported_bg">#EAF3DE</color>
     <color name="badge_imported_text">#3B6D11</color>
+
+    <!-- Danger  Delete (Red tint) -->
+    <color name="accent_danger">#FC2112</color>
+    <color name="danger_surface">#FA6257</color>
 </resources>

@@ -95,7 +95,7 @@
     <!-- Units -->
     <string name="ar_controls_unit">UNITS</string>
     <string name="unit_label">Measurement Unit</string>
-    <string name="unit_desc">Unit used for measuring distance</string>
+    <string name="unit_desc">Unit used for measuring distance in AR View</string>
     <string-array name="unit_display_names">
         <item>cm</item>
         <item>m</item>
@@ -123,8 +123,11 @@
     <string name="settings_save_btn">Save Settings</string>
     <string name="settings_saved_toast">Settings saved successfully</string>
     <string name="appearance">APPEARANCE</string>
-    <string name="dark_mode">Dark mode</string>
-    <string name="dark_mode_description">Switch between dark and light theme</string>
+    <string name="app_theme">App Theme</string>
+    <string name="app_theme_description">Switch between dark and light theme</string>
+    <string name="ar_options">AR OPTIONS</string>
+    <string name="ar_controls_range">Controls Range</string>
+    <string name="ar_controls_range_summary">Chose the preferred range for controls in AR View</string>
     <string name="ar_controls_position">AR CONTROLS – POSITION</string>
     <string name="default_pos_range">Default position range</string>
     <string name="pos_range_desc">Half-range when AR overlay first opens (1–1000 cm).</string>
@@ -234,7 +237,7 @@
     <string name="dim_d_placeholder">D: – cm</string>
 
     <!-- Settings language -->
-    <string name="language_title">LANGUAGE</string>
+    <string name="accessibility_rowtitle">ACCESSIBILITY</string>
     <string name="language">Language</string>
     <string name="language_description">Override the system language</string>
     <string-array name="language_display_names">
@@ -254,4 +257,45 @@
     <string name="label_created">Created: %1$s</string>
     <string name="label_imported">Imported: %1$s</string>
     <string name="label_modified">Modified: %1$s</string>
+
+
+    <!-- Storage Options -->
+    <string name="storage_title">STORAGE</string>
+    <string name="manage_storage">Storage Management</string>
+    <string name="clear_cache">Clear Cache</string>
+    <string name="clear_cache_desc">Remove all downloaded models</string>
+    <string name="clear_storage">Clear Storage</string>
+    <string name="total_storage_used">Total Storage Used</string>
+    <string name="cached_models">CACHED MODELS</string>
+    <string name="no_cached_models">No downloaded models.</string>
+    <string name="storage_empty">No downloaded models</string>
+    <string name="storage_summary_placeholder">Calculating…</string>
+
+    <string name="storage_summary_format">%1$s • %2$d models</string>
+
+    <string name="model_meta_format">%1$s  ·  %2$s</string>
+
+    <string name="clear_cache_confirm_message">This will delete all downloaded 3D models. You can download them again later.</string>
+    <string name="delete_model_confirm_message">Delete \"%1$s\"? You can download it again later.</string>
+
+    <string name="clear">Clear</string>
+    <string name="just_now">just now</string>
+
+    <!-- Plurals – add to res/values/plurals.xml (or inline in strings.xml) -->
+    <plurals name="downloaded_models_count">
+        <item quantity="one">%d downloaded model</item>
+        <item quantity="other">%d downloaded models</item>
+    </plurals>
+    <plurals name="days_ago">
+        <item quantity="one">%d day ago</item>
+        <item quantity="other">%d days ago</item>
+    </plurals>
+    <plurals name="hours_ago">
+        <item quantity="one">%d hour ago</item>
+        <item quantity="other">%d hours ago</item>
+    </plurals>
+    <plurals name="minutes_ago">
+        <item quantity="one">%d minute ago</item>
+        <item quantity="other">%d minutes ago</item>
+    </plurals>
 </resources>

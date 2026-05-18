@@ -227,6 +227,9 @@ class ARActivity : AppCompatActivity() {
                 currentRelativeScale = Float3(sx, sy, sz)
                 currentRelativeRotation = Float3(rx, ry, rz)
             }
+            if (dimensionHud.visibility == View.VISIBLE) {
+                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+            }
 
         }
         modelControls.visibility            = View.GONE
@@ -324,6 +327,10 @@ class ARActivity : AppCompatActivity() {
                         val newRotationY = initialModelRotationY + rotationOffset
                         selected.rotation = Float3(0f, newRotationY, 0f)
                         modelControls.updateRotationFromHandle(newRotationY)
+                        if (dimensionHud.visibility == View.VISIBLE) {
+                            selected.getDimensionOverlay()?.refresh()
+                            selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+                        }
                         return@onTouchEvent true
                     }
 
