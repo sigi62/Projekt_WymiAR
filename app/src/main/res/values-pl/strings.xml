@@ -93,18 +93,6 @@
     <string name="toast_delete_success">%1$s został usunięty</string>
     <string name="toast_delete_failed">Nie można było usunąć %1$s</string>
 
-    <!-- Units -->
-    <string name="ar_controls_unit">JEDNOSTKI</string>
-    <string name="unit_label">JEDNOSTKA MIARY</string>
-    <string name="unit_desc">Jednostka używana do mierzenia dystansu</string>
-    <string-array name="unit_display_names">
-        <item>cm</item>
-        <item>m</item>
-        <item>mm</item>
-    </string-array>
-    <string name="full_unit_m">Metry (m)</string>
-    <string name="full_unit_cm">Centymetry (cm)</string>
-    <string name="full_unit_mm">Milimetry (mm)</string>
 
     <!-- Model preview -->
     <string name="preview_loading">Ładowanie podglądu…</string>
@@ -118,24 +106,6 @@
     <string name="save_thumbnail">✓ Zapisno Zdjęcie</string>
     <string name="open_in_ar">Otwórz w AR</string>
     <string name="set_thumbnail">Zapisz zdjcie</string>
-
-    <!-- Settings -->
-    <string name="settings_title">Ustawienia</string>
-    <string name="settings_save_btn">Zapisz ustawienia</string>
-    <string name="settings_saved_toast">Ustawienia zapisane pomyślnie</string>
-    <string name="appearance">WYGLĄD</string>
-    <string name="dark_mode">Tryb ciemny</string>
-    <string name="dark_mode_description">Zmień między trybem jasnym a ciemnym</string>
-    <string name="ar_controls_position">Ustawienia AR – POZYCJA</string>
-    <string name="default_pos_range">Zakres pozycji</string>
-    <string name="pos_range_desc">Zmień domyślną wartość graniczną do której można przesunąc model w trybie AR (1–1000 cm)</string>
-    <string name="pos_mid_val">±100 cm</string>
-    <string name="hint_100">100</string>
-    <string name="ar_controls_scale">Ustawienia AR - SKALA</string>
-    <string name="default_scale_max">Zakres skali</string>
-    <string name="scale_max_desc">Domyślna maksymalna wartość skali do której można zwiększyć model</string>
-    <string name="scale_max_val">5.00×</string>
-    <string name="hint_500">500</string>
 
 
     <!-- Preview Studio Mode Surfaces -->
@@ -238,15 +208,49 @@
     <string name="dim_d_placeholder">Głębokość: – cm</string>
 
 
-    <!-- Settings language -->
-    <string name="language_title">JĘZYK</string>
-    <string name="language">Język</string>
-    <string name="language_description">Nadpisz język systemowy</string>
-    <string-array name="language_display_names">
-        <item>Domyślny systemowy</item>
-        <item>Angielski</item>
-        <item>Polski</item>
+    <!-- Settings -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_save_btn">Save Settings</string>
+    <string name="settings_saved_toast">Settings saved successfully</string>
+    <string name="appearance">APPEARANCE</string>
+    <string name="app_theme">App Theme</string>
+    <string name="app_theme_description">Switch between dark and light theme</string>
+    <string name="ar_options">AR OPTIONS</string>
+    <string name="ar_controls_range">Controls Range</string>
+    <string name="ar_controls_range_summary">Chose the preferred range for controls in AR View</string>
+    <string name="ar_controls_position">AR Position Range</string>
+    <string name="ar_controls_position_desc">Half-range when AR overlay first opens (1–1000 cm).</string>
+    <string name="pos_mid_val">±100 cm</string>
+    <string name="hint_100">100</string>
+    <string name="ar_controls_scale">AR Scale Range</string>
+    <string name="default_scale_max">Default scale maximum</string>
+    <string name="ar_controls_scale_desc">Seekbar max when AR overlay first opens. Value = progress ÷ 100. Range: 100–10000.</string>
+    <string name="scale_max_val">5.00×</string>
+    <string name="hint_500">500</string>
+
+    <!-- Units -->
+    <string name="ar_controls_unit">UNITS</string>
+    <string name="unit_label">Measurement Unit</string>
+    <string name="unit_desc">Unit used for measuring distance in AR View</string>
+    <string-array name="unit_display_names">
+        <item>cm</item>
+        <item>m</item>
+        <item>mm</item>
     </string-array>
+    <string name="full_unit_m">Meters (m)</string>
+    <string name="full_unit_cm">Centimeters (cm)</string>
+    <string name="full_unit_mm">Millimeters (mm)</string>
+
+    <!-- Settings language -->
+    <string name="accessibility_rowtitle">ACCESSIBILITY</string>
+    <string name="language">Language</string>
+    <string name="language_description">Override the system language</string>
+    <string-array name="language_display_names">
+        <item>System default</item>
+        <item>English</item>
+        <item>Polish</item>
+    </string-array>
+
 
     <string name="filter_all">Wszystkie</string>
     <string name="filter_recent">Ostatnie</string>

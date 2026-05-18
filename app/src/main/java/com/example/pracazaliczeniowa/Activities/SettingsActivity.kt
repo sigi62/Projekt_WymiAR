@@ -2,36 +2,33 @@ package com.example.pracazaliczeniowa.Activities
 
 import android.content.Intent
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.View
-import android.widget.AdapterView
-import android.widget.ArrayAdapter
-import android.widget.Button
-import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
-import android.widget.Spinner
-import android.widget.Switch
+import android.widget.RadioButton
+import android.widget.RadioGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
+import com.example.pracazaliczeniowa.Activities.SettingScreens.AROptionsActivity
+import com.example.pracazaliczeniowa.Activities.SettingScreens.StorageActivity
 import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import com.example.pracazaliczeniowa.R
-import com.example.pracazaliczeniowa.Activities.SettingScreens.StorageActivity
 import java.io.File
 
 class SettingsActivity : AppCompatActivity() {
 
     private lateinit var settings: AppSettings
-
-    private var refreshPosLabel: () -> Unit = {}
-    private var refreshPosEdit:  () -> Unit = {}
-
-    // where model folders live – keep in sync with StorageActivity
     private val modelDir: File by lazy { File(filesDir, "models") }
+
+    private val storageLauncher = registerForActivityResult(
+        ActivityResultContracts.StartActivityForResult()
+    ) {
+        updateStorageSummary()
+        setResult(RESULT_OK)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,196 +44,235 @@ class SettingsActivity : AppCompatActivity() {
         // ── Back button ──────────────────────────────────────────────────
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
 
-        // ── Dark / Light mode toggle ──────────────────────────────────────
-        val themeSwitch = findViewById<Switch>(R.id.switchDarkMode)
-        themeSwitch.isChecked = settings.isDarkMode
-
-        themeSwitch.setOnCheckedChangeListener { _, isChecked ->
-            settings.isDarkMode = isChecked
-            AppCompatDelegate.setDefaultNightMode(
-                if (isChecked) AppCompatDelegate.MODE_NIGHT_YES
-                else           AppCompatDelegate.MODE_NIGHT_NO
-            )
-            recreate()
+        // ── Appearance row → Theme popup ─────────────────────────────────
+        findViewById<LinearLayout>(R.id.rowAppAppearance).setOnClickListener {
+            showThemeDialog()
         }
 
-        // ── Distance unit ─────────────────────────────────────────────────
-        val unitCodes = listOf(
-            DistanceUnit.CENTIMETERS,
-            DistanceUnit.METERS,
-            DistanceUnit.MILLIMETERS
-        )
-        val spinnerUnit = findViewById<Spinner>(R.id.spinnerUnit)
-
-        val unitAdapter = ArrayAdapter.createFromResource(
-            this, R.array.unit_display_names, android.R.layout.simple_spinner_item
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
-        spinnerUnit.adapter = unitAdapter
-        spinnerUnit.setSelection(unitCodes.indexOf(settings.distanceUnit).coerceAtLeast(0))
-
-        spinnerUnit.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                val newUnit = unitCodes[pos]
-                if (newUnit == settings.distanceUnit) return
-                settings.distanceUnit = newUnit
-                refreshPosLabel()
-                refreshPosEdit()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
+        // ── AR Options rows → AROptionsActivity ──────────────────────────
+        findViewById<LinearLayout>(R.id.rowControlsRange).setOnClickListener {
+            startActivity(Intent(this, AROptionsActivity::class.java))
         }
 
-        // ── Language ──────────────────────────────────────────────────────
-        val languageCodes   = listOf("", "en", "pl")
-        val spinnerLanguage = findViewById<Spinner>(R.id.spinnerLanguage)
-
-        val langAdapter = ArrayAdapter.createFromResource(
-            this, R.array.language_display_names, android.R.layout.simple_spinner_item
-        ).also { it.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item) }
-
-        spinnerLanguage.adapter = langAdapter
-        spinnerLanguage.setSelection(languageCodes.indexOf(settings.languageOverride).coerceAtLeast(0))
-
-        spinnerLanguage.onItemSelectedListener = object : AdapterView.OnItemSelectedListener {
-            override fun onItemSelected(parent: AdapterView<*>, view: View?, pos: Int, id: Long) {
-                val newCode = languageCodes[pos]
-                if (newCode == settings.languageOverride) return
-                settings.languageOverride = newCode
-                settings.applyLocale(this@SettingsActivity)
-                recreate()
-            }
-            override fun onNothingSelected(parent: AdapterView<*>) {}
+        // ── Measurement Unit row → Unit popup ────────────────────────────
+        findViewById<LinearLayout>(R.id.rowARMeasurementUnit).setOnClickListener {
+            showUnitDialog()
         }
 
-        // ── Position half-range ────────────────────────────────────────────
-        val posLabel = findViewById<TextView>(R.id.tvPosMidValue)
-        val posMinus = findViewById<Button>(R.id.btnPosMidMinus)
-        val posPlus  = findViewById<Button>(R.id.btnPosMidPlus)
-        val posEdit  = findViewById<EditText>(R.id.etPosMid)
-
-        refreshPosLabel = {
-            val value  = settings.posMidInCurrentUnit()
-            val suffix = when (settings.distanceUnit) {
-                DistanceUnit.METERS      -> "m"
-                DistanceUnit.CENTIMETERS -> "cm"
-                DistanceUnit.MILLIMETERS -> "mm"
-            }
-            posLabel.text = if (settings.distanceUnit == DistanceUnit.METERS)
-                "±%.2f %s".format(value, suffix)
-            else
-                "±%.0f %s".format(value, suffix)
-        }
-
-        refreshPosEdit = {
-            val value = settings.posMidInCurrentUnit()
-            posEdit.setText(
-                if (settings.distanceUnit == DistanceUnit.METERS)
-                    "%.2f".format(value)
-                else
-                    "%.0f".format(value)
-            )
-        }
-
-        posEdit.setText("".also { refreshPosEdit() })
-        refreshPosLabel()
-        refreshPosEdit()
-
-        posEdit.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val v = s?.toString()?.toFloatOrNull() ?: return
-                settings.setPosMidFromCurrentUnit(v)
-                refreshPosLabel()
-            }
-        })
-
-        posMinus.setOnClickListener {
-            val step = if (settings.posMidDefault > 100) 100 else 10
-            settings.posMidDefault = (settings.posMidDefault - step).coerceAtLeast(1)
-            refreshPosEdit(); refreshPosLabel()
-        }
-
-        posPlus.setOnClickListener {
-            val step = if (settings.posMidDefault >= 100) 100 else 10
-            settings.posMidDefault = (settings.posMidDefault + step).coerceAtMost(1_000)
-            refreshPosEdit(); refreshPosLabel()
-        }
-
-        // ── Scale max ──────────────────────────────────────────────────────
-        val sclLabel = findViewById<TextView>(R.id.tvSclMaxValue)
-        val sclMinus = findViewById<Button>(R.id.btnSclMaxMinus)
-        val sclPlus  = findViewById<Button>(R.id.btnSclMaxPlus)
-        val sclEdit  = findViewById<EditText>(R.id.etSclMax)
-
-        fun refreshSclLabel(v: Int) { sclLabel.text = String.format("%.2f×", v / 100f) }
-
-        sclEdit.setText(settings.sclMaxDefault.toString())
-        refreshSclLabel(settings.sclMaxDefault)
-
-        sclEdit.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: Editable?) {
-                val v = s?.toString()?.toIntOrNull() ?: return
-                settings.sclMaxDefault = v
-                refreshSclLabel(settings.sclMaxDefault)
-            }
-        })
-
-        sclMinus.setOnClickListener {
-            val step = if (settings.sclMaxDefault > 500) 500 else 100
-            settings.sclMaxDefault -= step
-            sclEdit.setText(settings.sclMaxDefault.toString())
-            refreshSclLabel(settings.sclMaxDefault)
-        }
-
-        sclPlus.setOnClickListener {
-            val step = if (settings.sclMaxDefault >= 500) 500 else 100
-            settings.sclMaxDefault += step
-            sclEdit.setText(settings.sclMaxDefault.toString())
-            refreshSclLabel(settings.sclMaxDefault)
-        }
-
-        // ── Storage rows ───────────────────────────────────────────────────
+        // ── Storage rows ─────────────────────────────────────────────────
         updateStorageSummary()
 
-        // "Manage Storage" → open StorageActivity
         findViewById<LinearLayout>(R.id.rowManageStorage).setOnClickListener {
-            startActivity(Intent(this, StorageActivity::class.java))
+            storageLauncher.launch(Intent(this, StorageActivity::class.java))  // CHANGED from startActivity(...)
         }
 
-        // "Clear Cache" → confirmation dialog, then delete
         findViewById<LinearLayout>(R.id.rowClearCache).setOnClickListener {
-            AlertDialog.Builder(this)
-                .setTitle(getString(R.string.clear_cache))
-                .setMessage(getString(R.string.clear_cache_confirm_message))
-                .setNegativeButton(getString(R.string.cancel), null)
-                .setPositiveButton(getString(R.string.clear)) { _, _ ->
-                    modelDir.listFiles()?.forEach { it.deleteRecursively() }
-                    updateStorageSummary()
-                }
-                .show()
+            confirmClearAll()
+        }
+
+        // ── Language row → Language popup ────────────────────────────────
+        findViewById<LinearLayout>(R.id.rowAccesibility).setOnClickListener {
+            showLanguageDialog()
         }
     }
 
-    // ── Called when returning from StorageActivity ─────────────────────
+    // ── Called when returning from any sub-screen ─────────────────────────
     override fun onResume() {
         super.onResume()
         updateStorageSummary()
+        updateAppearanceSummary()
+        updateAROptionsSummary()
+        updateAccessibilitySummary()
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────
+    // ── Popup dialogs ─────────────────────────────────────────────────────
 
-    /** Update the subtitle under "Manage Storage" with live size + count. */
+    /** Radio popup: Dark / Light / System */
+    private fun showThemeDialog() {
+        val options = listOf(
+            getString(R.string.theme_dark),
+            getString(R.string.theme_light),
+            getString(R.string.theme_system)
+        )
+        val currentIndex = when (settings.themeMode) {
+            AppSettings.Theme.DARK   -> 0
+            AppSettings.Theme.LIGHT  -> 1
+            AppSettings.Theme.SYSTEM -> 2
+        }
+        showRadioDialog(
+            title    = getString(R.string.app_theme),
+            options  = options,
+            selected = currentIndex
+        ) { chosenIndex ->
+            settings.themeMode = when (chosenIndex) {
+                0    -> AppSettings.Theme.DARK
+                1    -> AppSettings.Theme.LIGHT
+                else -> AppSettings.Theme.SYSTEM
+            }
+            settings.applyTheme()
+            updateAppearanceSummary()
+        }
+    }
+
+    /** Radio popup: Centimeters / Meters / Millimeters */
+    private fun showUnitDialog() {
+        val options = listOf(
+            getString(R.string.full_unit_cm),
+            getString(R.string.full_unit_m),
+            getString(R.string.full_unit_mm)
+        )
+        val currentIndex = when (settings.distanceUnit) {
+            DistanceUnit.CENTIMETERS -> 0
+            DistanceUnit.METERS      -> 1
+            DistanceUnit.MILLIMETERS -> 2
+        }
+        showRadioDialog(
+            title    = getString(R.string.unit_label),
+            options  = options,
+            selected = currentIndex
+        ) { chosenIndex ->
+            settings.distanceUnit = when (chosenIndex) {
+                0 -> DistanceUnit.CENTIMETERS
+                1 -> DistanceUnit.METERS
+                else -> DistanceUnit.MILLIMETERS
+            }
+            updateAROptionsSummary()
+        }
+    }
+
+    /** Radio popup: System default / English / Polish */
+    private fun showLanguageDialog() {
+        val options = listOf(
+            getString(R.string.language_system),
+            getString(R.string.language_english),
+            getString(R.string.language_polish)
+        )
+        val currentIndex = when (settings.languageOverride) {
+            "en" -> 1
+            "pl" -> 2
+            else -> 0
+        }
+        showRadioDialog(
+            title    = getString(R.string.language),
+            options  = options,
+            selected = currentIndex
+        ) { chosenIndex ->
+            settings.languageOverride = when (chosenIndex) {
+                1 -> "en"
+                2 -> "pl"
+                else -> ""
+            }
+            updateAccessibilitySummary()
+        }
+    }
+
+    /**
+     * Generic single-choice radio dialog.
+     *
+     * @param title    Dialog title.
+     * @param options  List of labels for radio buttons.
+     * @param selected Index of the currently active option.
+     * @param onPick   Called with the chosen index when the user taps an option.
+     */
+    private fun showRadioDialog(
+        title: String,
+        options: List<String>,
+        selected: Int,
+        onPick: (Int) -> Unit
+    ) {
+        val radioGroup = RadioGroup(this).apply {
+            orientation = RadioGroup.VERTICAL
+            val paddingPx = (20 * resources.displayMetrics.density).toInt()
+            setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
+        }
+
+        options.forEachIndexed { index, label ->
+            RadioButton(this).apply {
+                text = label
+                id   = index
+                textSize = 15f
+                isChecked = (index == selected)
+                val vertPx = (10 * resources.displayMetrics.density).toInt()
+                setPadding(paddingLeft, vertPx, paddingRight, vertPx)
+                radioGroup.addView(this)
+            }
+        }
+
+        val dialog = AlertDialog.Builder(this)
+            .setTitle(title)
+            .setView(radioGroup)
+            .setNegativeButton(getString(R.string.cancel), null)
+            .create()
+
+        radioGroup.setOnCheckedChangeListener { _, checkedId ->
+            onPick(checkedId)
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    // ── Summary helpers ───────────────────────────────────────────────────
+
+    /** "Dark" / "Light" / "System" under the Appearance row. */
+    private fun updateAppearanceSummary() {
+        val tv = findViewById<TextView>(R.id.tvAppearanceSummary) ?: return
+        tv.text = when (settings.themeMode) {
+            AppSettings.Theme.DARK   -> getString(R.string.theme_dark)
+            AppSettings.Theme.LIGHT  -> getString(R.string.theme_light)
+            AppSettings.Theme.SYSTEM -> getString(R.string.theme_system)
+        }
+    }
+
+    /**
+     * "±100 cm  ·  5.00×" under the Controls Range row, and
+     * "Centimeters (cm)" under the Measurement Unit row.
+     */
+    private fun updateAROptionsSummary() {
+        val unitSuffix = when (settings.distanceUnit) {
+            DistanceUnit.METERS      -> "m"
+            DistanceUnit.CENTIMETERS -> "cm"
+            DistanceUnit.MILLIMETERS -> "mm"
+        }
+        val posValue = settings.posMidInCurrentUnit()
+        val posText = if (settings.distanceUnit == DistanceUnit.METERS)
+            "±%.2f %s".format(posValue, unitSuffix)
+        else
+            "±%.0f %s".format(posValue, unitSuffix)
+        val sclText = "%.2f×".format(settings.sclMaxDefault / 100f)
+
+        // Controls Range row summary
+        findViewById<TextView>(R.id.tvControlsRangeSummary)?.text =
+            "$posText  ·  $sclText"
+
+        // Measurement Unit row summary
+        val unitLabel = when (settings.distanceUnit) {
+            DistanceUnit.CENTIMETERS -> getString(R.string.full_unit_cm)
+            DistanceUnit.METERS      -> getString(R.string.full_unit_m)
+            DistanceUnit.MILLIMETERS -> getString(R.string.full_unit_mm)
+        }
+        findViewById<TextView>(R.id.tvMeasurementUnitSummary)?.text = unitLabel
+    }
+
+    /** Current language name under the Accessibility row. */
+    private fun updateAccessibilitySummary() {
+        val tv = findViewById<TextView>(R.id.tvAccessibilitySummary) ?: return
+        tv.text = when (settings.languageOverride) {
+            "en" -> getString(R.string.language_english)
+            "pl" -> getString(R.string.language_polish)
+            else -> getString(R.string.language_system)
+        }
+    }
+
+    /** Live size + model count under "Manage Storage". */
     private fun updateStorageSummary() {
         val summaryView = findViewById<TextView>(R.id.tvStorageSummary) ?: return
         if (!modelDir.exists()) {
             summaryView.text = getString(R.string.storage_empty)
             return
         }
-        val totalBytes  = modelDir.walkTopDown().sumOf { it.length() }
-        val modelCount  = modelDir.listFiles()?.size ?: 0
+        val totalBytes = modelDir.walkTopDown().sumOf { it.length() }
+        val modelCount = modelDir.listFiles()?.size ?: 0
         val sizeFmt = when {
             totalBytes >= 1_000_000 -> "%.1f MB".format(totalBytes / 1_000_000.0)
             totalBytes >= 1_000     -> "%.1f KB".format(totalBytes / 1_000.0)
@@ -244,6 +280,19 @@ class SettingsActivity : AppCompatActivity() {
         }
         summaryView.text = getString(R.string.storage_summary_format, sizeFmt, modelCount)
     }
-
+    // New helper in SettingsActivity:
+    private fun confirmClearAll() {
+        AlertDialog.Builder(this)
+            .setTitle(getString(R.string.clear_cache))
+            .setMessage(getString(R.string.clear_cache_confirm_message))
+            .setNegativeButton(getString(R.string.cancel), null)
+            .setPositiveButton(getString(R.string.clear)) { _, _ ->
+                modelDir.listFiles()?.forEach { it.deleteRecursively() }
+                updateStorageSummary()
+                Toast.makeText(this, getString(R.string.cache_cleared), Toast.LENGTH_SHORT).show()
+                setResult(RESULT_OK)   // signal LibraryActivity to refresh
+            }
+            .show()
+    }
     override fun onSupportNavigateUp(): Boolean { finish(); return true }
 }

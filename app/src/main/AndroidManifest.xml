@@ -56,6 +56,7 @@
             android:label="Settings" />
 
         <activity android:name=".Activities.SettingScreens.StorageActivity" />
+        <activity android:name=".Activities.SettingScreens.AROptionsActivity" />
     </application>
 
 </manifest>

@@ -7,176 +7,189 @@
     android:orientation="vertical"
     android:background="@color/screen_background">
 
+    <!-- Header -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:paddingStart="12dp"
+        android:paddingEnd="12dp"
+        android:paddingTop="14dp"
+        android:paddingBottom="14dp">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_arrow_back"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/back" />
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginLeft="5dp"
+            android:text="@string/ar_options"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:textColor="@color/text_primary" />
+
+    </LinearLayout>
+
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="24dp"
-            android:background="@color/layout_background">
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/default_pos_range"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"/>
-
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/pos_range_desc"
-                android:textSize="13sp"
-                android:textColor="@color/text_secondary"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="14dp"/>
-
-            <TextView
-                android:id="@+id/tvPosMidValue"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="@string/pos_mid_val"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:gravity="center"
-                android:layout_marginBottom="12dp"/>
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
-
-                <Button
-                    android:id="@+id/btnPosMidMinus"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:text="-"
-                    android:textSize="20sp"
-                    android:textColor="@color/button_text"
-                    android:backgroundTint="@color/button_background"
-                    android:padding="0dp"/>
-
-                <EditText
-                    android:id="@+id/etPosMid"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="10dp"
-                    android:inputType="number"
-                    android:textSize="16sp"
-                    android:gravity="center"
-                    android:hint="@string/hint_100"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/edit_text_hint"
-                    android:background="@android:color/transparent"
-                    android:singleLine="true"/>
-
-                <Button
-                    android:id="@+id/btnPosMidPlus"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:text="+"
-                    android:textSize="20sp"
-                    android:textColor="@color/button_text"
-                    android:backgroundTint="@color/button_background"
-                    android:padding="0dp"/>
-            </LinearLayout>
-        </LinearLayout>
-
-    <!-- ── SCALE ─────────────────────────────────────────────── -->
-        <TextView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text="@string/ar_controls_scale"
-            android:textSize="12sp"
-            android:textColor="@color/accent"
-            android:letterSpacing="0.08"
-            android:layout_marginBottom="8dp"/>
 
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:orientation="vertical"
-            android:padding="16dp"
-            android:layout_marginBottom="24dp"
-            android:background="@color/layout_background">
+            android:padding="20dp">
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="@string/default_scale_max"
-                android:textSize="16sp"
-                android:textColor="@color/text_primary"/>
 
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="2dp"
-                android:layout_marginBottom="14dp"
-                android:text="@string/scale_max_desc"
-                android:textColor="@color/text_secondary"
-                android:textSize="13sp" />
 
+            <!-- ── POSITION HALF-RANGE ───────────────────────────────── -->
             <TextView
-                android:id="@+id/tvSclMaxValue"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="@string/scale_max_val"
-                android:textSize="22sp"
-                android:textStyle="bold"
-                android:textColor="@color/text_primary"
-                android:gravity="center"
-                android:layout_marginBottom="12dp"/>
+                android:text="@string/ar_controls_range"
+                android:textSize="12sp"
+                android:textColor="@color/accent"
+                android:letterSpacing="0.08"
+                android:layout_marginBottom="8dp"/>
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="horizontal"
-                android:gravity="center_vertical">
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp"
+                android:background="@color/layout_background">
 
-                <Button
-                    android:id="@+id/btnSclMaxMinus"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:text="-"
-                    android:textSize="20sp"
-                    android:textColor="@color/button_text"
-                    android:backgroundTint="@color/button_background"
-                    android:padding="0dp"/>
-
-                <EditText
-                    android:id="@+id/etSclMax"
-                    android:layout_width="0dp"
+                <!-- Label -->
+                <TextView
+                    android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:layout_marginHorizontal="10dp"
-                    android:inputType="number"
+                    android:text="@string/ar_controls_position"
                     android:textSize="16sp"
-                    android:gravity="center"
-                    android:hint="@string/hint_500"
-                    android:textColor="@color/text_primary"
-                    android:textColorHint="@color/edit_text_hint"
-                    android:background="@android:color/transparent"
-                    android:singleLine="true"/>
+                    android:textColor="@color/text_primary"/>
 
-                <Button
-                    android:id="@+id/btnSclMaxPlus"
-                    android:layout_width="48dp"
-                    android:layout_height="48dp"
-                    android:text="+"
-                    android:textSize="20sp"
-                    android:textColor="@color/button_text"
-                    android:backgroundTint="@color/button_background"
-                    android:padding="0dp"/>
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ar_controls_position_desc"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <!-- Row: − / value / + -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="4dp">
+
+                    <Button
+                        android:id="@+id/btnPosMidMinus"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:text="−"
+                        android:textSize="24sp"
+                        android:padding="0dp"/>
+
+                    <TextView
+                        android:id="@+id/tvPosMidValue"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="±100 cm"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/accent"
+                        android:gravity="center"
+                        android:layout_marginHorizontal="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnPosMidPlus"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:text="+"
+                        android:textSize="24sp"
+                        android:padding="0dp"/>
+
+                </LinearLayout>
+            </LinearLayout>
+
+            <!-- ── SCALE MAXIMUM ─────────────────────────────────────── -->
+
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical"
+                android:padding="16dp"
+                android:layout_marginBottom="24dp"
+                android:background="@color/layout_background">
+
+                <!-- Label -->
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ar_controls_scale"
+                    android:textSize="16sp"
+                    android:textColor="@color/text_primary"/>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/ar_controls_scale_desc"
+                    android:textSize="13sp"
+                    android:textColor="@color/text_secondary"
+                    android:layout_marginTop="2dp"
+                    android:layout_marginBottom="8dp"/>
+
+                <!-- Row: − / value / + -->
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center"
+                    android:layout_marginTop="4dp">
+
+                    <Button
+                        android:id="@+id/btnSclMaxMinus"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:text="−"
+                        android:textSize="24sp"
+                        android:padding="0dp"/>
+
+                    <TextView
+                        android:id="@+id/tvSclMaxValue"
+                        android:layout_width="120dp"
+                        android:layout_height="wrap_content"
+                        android:text="5.00×"
+                        android:textSize="20sp"
+                        android:textStyle="bold"
+                        android:textColor="@color/accent"
+                        android:gravity="center"
+                        android:layout_marginHorizontal="8dp"/>
+
+                    <Button
+                        android:id="@+id/btnSclMaxPlus"
+                        android:layout_width="64dp"
+                        android:layout_height="64dp"
+                        android:text="+"
+                        android:textSize="24sp"
+                        android:padding="0dp"/>
+
+                </LinearLayout>
             </LinearLayout>
 
         </LinearLayout>
-
     </ScrollView>
-
 </LinearLayout>

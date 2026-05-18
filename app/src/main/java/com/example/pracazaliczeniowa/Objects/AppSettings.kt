@@ -22,23 +22,44 @@ class AppSettings(context: Context) {
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     // -------------------------------------------------------------------------
-    // Dark / Light mode
+    // Theme  (Dark / Light / System)
     // -------------------------------------------------------------------------
 
-    var isDarkMode: Boolean
-        get() = prefs.getBoolean(KEY_DARK_MODE, true)   // default: dark
-        set(value) { prefs.edit().putBoolean(KEY_DARK_MODE, value).apply() }
+    enum class Theme { DARK, LIGHT, SYSTEM }
+
+    /**
+     * Persisted as a string tag ("dark" | "light" | "system").
+     * Default is DARK to preserve the original behaviour.
+     */
+    var themeMode: Theme
+        get() = when (prefs.getString(KEY_THEME, "dark")) {
+            "light"  -> Theme.LIGHT
+            "system" -> Theme.SYSTEM
+            else     -> Theme.DARK
+        }
+        set(value) {
+            val tag = when (value) {
+                Theme.DARK   -> "dark"
+                Theme.LIGHT  -> "light"
+                Theme.SYSTEM -> "system"
+            }
+            prefs.edit().putString(KEY_THEME, tag).apply()
+        }
+
+    /** Convenience read for legacy call-sites that only care about dark vs not-dark. */
+    val isDarkMode: Boolean get() = themeMode == Theme.DARK
 
     /**
      * Applies the stored theme preference to the whole process via
-     * [androidx.appcompat.app.AppCompatDelegate.setDefaultNightMode].  Call this from Application.onCreate()
-     * *and* from [SettingsActivity] immediately after the user toggles the switch.
+     * [AppCompatDelegate.setDefaultNightMode].
+     * Call from Application.onCreate() and after the user picks a new theme.
      */
     fun applyTheme() {
-        val mode = if (isDarkMode)
-            AppCompatDelegate.MODE_NIGHT_YES
-        else
-            AppCompatDelegate.MODE_NIGHT_NO
+        val mode = when (themeMode) {
+            Theme.DARK   -> AppCompatDelegate.MODE_NIGHT_YES
+            Theme.LIGHT  -> AppCompatDelegate.MODE_NIGHT_NO
+            Theme.SYSTEM -> AppCompatDelegate.MODE_NIGHT_FOLLOW_SYSTEM
+        }
         AppCompatDelegate.setDefaultNightMode(mode)
     }
 
@@ -132,7 +153,7 @@ class AppSettings(context: Context) {
 
     companion object {
         private const val PREFS_NAME  = "app_settings"
-        private const val KEY_DARK_MODE = "dark_mode"
+        private const val KEY_THEME = "theme_mode"
 
         private const val KEY_DISTANCE_UNIT = "distance_unit"
         private const val KEY_POS_MID   = "pos_mid_default"

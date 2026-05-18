@@ -7,6 +7,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
+import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import com.example.pracazaliczeniowa.R
@@ -122,6 +123,8 @@ class StorageActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.cancel), null)
             .setPositiveButton(getString(R.string.clear)) { _, _ ->
                 modelDir.listFiles()?.forEach { it.deleteRecursively() }
+                setResult(RESULT_OK)
+                Toast.makeText(this, getString(R.string.remove_all_models_toast), Toast.LENGTH_SHORT).show()
                 refresh()
             }
             .show()
@@ -134,6 +137,8 @@ class StorageActivity : AppCompatActivity() {
             .setNegativeButton(getString(R.string.cancel), null)
             .setPositiveButton(getString(R.string.delete)) { _, _ ->
                 entry.file.deleteRecursively()
+                setResult(RESULT_OK)
+                Toast.makeText(this, getString(R.string.status_model_deleted,entry.name), Toast.LENGTH_SHORT).show()
                 refresh()
             }
             .show()

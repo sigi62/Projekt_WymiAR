@@ -2,7 +2,6 @@
 
 AR collision - if possible
 
-Change the ActionBar Color - priamry default is still purple ??
 
 Profiles FIX :
  -not seeing rotation correctly
@@ -10,8 +9,9 @@ Profiles FIX :
  -export exported profile resets scale??
  - exported profile with rotation applies it before rotation handle ? meaning its weird af
 
-Finish settings ->SettingsScreens.ArOptions / activity_ar_options.xml
-once again the ARActivity destroy crashes
+
+Change the ActionBar Color - priamry default is still purple ??
+
 Rotation Handle user choice (?)
 Measurements more accurate
 Thumbnails for auto models are pre-made

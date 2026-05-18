@@ -24,11 +24,9 @@ import com.example.pracazaliczeniowa.Managers.ModelImportManager
 import com.example.pracazaliczeniowa.Managers.ModelLibraryManager
 import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
-import com.example.pracazaliczeniowa.Activities.ModelPreviewActivity
 import com.example.pracazaliczeniowa.Objects.ModelFileUtils
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
-import com.example.pracazaliczeniowa.Activities.SettingsActivity
 import com.google.android.material.chip.Chip
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
@@ -609,6 +607,7 @@ class LibraryActivity : AppCompatActivity() {
         return result
     }
 
+
     // ── Delete helper ─────────────────────────────────────────────────────────
 
     private fun deleteImportedModel(item: ModelItem) {
@@ -620,6 +619,7 @@ class LibraryActivity : AppCompatActivity() {
             Toast.makeText(this, getString(R.string.toast_delete_failed, item.name), Toast.LENGTH_SHORT).show()
         }
     }
+
 
     override fun onDestroy() {
         super.onDestroy()
