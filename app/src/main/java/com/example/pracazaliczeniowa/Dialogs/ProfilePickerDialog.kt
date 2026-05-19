@@ -1,5 +1,4 @@
-package com.example.pracazaliczeniowa.Helpers
-
+package com.example.pracazaliczeniowa.Dialogs
 
 import android.app.AlertDialog
 import android.os.Bundle
@@ -7,7 +6,12 @@ import android.text.InputType
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.*
+import android.widget.Button
+import android.widget.EditText
+import android.widget.ImageButton
+import android.widget.LinearLayout
+import android.widget.TextView
+import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
@@ -45,7 +49,7 @@ class ProfilePickerDialog : DialogFragment() {
 
     // Supplied by ARActivity before show()
     /** Called when the user taps Load on any slot. */
-    var onLoadProfile:  ((ModelProfile) -> Unit)? = null
+    var onLoadProfile: ((ModelProfile) -> Unit)? = null
     /**
      * The slot name that was last loaded/saved — set by the dialog before
      * invoking [onLoadProfile] so ARActivity can record it on the node.
@@ -74,13 +78,13 @@ class ProfilePickerDialog : DialogFragment() {
     var getCurrentProfile: (() -> ModelProfile)? = null
     var onResetDefault: (() -> Unit)? = null
 
-    private lateinit var modelName:     String
+    private lateinit var modelName: String
     private lateinit var profileManager: ProfileManager
-    private lateinit var container:     LinearLayout
+    private lateinit var container: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        modelName      = requireArguments().getString(ARG_MODEL_NAME)!!
+        modelName = requireArguments().getString(ARG_MODEL_NAME)!!
         profileManager = ProfileManager(requireContext())
     }
 
@@ -119,13 +123,14 @@ class ProfilePickerDialog : DialogFragment() {
 
     private fun addDefaultRow() {
         val row = makeRowView()
-        val nameView = row.findViewById<TextView>(R.id.tvSlotName)
-        nameView.text = buildSlotLabel(getString(R.string.profile_label_default), SLOT_DEFAULT)
+        row.findViewById<TextView>(R.id.tvSlotName).text =
+            buildSlotLabel(getString(R.string.profile_label_default), SLOT_DEFAULT)
 
         val hasDefault = profileManager.loadDefault(modelName) != null
+
         row.findViewById<Button>(R.id.btnSlotLoad).apply {
-            isEnabled = hasDefault
-            setOnClickListener {
+            isEnabled = hasDefault                          // ✅ instance property
+            setOnClickListener {                            // ✅ instance method
                 val p = profileManager.loadDefault(modelName) ?: return@setOnClickListener
                 lastLoadedProfileName = SLOT_DEFAULT
                 dismiss()
@@ -133,9 +138,10 @@ class ProfilePickerDialog : DialogFragment() {
                 onStatusUpdate?.invoke(getString(R.string.profile_loaded_default))
             }
         }
+
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
-            text = if (hasDefault) getString(R.string.overwrite) else getString(R.string.save)
-            setOnClickListener {
+            text = if (hasDefault) getString(R.string.overwrite) else getString(R.string.save) // ✅
+            setOnClickListener {                            // ✅
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_saved_default))
@@ -143,11 +149,12 @@ class ProfilePickerDialog : DialogFragment() {
                 dismiss()
             }
         }
+
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
-            visibility = View.VISIBLE
-            contentDescription = getString(R.string.profile_reset_btn_content_desc)
-            setImageResource(R.drawable.ic_revert)
-            setOnClickListener { confirmResetToOriginal() }
+            visibility = View.VISIBLE                       // ✅ instance property
+            contentDescription = getString(R.string.profile_reset_btn_content_desc) // ✅
+            setImageResource(R.drawable.ic_revert)          // ✅ instance method
+            setOnClickListener { confirmResetToOriginal() } // ✅
         }
 
         container.addView(row)
@@ -166,9 +173,10 @@ class ProfilePickerDialog : DialogFragment() {
             onLoadProfile?.invoke(p)
             onStatusUpdate?.invoke(getString(R.string.profile_loaded_named, slotName))
         }
+
         row.findViewById<Button>(R.id.btnSlotOverwrite).apply {
-            text = getString(R.string.overwrite)
-            setOnClickListener {
+            text = getString(R.string.overwrite)            // ✅ instance property
+            setOnClickListener {                            // ✅ instance method
                 val current = getCurrentProfile?.invoke() ?: return@setOnClickListener
                 profileManager.saveNamed(modelName, slotName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_updated_named, slotName))
@@ -176,9 +184,10 @@ class ProfilePickerDialog : DialogFragment() {
                 dismiss()
             }
         }
+
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
-            visibility = View.VISIBLE
-            setOnClickListener {
+            visibility = View.VISIBLE                       // ✅ instance property
+            setOnClickListener {                            // ✅ instance method
                 confirmDelete(slotName)
             }
         }
@@ -190,20 +199,19 @@ class ProfilePickerDialog : DialogFragment() {
 
     private fun promptAddNamed() {
         val namedCount = profileManager.listNamedProfiles(modelName).size
-        if (namedCount >= ProfileManager.MAX_NAMED) {
+        if (namedCount >= ProfileManager.Companion.MAX_NAMED) {
             Toast.makeText(
                 requireContext(),
-                getString(R.string.error_too_many_profiles, ProfileManager.MAX_NAMED),
+                getString(R.string.error_too_many_profiles, ProfileManager.Companion.MAX_NAMED),
                 Toast.LENGTH_LONG
             ).show()
             return
         }
 
         val input = EditText(requireContext()).apply {
-            hint       = getString(R.string.dialog_add_profile_hint)
-            maxLines   = 1
-            inputType  = InputType.TYPE_CLASS_TEXT or
-                    InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            hint = getString(R.string.dialog_add_profile_hint)
+            maxLines = 1
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
         }
 
         AlertDialog.Builder(requireContext())
@@ -229,7 +237,7 @@ class ProfilePickerDialog : DialogFragment() {
                     ProfileSaveResult.TooManyProfiles -> {
                         Toast.makeText(
                             requireContext(),
-                            getString(R.string.error_too_many_profiles, ProfileManager.MAX_NAMED),
+                            getString(R.string.error_too_many_profiles, ProfileManager.Companion.MAX_NAMED),
                             Toast.LENGTH_SHORT
                         ).show()
                     }
@@ -256,6 +264,7 @@ class ProfilePickerDialog : DialogFragment() {
             .setNegativeButton(getString(R.string.cancel), null)
             .show()
     }
+
     private fun confirmResetToOriginal() {
         AlertDialog.Builder(requireContext())
             .setTitle(getString(R.string.profile_reset_default_title))

@@ -24,18 +24,16 @@ import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Helpers.ModelPickerPopup
 import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
-import com.example.pracazaliczeniowa.Helpers.ProfilePickerDialog
-import com.example.pracazaliczeniowa.Activities.LibraryActivity
-
 import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
 import com.example.pracazaliczeniowa.Nodes.PlaneGridRenderer
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
-
+import com.example.pracazaliczeniowa.Helpers.WallMagnetMenuPopup
+import com.example.pracazaliczeniowa.Objects.PlaneMode
 import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
 import com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
 import com.example.pracazaliczeniowa.R
-import com.example.pracazaliczeniowa.Activities.SettingsActivity
+import com.example.pracazaliczeniowa.Dialogs.ProfilePickerDialog
 import com.google.ar.core.Config
 import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
@@ -57,6 +55,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var modelControls: ModelControlOverlayView
     private lateinit var measureOverlay: MeasureTapeOverlayView
     private lateinit var modelPickerPopup: ModelPickerPopup
+    private lateinit var wallMagnetMenuPopup: WallMagnetMenuPopup
     private lateinit var profileManager: ProfileManager
 
     private lateinit var settings: AppSettings
@@ -66,8 +65,7 @@ class ARActivity : AppCompatActivity() {
     private lateinit var rotationRingToggleButton: ImageButton
     private lateinit var wallMagnetButton: ImageButton
 
-    // true - VERTICAL, false - HORIZONTAL planes
-    private var isWallMagnetVertical: Boolean = false
+    private var planeMode: PlaneMode = PlaneMode.HORIZONTAL
 
     private lateinit var btnLibrary : ImageButton
     private var unit: DistanceUnit = DistanceUnit.CENTIMETERS
@@ -148,6 +146,7 @@ class ARActivity : AppCompatActivity() {
         settings = AppSettings(this)
         unit = settings.distanceUnit
         modelPickerPopup = ModelPickerPopup(this)
+        wallMagnetMenuPopup = WallMagnetMenuPopup(this)
 
         arSceneView           = findViewById(R.id.arSceneView)
         statusText            = findViewById(R.id.statusText)
@@ -208,7 +207,7 @@ class ARActivity : AppCompatActivity() {
         arSceneView.onSessionUpdated = { _, _ ->
             if (!isClosing) {
                 if (arSceneView.session != null) {
-                    planeGridRenderer.update(isWallMagnetVertical)
+                    planeGridRenderer.update(planeMode)
                 }
             }
         }
@@ -244,7 +243,15 @@ class ARActivity : AppCompatActivity() {
         measureModeButton.setOnClickListener { toggleMeasureTool() }
 
         // ── Wall-magnet toggle click ───────────────────────────────────────────
-        wallMagnetButton.setOnClickListener { toggleWallMagnetMode() }
+        wallMagnetButton.setOnClickListener {
+            if (wallMagnetMenuPopup.isShowing()) {
+                wallMagnetMenuPopup.dismiss()
+            } else {
+                wallMagnetMenuPopup.onModeSelected = { mode -> setPlaneMode(mode) }
+                wallMagnetMenuPopup.show(wallMagnetButton, planeMode)
+            }
+        }
+
 
         // ── Animation toggle click ────────────────────────────────────────────
         animationToggleButton.setOnClickListener {
@@ -279,10 +286,18 @@ class ARActivity : AppCompatActivity() {
 
             val nodeHit = hitResult?.node
 
-            val allowedPlaneTypes: Set<Plane.Type> = if (isWallMagnetVertical)
-                setOf(Plane.Type.VERTICAL)
-            else
-                setOf(Plane.Type.HORIZONTAL_UPWARD_FACING, Plane.Type.HORIZONTAL_DOWNWARD_FACING)
+            val allowedPlaneTypes: Set<Plane.Type> = when (planeMode) {
+                PlaneMode.VERTICAL   -> setOf(Plane.Type.VERTICAL)
+                PlaneMode.HORIZONTAL -> setOf(
+                    Plane.Type.HORIZONTAL_UPWARD_FACING,
+                    Plane.Type.HORIZONTAL_DOWNWARD_FACING
+                )
+                PlaneMode.BOTH, PlaneMode.OFF -> setOf(
+                    Plane.Type.HORIZONTAL_UPWARD_FACING,
+                    Plane.Type.HORIZONTAL_DOWNWARD_FACING,
+                    Plane.Type.VERTICAL
+                )
+            }
 
             val arHit: HitResult? = arSceneView.frame?.hitTest(x, y)
                 ?.firstOrNull { hit ->
@@ -434,7 +449,9 @@ class ARActivity : AppCompatActivity() {
         measureModeButton.alpha = if (isMeasureToolActive) 1.0f else 0.5f
 
         if (!isMeasureToolActive) {
-            clearMeasurements()
+            // ── Hide nodes and overlay, but keep all state intact ──────────────
+            setMeasureNodesVisible(false)
+            measureOverlay.visibility = View.INVISIBLE   // hides lines but preserves state
             btnMeasureDelete.visibility = View.GONE
             btnMeasureRevert.visibility = View.GONE
             statusText.text = getString(
@@ -442,10 +459,22 @@ class ARActivity : AppCompatActivity() {
                 activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
             deselectModel()
+            // ── Restore nodes and overlay ──────────────────────────────────────
+            setMeasureNodesVisible(true)
+            measureOverlay.visibility = View.VISIBLE
+            pushOverlayState()   // re-sync overlay with existing measureLines
             btnMeasureDelete.visibility = View.VISIBLE
             btnMeasureRevert.visibility = View.VISIBLE
-            statusText.text = getString(R.string.measure_tap_first)
+            statusText.text = if (measureLines.isEmpty() && pendingMeasureNode == null)
+                getString(R.string.measure_tap_first)
+            else
+                getString(R.string.measure_tap_second).takeIf { pendingMeasureNode != null }
+                    ?: "Measurements restored · tap to add more"
         }
+    }
+
+    private fun setMeasureNodesVisible(visible: Boolean) {
+        placedMeasureNodes.forEach { it.isVisible = visible }
     }
 
     // ── Measure point placement ───────────────────────────────────────────────
@@ -562,21 +591,37 @@ class ARActivity : AppCompatActivity() {
 
     // ── Wall-magnet mode ──────────────────────────────────────────────────────
 
-    private fun toggleWallMagnetMode() {
-        isWallMagnetVertical = !isWallMagnetVertical
+    private fun setPlaneMode(mode: PlaneMode) {
+        planeMode = mode
 
         arSceneView.configureSession { _, config ->
             config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
         }
 
-        planeGridRenderer.update(isWallMagnetVertical)
+        planeGridRenderer.update(planeMode)
 
-        if (isWallMagnetVertical) {
-            wallMagnetButton.rotation = -90f
-            statusText.text = getString(R.string.status_wall_mode)
-        } else {
-            wallMagnetButton.rotation = 0f
-            statusText.text = getString(R.string.status_floor_mode)
+        // Icon rotation and status text per mode
+        when (mode) {
+            PlaneMode.HORIZONTAL -> {
+                wallMagnetButton.rotation = 0f
+                wallMagnetButton.alpha    = 1.0f
+                statusText.text = getString(R.string.status_floor_mode)
+            }
+            PlaneMode.VERTICAL -> {
+                wallMagnetButton.rotation = -90f
+                wallMagnetButton.alpha    = 1.0f
+                statusText.text = getString(R.string.status_wall_mode)
+            }
+            PlaneMode.BOTH -> {
+                wallMagnetButton.rotation = -45f
+                wallMagnetButton.alpha    = 1.0f
+                statusText.text = getString(R.string.status_all_surfaces)  // add this string
+            }
+            PlaneMode.OFF -> {
+                wallMagnetButton.rotation = 0f
+                wallMagnetButton.alpha    = 0.35f
+                statusText.text = getString(R.string.status_planes_hidden) // add this string
+            }
         }
     }
 
@@ -622,7 +667,7 @@ class ARActivity : AppCompatActivity() {
             anchorNode.addChildNode(node)
             arSceneView.addChildNode(anchorNode)
 
-            if (isWallMagnetVertical) {
+            if (planeMode == PlaneMode.VERTICAL) {
                 val qx = hitPose.qx(); val qy = hitPose.qy()
                 val qz = hitPose.qz(); val qw = hitPose.qw()
                 val normalX =  2f * (qx * qz + qy * qw)
