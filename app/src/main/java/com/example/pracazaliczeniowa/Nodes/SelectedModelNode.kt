@@ -21,6 +21,15 @@ class SelectedModelNode(
 
     private var wrappedNode: DefaultModelNode? = null
 
+    /**
+     * The name of the profile slot currently applied to this model.
+     * [ProfilePickerDialog.SLOT_DEFAULT] for the default slot, a user-chosen
+     * name for named slots, null if no profile has been loaded/saved yet.
+     * Kept here (on the wrapper) so it survives dialog open/close cycles
+     * without touching [DefaultModelNode].
+     */
+    var activeProfileName: String? = null
+
     private var isDimensionsVisible = false
     private var dimensionOverlay: DimensionOverlayNode? = null
 
@@ -117,14 +126,19 @@ class SelectedModelNode(
     }
 
     /**
-     * Re-anchors baseScale to the node's current physical scale.
-     * Call after saving a profile + resetting sliders so that subsequent
-     * slider movement is relative to the saved scale, not the original.
+     * Re-anchors [baseScale] to the node's current physical scale.
+     * Call after saving/loading a profile so subsequent slider movement is
+     * relative to the committed scale, not the original.
      */
     fun syncBaseScale() {
         baseScale = wrappedNode?.scale ?: Float3(1f)
     }
 
+    /**
+     * Re-anchors [initialWorldQuat] to the wrapper's current world quaternion
+     * so that [updateRotation] computes slider deltas from the right base.
+     * Always call after [applyProfileRotation] or any direct rotation change.
+     */
     fun syncBaseRotation() {
         initialWorldQuat = this.worldQuaternion
     }
@@ -274,6 +288,30 @@ class SelectedModelNode(
     fun setBaseRotation(euler: Float3) {
         baseRotation = euler
         initialWorldQuat = Quaternion.fromEuler(euler)  // slider delta is relative to this
+    }
+
+    /**
+     * Applies a saved profile rotation to this wrapper node so that the
+     * rotation handle ring always stays correctly positioned beneath the model.
+     *
+     * Rotation must live on the **wrapper** (this node), NOT on the wrapped
+     * child. When rotation is set on the child directly the ring — which is a
+     * sibling child of the wrapper — stays flat and disconnected from the
+     * tilted model.  By rotating the wrapper the ring, the model, and all
+     * other children move together as one rigid body.
+     *
+     * After calling this, [syncBaseRotation] re-anchors [initialWorldQuat] so
+     * that slider deltas start from the new orientation, and the wrapped
+     * child's local rotation is reset to zero (it was only ever used as a
+     * temporary staging value during pre-wrap placement).
+     */
+    fun applyProfileRotation(euler: Float3) {
+        // Rotate the wrapper in world space (same convention as updateRotation).
+        this.worldQuaternion = Quaternion.fromEuler(euler)
+        // Clear any residual local rotation on the child — the wrapper owns it now.
+        wrappedNode?.rotation = Float3(0f)
+        // Re-anchor so slider deltas are relative to this orientation.
+        initialWorldQuat = this.worldQuaternion
     }
     companion object {
         const val PINCH_SENSITIVITY = 2.0f

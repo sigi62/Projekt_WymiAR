@@ -36,6 +36,7 @@ class ProfilePickerDialog : DialogFragment() {
 
     companion object {
         private const val ARG_MODEL_NAME = "modelName"
+        const val SLOT_DEFAULT = "\$default"   // sentinel for the default slot
 
         fun newInstance(modelName: String) = ProfilePickerDialog().apply {
             arguments = Bundle().apply { putString(ARG_MODEL_NAME, modelName) }
@@ -45,6 +46,19 @@ class ProfilePickerDialog : DialogFragment() {
     // Supplied by ARActivity before show()
     /** Called when the user taps Load on any slot. */
     var onLoadProfile:  ((ModelProfile) -> Unit)? = null
+    /**
+     * The slot name that was last loaded/saved — set by the dialog before
+     * invoking [onLoadProfile] so ARActivity can record it on the node.
+     * Sentinel value [SLOT_DEFAULT] is used for the default slot.
+     */
+    var lastLoadedProfileName: String? = null
+
+    /**
+     * The slot that is currently active on the live model, shown with a
+     * small indicator.  Set by ARActivity before show().
+     * Null means "no profile loaded yet".
+     */
+    var activeProfileName: String? = null
     /**
      * Called after any profile is saved or overwritten (default or named).
      * Use this to reset the overlay's sliders to neutral so the saved values
@@ -105,13 +119,15 @@ class ProfilePickerDialog : DialogFragment() {
 
     private fun addDefaultRow() {
         val row = makeRowView()
-        row.findViewById<TextView>(R.id.tvSlotName).text = getString(R.string.profile_label_default)
+        val nameView = row.findViewById<TextView>(R.id.tvSlotName)
+        nameView.text = buildSlotLabel(getString(R.string.profile_label_default), SLOT_DEFAULT)
 
         val hasDefault = profileManager.loadDefault(modelName) != null
         row.findViewById<Button>(R.id.btnSlotLoad).apply {
             isEnabled = hasDefault
             setOnClickListener {
                 val p = profileManager.loadDefault(modelName) ?: return@setOnClickListener
+                lastLoadedProfileName = SLOT_DEFAULT
                 dismiss()
                 onLoadProfile?.invoke(p)
                 onStatusUpdate?.invoke(getString(R.string.profile_loaded_default))
@@ -124,7 +140,7 @@ class ProfilePickerDialog : DialogFragment() {
                 profileManager.saveDefault(modelName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_saved_default))
                 onDefaultProfileSaved?.invoke(current)
-                buildList()
+                dismiss()
             }
         }
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
@@ -141,10 +157,11 @@ class ProfilePickerDialog : DialogFragment() {
 
     private fun addNamedRow(slotName: String) {
         val row = makeRowView()
-        row.findViewById<TextView>(R.id.tvSlotName).text = slotName
+        row.findViewById<TextView>(R.id.tvSlotName).text = buildSlotLabel(slotName, slotName)
 
         row.findViewById<Button>(R.id.btnSlotLoad).setOnClickListener {
             val p = profileManager.loadNamed(modelName, slotName) ?: return@setOnClickListener
+            lastLoadedProfileName = slotName
             dismiss()
             onLoadProfile?.invoke(p)
             onStatusUpdate?.invoke(getString(R.string.profile_loaded_named, slotName))
@@ -156,7 +173,7 @@ class ProfilePickerDialog : DialogFragment() {
                 profileManager.saveNamed(modelName, slotName, current)
                 onStatusUpdate?.invoke(getString(R.string.profile_updated_named, slotName))
                 onNamedProfileSaved?.invoke(slotName, current)
-                buildList()
+                dismiss()
             }
         }
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
@@ -249,6 +266,7 @@ class ProfilePickerDialog : DialogFragment() {
                     rotationX = 0f, rotationY = 0f, rotationZ = 0f
                 )
                 profileManager.saveDefault(modelName, original)
+                lastLoadedProfileName = SLOT_DEFAULT
                 dismiss()
                 onLoadProfile?.invoke(original)
                 onDefaultProfileSaved?.invoke(original)
@@ -260,6 +278,13 @@ class ProfilePickerDialog : DialogFragment() {
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────
+
+    /**
+     * Returns the display label for a slot, appending a "▶" marker when
+     * this slot is the one currently loaded on the live model.
+     */
+    private fun buildSlotLabel(displayName: String, slotKey: String): String =
+        if (slotKey == activeProfileName) "▶ $displayName" else displayName
 
     private fun makeRowView(): View =
         LayoutInflater.from(requireContext())

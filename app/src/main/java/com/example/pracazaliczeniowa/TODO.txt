@@ -3,11 +3,7 @@
 AR collision - if possible
 
 
-Profiles FIX :
- -not seeing rotation correctly
- -overwritte button not seeing changes -> doesnt' save, doesn't close, doesn't toast
- -export exported profile resets scale??
- - exported profile with rotation applies it before rotation handle ? meaning its weird af
+
 
 
 Change the ActionBar Color - priamry default is still purple ??

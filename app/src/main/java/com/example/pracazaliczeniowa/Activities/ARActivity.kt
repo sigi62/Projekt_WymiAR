@@ -207,10 +207,10 @@ class ARActivity : AppCompatActivity() {
         planeGridRenderer.init()
         arSceneView.onSessionUpdated = { _, _ ->
             if (!isClosing) {
-            if (arSceneView.session != null) {
-                planeGridRenderer.update(isWallMagnetVertical)
+                if (arSceneView.session != null) {
+                    planeGridRenderer.update(isWallMagnetVertical)
+                }
             }
-        }
         }
 
         lifecycleScope.launch {
@@ -638,12 +638,13 @@ class ARActivity : AppCompatActivity() {
             models.add(node)
             node.setAnimationPlaying(false)
 
-            // Apply the default profile to the node BEFORE selectModel() so that
-            // bindToNode() seeds the sliders from the already-correct scale/rotation.
+            // Apply the default profile scale before wrapping so the model
+            // is the right size from the first frame. Rotation is applied
+            // after wrapping via applyProfileRotation in selectModel so the
+            // ring is correctly positioned from the start.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
-                node.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-                node.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+                node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             }
 
             selectModel(node)
@@ -692,10 +693,14 @@ class ARActivity : AppCompatActivity() {
 
 
 
-            // First-time placement: apply the profile to the node
+            // First-time placement: the pre-wrap node.rotation set in placeModel
+            // is already transferred to the wrapper by wrapAsSelected via worldQuaternion.
+            // Only the scale needs re-applying here; mark as applied.
             if (!defaultNode.profileApplied && profile != null) {
                 defaultNode.scale = profileScale
-                defaultNode.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+                // Rotation was already baked into the wrapper's worldQuaternion by
+                // wrapAsSelected; apply it properly through the wrapper so the ring follows.
+                wrapped.applyProfileRotation(Float3(profile.rotationX, profile.rotationY, profile.rotationZ))
                 defaultNode.profileApplied = true
             }
 
@@ -788,6 +793,9 @@ class ARActivity : AppCompatActivity() {
         val modelName = wrapped.getModeleName()
 
         val dialog = ProfilePickerDialog.newInstance(modelName)
+        // Tell the dialog which profile slot is currently loaded so it can
+        // show the "active" indicator on the right row.
+        dialog.activeProfileName = selectedModel?.activeProfileName
 
         dialog.getCurrentProfile = {
             ModelProfile(
@@ -803,8 +811,9 @@ class ARActivity : AppCompatActivity() {
         dialog.onDefaultProfileSaved = onDefaultProfileSaved@{ savedProfile ->
             val sel = selectedModel ?: return@onDefaultProfileSaved
             val wrp = sel.getWrappedNode() ?: return@onDefaultProfileSaved
-            wrp.scale    = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
-            wrp.rotation = Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ)
+            sel.activeProfileName = ProfilePickerDialog.SLOT_DEFAULT
+            wrp.scale = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
+            sel.applyProfileRotation(Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ))
             sel.syncBaseScale()
             sel.syncBaseRotation()
             sel.refreshRingScale()
@@ -816,17 +825,32 @@ class ARActivity : AppCompatActivity() {
             statusText.text = getString(R.string.status_profile_saved)
         }
 
-        dialog.onNamedProfileSaved = { name, _ ->
-            // Named profile is just a bookmark — don't touch the live node or sliders.
+        dialog.onNamedProfileSaved = onNamedProfileSaved@{ savedName, savedProfile ->
+            val sel = selectedModel ?: return@onNamedProfileSaved
+            val wrp = sel.getWrappedNode() ?: return@onNamedProfileSaved
+            sel.activeProfileName = savedName
+            wrp.scale = Float3(savedProfile.scaleX, savedProfile.scaleY, savedProfile.scaleZ)
+            sel.applyProfileRotation(Float3(savedProfile.rotationX, savedProfile.rotationY, savedProfile.rotationZ))
+            sel.syncBaseScale()
+            sel.syncBaseRotation()
+            sel.refreshRingScale()
+            modelControls.bindToNode(sel)
+            modelControls.resetSlidersToNeutral()
+            if (dimensionHud.visibility == View.VISIBLE) {
+                sel.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+            }
             statusText.text = getString(R.string.status_profile_saved)
         }
 
         dialog.onLoadProfile = { profile ->
-            wrapped.scale    = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
-            wrapped.rotation = Float3(profile.rotationX, profile.rotationY, profile.rotationZ)
+            val loadedName = dialog.lastLoadedProfileName
+            selected.activeProfileName = loadedName
+            wrapped.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
+            selected.applyProfileRotation(Float3(profile.rotationX, profile.rotationY, profile.rotationZ))
             selected.syncBaseScale()
             selected.syncBaseRotation()
             selected.refreshRingScale()
+            modelControls.bindToNode(selected)
             modelControls.resetSlidersToNeutral()
             if (dimensionHud.visibility == View.VISIBLE) {
                 selected.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
@@ -914,21 +938,31 @@ class ARActivity : AppCompatActivity() {
         if (isClosing) return
         isClosing = true
 
+        // ── 1. Kill all callbacks and pause the AR session immediately ────────
+        // This must happen BEFORE any node teardown so that no session-update
+        // or touch callback can fire against a partially-destroyed scene graph,
+        // and so ARCore stops trying to acquire camera frames.
+        arSceneView.onSessionUpdated = null
+        arSceneView.onTouchEvent = null
+        arSceneView.session?.pause()
+
+        // Unbind the SceneView from the Activity lifecycle so its internal
+        // lifecycle observer doesn't call pause()/destroy() a second time
+        // and trigger a double-free in the native layer.
+        arSceneView.lifecycle = null
+
         if (isAnimationPlaying) {
             selectedModel?.setAnimationPlaying(false)
             isAnimationPlaying = false
         }
 
-        arSceneView.onSessionUpdated = null
-        arSceneView.onTouchEvent = null
-        // 1. Deselect cleanly first (destroys rotation ring, overlays, etc.)
+        // ── 2. Deselect cleanly (destroys rotation ring, overlays, etc.) ──────
         selectedModel?.let { deselectModel() }
         selectedModel = null
 
-        // 2. Remove all model nodes from the scene graph
+        // ── 3. Remove all model nodes from the scene graph ────────────────────
         placedModelNodes.forEach { anchorNode ->
             anchorNode.childNodes.toList().forEach { child ->
-                // Destroy the DefaultModelNode (which owns the ModelInstance/materials)
                 (child as? DefaultModelNode)?.destroy()
                 child.parent = null
             }
@@ -938,7 +972,7 @@ class ARActivity : AppCompatActivity() {
         placedModelNodes.clear()
         models.clear()
 
-        // 3. Remove all measure nodes
+        // ── 4. Remove all measure nodes ───────────────────────────────────────
         placedMeasureNodes.forEach { anchorNode ->
             anchorNode.childNodes.toList().forEach { it.parent = null }
             anchorNode.parent = null
@@ -946,10 +980,10 @@ class ARActivity : AppCompatActivity() {
         }
         placedMeasureNodes.clear()
 
+        // ── 5. Flush GPU work and tear down the engine ────────────────────────
         try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
 
         planeGridRenderer.destroy()
-        arSceneView.session?.pause()
         arSceneView.destroy()
         finish()
     }
@@ -964,8 +998,11 @@ class ARActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (!isClosing) {
+            // Same order as closeScene(): stop the session before touching nodes.
             arSceneView.onSessionUpdated = null
             arSceneView.onTouchEvent = null
+            arSceneView.session?.pause()
+            arSceneView.lifecycle = null
 
             selectedModel?.let { deselectModel() }
             selectedModel = null
@@ -991,7 +1028,6 @@ class ARActivity : AppCompatActivity() {
             try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
 
             planeGridRenderer.destroy()
-            arSceneView.session?.pause()
             arSceneView.destroy()
         }
         viewAttachmentManager.onPause()
