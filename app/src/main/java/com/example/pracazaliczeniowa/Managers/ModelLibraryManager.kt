@@ -57,6 +57,7 @@ class ModelLibraryManager(
     private val dateFormat = SimpleDateFormat("dd.MM.yyyy", Locale.getDefault())
 
     class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
+        val thumbnailFrame: View = view.findViewById(R.id.thumbnailFrame)
         val thumbnail: ImageView = view.findViewById(R.id.imgModelThumbnail)
         val name: TextView = view.findViewById(R.id.tvModelName)
         val fileSize: TextView = view.findViewById(R.id.tvFileSize)
@@ -78,12 +79,18 @@ class ModelLibraryManager(
         val context = holder.itemView.context
 
         // ── Selection highlight ──────────────────────────────────────────────
-        val backgroundColor = if (item.profileKey == selectedKey) {
+        // The whole CardView gets the highlight colour so the rounded border
+        // and all spacing around the image lights up. The thumbnail frame is
+        // pinned to card_image_background so it never changes colour.
+        val cardColor = if (item.profileKey == selectedKey) {
             ContextCompat.getColor(context, R.color.card_highlight)
         } else {
             ContextCompat.getColor(context, R.color.card_background)
         }
-        (holder.itemView as CardView).setCardBackgroundColor(backgroundColor)
+        (holder.itemView as CardView).setCardBackgroundColor(cardColor)
+        holder.thumbnailFrame.setBackgroundColor(
+            ContextCompat.getColor(context, R.color.card_image_background)
+        )
 
         // ── Thumbnail ───────────────────────────────────────────────────────
         bindThumbnail(holder.thumbnail, item, context.filesDir)

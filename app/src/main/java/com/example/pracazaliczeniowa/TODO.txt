@@ -5,7 +5,9 @@ AR collision - if possible
 
 
 Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
+
 zmenic kolory w obu trybach aby sie tak ie zlewały
+
 Tłumaczenie na polski
 
 
