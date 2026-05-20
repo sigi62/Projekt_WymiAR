@@ -34,6 +34,11 @@ class RulerSeekBar @JvmOverloads constructor(
         centerValue = center
         majorTickInterval = major
         minorTickInterval = minor
+        // Keep seekBar.max in sync so 1 progress step = 1 display unit.
+        // e.g. min=-100, max=100  →  seekBar.max=200, centre at progress=100.
+        val steps = (max - min).toInt().coerceAtLeast(1)
+        this.max = steps
+        this.progress = this.progress.coerceIn(0, steps)
         invalidate()
     }
 
@@ -140,9 +145,6 @@ class RulerSeekBar @JvmOverloads constructor(
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
-        // The ruler draws: value label at centerY-70, top tick at centerY-25,
-        // bottom tick at centerY+25, plus some margin.
-        // We need at least 160px total so nothing clips.
         val minHeight = (160 + paddingTop + paddingBottom)
         val resolvedHeight = maxOf(measuredHeight, minHeight)
         setMeasuredDimension(measuredWidth, resolvedHeight)

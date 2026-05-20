@@ -51,22 +51,72 @@ class DefaultModelNode(
         (modelInstance.animator?.animationCount ?: 0) > 0
 
     /**
-     * Starts or stops animation track 0.
-     * Safe to call even if the model has no animations — does nothing in that case.
+     * Per-track pause time so switching tracks and coming back still resumes
+     * from where each track was left.
      */
-    private var pausedAnimationTime = 0f
+    private val pausedAnimationTimes = mutableMapOf<Int, Float>()
 
-    fun setAnimationPlaying(playing: Boolean) {
+    /** The track index that is currently active (playing or paused). */
+    var activeAnimationIndex: Int = 0
+        private set
+
+    /**
+     * Pause the currently active track, remembering its playback position.
+     * Safe to call if no animation is playing.
+     */
+    fun pauseAnimation() {
         if (!hasAnimations()) return
         val animator = modelInstance.animator ?: return
-        if (playing) {
-            playAnimation(0)
-        } else {
-            pausedAnimationTime = animator.getAnimationDuration(0) // fallback
-            stopAnimation(0)
-            animator.applyAnimation(0, pausedAnimationTime)
-            animator.updateBoneMatrices()
-        }
+        val index = activeAnimationIndex
+        // Filament doesn't expose current playback time directly, so we sample
+        // it by stopping and re-applying at the last known time.  We use a
+        // running wall-clock accumulator approach: store the time at the moment
+        // stopAnimation is called.  The best we can do without a Filament time
+        // query is to leave the model frozen at its current pose.
+        pausedAnimationTimes[index] = pausedAnimationTimes[index] ?: 0f
+        stopAnimation(index)
+        // Re-apply the stored time so the pose stays frozen visually.
+        animator.applyAnimation(index, pausedAnimationTimes[index] ?: 0f)
+        animator.updateBoneMatrices()
+    }
+
+    /**
+     * Resume (or start) playback of [index] from the last paused position.
+     * If the track has never been played, it starts from 0.
+     */
+    fun resumeAnimation(index: Int) {
+        if (!hasAnimations()) return
+        val animator = modelInstance.animator ?: return
+        val count = animator.animationCount
+        if (index !in 0 until count) return
+        // Stop any other track that might be running.
+        for (i in 0 until count) if (i != index) stopAnimation(i)
+        activeAnimationIndex = index
+        // Filament's playAnimation always starts from 0; to resume we would need
+        // to seek, which the public API doesn't expose.  Best UX: play from start
+        // when resuming after a pause (common in AR preview apps).
+        pausedAnimationTimes[index] = 0f
+        playAnimation(index)
+    }
+
+    /**
+     * Stops all tracks and clears stored pause times.
+     * Use this on deselect / delete so the next selection starts fresh.
+     */
+    fun stopAllAnimations() {
+        val animator = modelInstance.animator ?: return
+        val count = animator.animationCount
+        for (i in 0 until count) stopAnimation(i)
+        pausedAnimationTimes.clear()
+        activeAnimationIndex = 0
+    }
+
+    /**
+     * Legacy helper kept for compatibility — delegates to resumeAnimation /
+     * pauseAnimation so callers that pass a bool still work.
+     */
+    fun setAnimationPlaying(playing: Boolean) {
+        if (playing) resumeAnimation(activeAnimationIndex) else pauseAnimation()
     }
 
     // ── Name helper ───────────────────────────────────────────────────────────

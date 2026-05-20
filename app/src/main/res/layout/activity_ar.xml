@@ -151,6 +151,37 @@
             android:layout_marginBottom="10dp"
             android:visibility="gone"/>
 
+        <!--
+            Stop button — stops animation and resets to frame 0.
+            Only shown while animation is playing.
+        -->
+        <ImageButton
+            android:id="@+id/btnAnimationPause"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_play_pause"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone"/>
+
+        <!--
+            Next-animation button — cycles to the next animation track.
+            Only shown when the selected model has more than one animation
+            and animation is playing.
+        -->
+        <ImageButton
+            android:id="@+id/btnAnimationNext"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_skip_next"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:layout_marginBottom="10dp"
+            android:visibility="gone"/>
+
     </LinearLayout>
 
     <!-- ── Measure-mode action buttons ─────────────────────────────────── -->

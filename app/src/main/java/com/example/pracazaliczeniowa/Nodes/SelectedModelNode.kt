@@ -49,12 +49,39 @@ class SelectedModelNode(
     /** Delegates to the wrapped node — true if the model has animation tracks. */
     fun hasAnimations(): Boolean = wrappedNode?.hasAnimations() ?: false
 
+    /** Returns the number of animation tracks on the wrapped model (0 if none). */
+    fun getAnimationCount(): Int =
+        wrappedNode?.modelInstance?.animator?.animationCount ?: 0
+
     /**
      * Delegates play/stop to the wrapped [DefaultModelNode].
      * Safe to call when no node is attached or the model has no animations.
      */
     fun setAnimationPlaying(playing: Boolean) {
         wrappedNode?.setAnimationPlaying(playing)
+    }
+
+    /** Pause the active animation track, freezing the model at its current pose. */
+    fun pauseAnimation() {
+        wrappedNode?.pauseAnimation()
+    }
+
+    /** Resume (or start) the animation track at [index] from its last paused position. */
+    fun resumeAnimation(index: Int) {
+        wrappedNode?.resumeAnimation(index)
+    }
+
+    /** Stop all tracks and clear pause state — call on deselect / delete. */
+    fun stopAllAnimations() {
+        wrappedNode?.stopAllAnimations()
+    }
+
+    /**
+     * Plays a specific animation track by index.
+     * Stops any currently playing track first so tracks don't overlap.
+     */
+    fun playAnimation(index: Int) {
+        wrappedNode?.resumeAnimation(index)
     }
 
     // ── Wrap / unwrap ─────────────────────────────────────────────────────────

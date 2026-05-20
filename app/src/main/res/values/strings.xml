@@ -154,7 +154,7 @@
     <string name="model_thumbnail">Model thumbnail</string>
     <string name="toast_thumbnail_deleted">Thumbnail deleted</string>
     <string name="toast_thumbnail_delete_failed">Could not delete thumbnail</string>
-    <string name="saved_badge">✓ Saved</string>
+    <string name="profile_badge">✓ Profile</string>
 
 
     <!-- Model Item dialog -->
@@ -260,7 +260,7 @@
     <string name="filter_all">All</string>
     <string name="filter_recent">Recent</string>
     <string name="filter_imported">Imported</string>
-    <string name="filter_saved">Saved</string>
+    <string name="filter_profile">Profile</string>
     <string name="filter_alphabetical">A–Z</string>
     <!-- Item count label -->
     <string name="library_item_count">%1$d models</string>

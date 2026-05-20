@@ -1,24 +1,20 @@
 
 
-AR collision - if possible
-
-
 
 Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
-
+Wyraźne zaznaczenie POMACHAJ TELEFONEM MAN
 zmenic kolory w obu trybach aby sie tak ie zlewały
 
+
+
 Tłumaczenie na polski
+wiele animacji -> dać możliwość zmiany ?
 
-
+Animation pause button hides other animation buttons :CCc - mess
 
 Change the ActionBar Color - priamry default is still purple ??
 
-Rotation Handle user choice (?)
+BETTER ROTATION HANDLE
 Measurements more accurate
 Thumbnails for auto models are pre-made
-
-
-Dodać tutorial???
-Dodanie naturalnych cieni??
 

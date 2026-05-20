@@ -117,14 +117,14 @@ class SettingsActivity : AppCompatActivity() {
     /** Radio popup: Centimeters / Meters / Millimeters */
     private fun showUnitDialog() {
         val options = listOf(
+            getString(R.string.full_unit_mm),
             getString(R.string.full_unit_cm),
-            getString(R.string.full_unit_m),
-            getString(R.string.full_unit_mm)
+            getString(R.string.full_unit_m)
         )
         val currentIndex = when (settings.distanceUnit) {
-            DistanceUnit.CENTIMETERS -> 0
-            DistanceUnit.METERS      -> 1
-            DistanceUnit.MILLIMETERS -> 2
+            DistanceUnit.MILLIMETERS -> 0
+            DistanceUnit.CENTIMETERS -> 1
+            DistanceUnit.METERS      -> 2
         }
         showRadioDialog(
             title    = getString(R.string.unit_label),
@@ -132,9 +132,9 @@ class SettingsActivity : AppCompatActivity() {
             selected = currentIndex
         ) { chosenIndex ->
             settings.distanceUnit = when (chosenIndex) {
-                0 -> DistanceUnit.CENTIMETERS
-                1 -> DistanceUnit.METERS
-                else -> DistanceUnit.MILLIMETERS
+                0 -> DistanceUnit.MILLIMETERS
+                1 -> DistanceUnit.CENTIMETERS
+                else -> DistanceUnit.METERS
             }
             updateAROptionsSummary()
         }

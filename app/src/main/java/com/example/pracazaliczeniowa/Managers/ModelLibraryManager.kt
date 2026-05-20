@@ -63,7 +63,7 @@ class ModelLibraryManager(
         val fileSize: TextView = view.findViewById(R.id.tvFileSize)
         val dimensions: TextView = view.findViewById(R.id.tvDimensions)
         val editDate: TextView = view.findViewById(R.id.tvEditDate)
-        val savedBadge: TextView = view.findViewById(R.id.tvSavedBadge)
+        val profileBadge: TextView = view.findViewById(R.id.tvProfileBadge)
         val importedBadge: TextView = view.findViewById(R.id.tvImportedBadge)
         val btnOptions: ImageButton = view.findViewById(R.id.btnModelOptions)
     }
@@ -123,7 +123,7 @@ class ModelLibraryManager(
         }
 
         // ── "✓ Saved" badge ─────────────────────────────────────────────────
-        holder.savedBadge.visibility =
+        holder.profileBadge.visibility =
             if (item.profileKey in savedProfiles) View.VISIBLE else View.GONE
 
         // ── "Imported" badge ─────────────────────────────────────────────────

@@ -611,14 +611,14 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 )
             }
             "SCALE"    -> {
-            node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
-            onRelativeValuesChanged?.invoke(
-                v1, v2, v3,
-                progressToValue(rotateProgress.first),
-                progressToValue(rotateProgress.second),
-                progressToValue(rotateProgress.third)
-            )
-        }
+                node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
+                onRelativeValuesChanged?.invoke(
+                    v1, v2, v3,
+                    progressToValue(rotateProgress.first),
+                    progressToValue(rotateProgress.second),
+                    progressToValue(rotateProgress.third)
+                )
+            }
         }
     }
 
@@ -628,7 +628,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private fun progressToValue(progress: Int): Float = when (currentMode) {
         // progress 0..2*posDynMid  →  value in cm  →  (progress - mid) / 10
-        "POSITION" -> (progress - posDynMid).toFloat() * (currentUnitFactor / 100f)
+        "POSITION" -> (progress - posDynMid).toFloat()  // 1 step = 1 display unit
         // progress 0..3600  →  (progress - 1800) / 10  →  -180..+180 degrees
         "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
         // progress 1..sclDynMax  →  progress / 100  →  0.01..100×
@@ -638,8 +638,7 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
     private fun valueToProgress(value: Float): Int = when (currentMode) {
         // inverse of (progress - posDynMid) / 10  →  value * 10 + posDynMid
-        "POSITION" -> (value / (currentUnitFactor / 100f) + posDynMid).toInt()
-            .coerceIn(POS_MIN, 2 * posDynMid)
+        "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
         // inverse of (progress - ROT_MID) / 10  →  value * 10 + ROT_MID
         "ROTATE"   -> (value * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         // inverse of progress / SCL_MID  →  value * SCL_MID
@@ -660,8 +659,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 }
             }
             "POSITION" -> {
-                val posMaxCm = posDynMid.toFloat()
-                val posMax = posMaxCm * (currentUnitFactor / 100f)
+                // posDynMid is already in display units (1 progress = 1 display unit).
+                // Do NOT multiply by currentUnitFactor — that was causing mm to get max=1000.
+                val posMax = posDynMid.toFloat()
                 val major = (posMax / 2f).coerceAtLeast(1f)
                 val minor = (posMax / 10f).coerceAtLeast(0.1f)
                 sliders.forEach {
@@ -724,19 +724,35 @@ class ModelControlOverlayView @JvmOverloads constructor(
     // reflects the user's persisted choice on first display.
     private var currentUnitFactor: Float = 100f
     fun updateUnit(unit: DistanceUnit) {
-        val oldFactor = currentUnitFactor
-        currentUnitFactor = when(unit) {
+        val oldFactor  = currentUnitFactor
+        currentUnitFactor = when (unit) {
             DistanceUnit.METERS      -> 1f
             DistanceUnit.CENTIMETERS -> 100f
             DistanceUnit.MILLIMETERS -> 1000f
         }
-        val multiplier = currentUnitFactor / oldFactor
 
+        // posDynMid defines how many progress steps exist on each side of centre.
+        // We want 1 progress step = 1 display unit, so:
+        //   cm  → posDynMid = POS_MID_DEFAULT (100)  → ±100 cm
+        //   mm  → posDynMid = POS_MID_DEFAULT (100)  → ±100 mm  (same step count, finer resolution)
+        //   m   → posDynMid = POS_MID_DEFAULT (100)  → ±100 m   (same step count, coarser)
+        // We never shrink a range the user already expanded, so take the max.
+        val oldPosDynMid = posDynMid
+        posDynMid = posDynMid.coerceAtLeast(POS_MID_DEFAULT)
+
+        // Convert the stored physical position from old unit to new unit so the
+        // model doesn't jump.  Physical offset = (progress - oldMid) display-units.
+        // We must express the same offset in the new unit.
+        val unitMultiplier = currentUnitFactor / oldFactor   // e.g. cm→mm = 10, cm→m = 0.01
         positionProgress = Triple(
-            (((positionProgress.first - posDynMid) * multiplier) + posDynMid).toInt(),
-            (((positionProgress.second - posDynMid) * multiplier) + posDynMid).toInt(),
-            (((positionProgress.third - posDynMid) * multiplier) + posDynMid).toInt()
+            (((positionProgress.first  - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid),
+            (((positionProgress.second - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid),
+            (((positionProgress.third  - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid)
         )
+
         if (::s1.isInitialized) {
             updateRulerVisuals()
             refreshSlidersForMode()
