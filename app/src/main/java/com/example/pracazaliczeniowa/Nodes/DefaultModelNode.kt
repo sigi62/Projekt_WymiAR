@@ -16,6 +16,10 @@ import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.PlaneNode
 import io.github.sceneview.node.ViewNode
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import android.view.LayoutInflater
 import android.widget.SearchView
 import com.example.pracazaliczeniowa.R
@@ -50,71 +54,84 @@ class DefaultModelNode(
     fun hasAnimations(): Boolean =
         (modelInstance.animator?.animationCount ?: 0) > 0
 
-    /**
-     * Per-track pause time so switching tracks and coming back still resumes
-     * from where each track was left.
-     */
-    private val pausedAnimationTimes = mutableMapOf<Int, Float>()
-
     /** The track index that is currently active (playing or paused). */
     var activeAnimationIndex: Int = 0
         private set
 
-    /**
-     * Pause the currently active track, remembering its playback position.
-     * Safe to call if no animation is playing.
-     */
-    fun pauseAnimation() {
-        if (!hasAnimations()) return
-        val animator = modelInstance.animator ?: return
-        val index = activeAnimationIndex
-        // Filament doesn't expose current playback time directly, so we sample
-        // it by stopping and re-applying at the last known time.  We use a
-        // running wall-clock accumulator approach: store the time at the moment
-        // stopAnimation is called.  The best we can do without a Filament time
-        // query is to leave the model frozen at its current pose.
-        pausedAnimationTimes[index] = pausedAnimationTimes[index] ?: 0f
-        stopAnimation(index)
-        // Re-apply the stored time so the pose stays frozen visually.
-        animator.applyAnimation(index, pausedAnimationTimes[index] ?: 0f)
-        animator.updateBoneMatrices()
-    }
+    // Per-track elapsed playback time in seconds — survives pause.
+    private val elapsedTimes = mutableMapOf<Int, Float>()
+
+    // The coroutine driving the manual animation loop; cancelled on stop/switch.
+    private var animJob: Job? = null
+
+    // Timestamp of the last frame tick — used to compute delta time.
+    private var lastTickNanos: Long = 0L
 
     /**
-     * Resume (or start) playback of [index] from the last paused position.
-     * If the track has never been played, it starts from 0.
+     * Start (or resume) playback of [index] from the last paused position.
+     * Drives the animation manually via applyAnimation so pause is exact.
      */
     fun resumeAnimation(index: Int) {
         if (!hasAnimations()) return
         val animator = modelInstance.animator ?: return
         val count = animator.animationCount
         if (index !in 0 until count) return
-        // Stop any other track that might be running.
-        for (i in 0 until count) if (i != index) stopAnimation(i)
+
+        // Cancel any running loop first.
+        animJob?.cancel()
         activeAnimationIndex = index
-        // Filament's playAnimation always starts from 0; to resume we would need
-        // to seek, which the public API doesn't expose.  Best UX: play from start
-        // when resuming after a pause (common in AR preview apps).
-        pausedAnimationTimes[index] = 0f
-        playAnimation(index)
+        val duration = animator.getAnimationDuration(index)
+        if (duration <= 0f) return
+
+        lastTickNanos = System.nanoTime()
+
+        animJob = scope.launch {
+            while (isActive) {
+                val now = System.nanoTime()
+                val delta = (now - lastTickNanos) / 1_000_000_000f
+                lastTickNanos = now
+
+                val elapsed = (elapsedTimes[index] ?: 0f) + delta
+                // Loop: wrap elapsed time within duration.
+                elapsedTimes[index] = elapsed % duration
+
+                animator.applyAnimation(index, elapsedTimes[index]!!)
+                animator.updateBoneMatrices()
+
+                delay(16) // ~60 fps
+            }
+        }
     }
 
     /**
-     * Stops all tracks and clears stored pause times.
-     * Use this on deselect / delete so the next selection starts fresh.
+     * Pause playback — freezes the model on the exact current frame.
+     * Call resumeAnimation() to continue from here.
+     */
+    fun pauseAnimation() {
+        if (!hasAnimations()) return
+        animJob?.cancel()
+        animJob = null
+        // Pose is already frozen at the last applyAnimation call — nothing else needed.
+    }
+
+    /**
+     * Stop all playback and reset elapsed times to 0.
+     * Use on deselect / delete / stop button.
      */
     fun stopAllAnimations() {
-        val animator = modelInstance.animator ?: return
-        val count = animator.animationCount
-        for (i in 0 until count) stopAnimation(i)
-        pausedAnimationTimes.clear()
+        animJob?.cancel()
+        animJob = null
+        elapsedTimes.clear()
         activeAnimationIndex = 0
+        // Reset pose to frame 0.
+        val animator = modelInstance.animator ?: return
+        if (animator.animationCount > 0) {
+            animator.applyAnimation(0, 0f)
+            animator.updateBoneMatrices()
+        }
     }
 
-    /**
-     * Legacy helper kept for compatibility — delegates to resumeAnimation /
-     * pauseAnimation so callers that pass a bool still work.
-     */
+    /** Legacy helper kept for compatibility. */
     fun setAnimationPlaying(playing: Boolean) {
         if (playing) resumeAnimation(activeAnimationIndex) else pauseAnimation()
     }

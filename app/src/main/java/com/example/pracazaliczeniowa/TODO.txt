@@ -8,9 +8,7 @@ zmenic kolory w obu trybach aby sie tak ie zlewały
 
 
 Tłumaczenie na polski
-wiele animacji -> dać możliwość zmiany ?
 
-Animation pause button hides other animation buttons :CCc - mess
 
 Change the ActionBar Color - priamry default is still purple ??
 

@@ -93,7 +93,8 @@ class ARActivity : AppCompatActivity() {
     private var isMeasureToolActive: Boolean = false
 
     // ── Animation state ──────────────────────────────
-    private var isAnimationPlaying: Boolean = false
+    private var isAnimationPlaying: Boolean = false  // true = not paused
+    private var isAnimationStarted: Boolean = false  // true = play was hit (not stopped)
 
     // ── Measure state ────────────────────────────────────────────────────────
     /**
@@ -238,9 +239,9 @@ class ARActivity : AppCompatActivity() {
         }
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
-        animationToggleButton.visibility    = View.GONE
-        animationNextButton.visibility      = View.GONE
-        animationPauseButton.visibility       = View.GONE
+        isAnimationPlaying = false
+        isAnimationStarted = false
+        refreshAnimationUI()
         rotationRingToggleButton.visibility = View.GONE
 
         measureOverlay.attach(arSceneView)
@@ -261,46 +262,49 @@ class ARActivity : AppCompatActivity() {
 
 
         // ── Animation toggle click ────────────────────────────────────────────
+        // ── Play / Stop ───────────────────────────────────────────────────────
         animationToggleButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
-            isAnimationPlaying = !isAnimationPlaying
-            if (isAnimationPlaying) {
-                wrapped.resumeAnimation(currentAnimationIndex)
+            if (isAnimationStarted) {
+                // STOP — reset everything
+                wrapped.stopAllAnimations()
+                isAnimationStarted = false
+                isAnimationPlaying = false
+                currentAnimationIndex = 0
             } else {
-                wrapped.pauseAnimation()
+                // PLAY — start from frame 0
+                isAnimationStarted = true
+                isAnimationPlaying = true
+                wrapped.resumeAnimation(currentAnimationIndex)
             }
-            animationToggleButton.alpha = if (isAnimationPlaying) 1.0f else 0.5f
-            // Stop and next buttons follow play state.
-            animationPauseButton.visibility = if (isAnimationPlaying) View.VISIBLE else View.GONE
-            if (wrapped.getAnimationCount() > 1) {
-                animationNextButton.visibility = if (isAnimationPlaying) View.VISIBLE else View.GONE
-            }
-            statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on) else getString(
-                R.string.animation_toggle_off)
+            refreshAnimationUI()
+            statusText.text = if (isAnimationStarted) getString(R.string.animation_toggle_on)
+            else getString(R.string.animation_toggle_off)
         }
 
-        // ── Next animation click ──────────────────────────────────────────────
+        // ── Pause / Resume ────────────────────────────────────────────────────
+        animationPauseButton.setOnClickListener {
+            val wrapped = selectedModel ?: return@setOnClickListener
+            if (isAnimationPlaying) {
+                wrapped.pauseAnimation()
+                isAnimationPlaying = false
+            } else {
+                wrapped.resumeAnimation(currentAnimationIndex)
+                isAnimationPlaying = true
+            }
+            refreshAnimationUI()
+            statusText.text = if (isAnimationPlaying) getString(R.string.animation_toggle_on)
+            else getString(R.string.animation_toggle_off)
+        }
+
+        // ── Next animation ────────────────────────────────────────────────────
         animationNextButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
             val count = wrapped.getAnimationCount()
             if (count < 2) return@setOnClickListener
             currentAnimationIndex = (currentAnimationIndex + 1) % count
-            if (isAnimationPlaying) {
-                wrapped.playAnimation(currentAnimationIndex)
-            }
+            wrapped.playAnimation(currentAnimationIndex)
             statusText.text = "Animation ${currentAnimationIndex + 1} / $count"
-        }
-
-        // ── Pause animation click ─────────────────────────────────────────────
-        animationPauseButton.setOnClickListener {
-            val wrapped = selectedModel ?: return@setOnClickListener
-            wrapped.stopAllAnimations()
-            isAnimationPlaying = false
-            currentAnimationIndex = 0
-            animationToggleButton.alpha  = 0.5f
-            animationPauseButton.visibility  = View.GONE
-            animationNextButton.visibility  = View.GONE
-            statusText.text = getString(R.string.animation_toggle_off)
         }
 
         // ── Rotation ring toggle click ────────────────────────────────────────
@@ -466,6 +470,19 @@ class ARActivity : AppCompatActivity() {
             }
             false
         }
+    }
+
+    private fun refreshAnimationUI() {
+        val hasAnim   = selectedModel?.hasAnimations() == true
+        val multiAnim = (selectedModel?.getAnimationCount() ?: 0) > 1
+        // Play/Stop — always visible when model has animations; bright when started
+        animationToggleButton.visibility = if (hasAnim) View.VISIBLE else View.GONE
+        animationToggleButton.alpha      = if (isAnimationStarted) 1.0f else 0.5f
+        // Pause/Resume — visible once started, until stopped; icon reflects paused state
+        animationPauseButton.visibility  = if (hasAnim && isAnimationStarted) View.VISIBLE else View.GONE
+        animationPauseButton.alpha       = if (isAnimationPlaying) 1.0f else 0.5f
+        // Next — visible once started, until stopped, only when >1 track
+        animationNextButton.visibility   = if (hasAnim && isAnimationStarted && multiAnim) View.VISIBLE else View.GONE
     }
 
     override fun onResume() {
@@ -757,6 +774,7 @@ class ARActivity : AppCompatActivity() {
         }
 
         isAnimationPlaying = false
+        isAnimationStarted = false
         selectedModel?.setAnimationPlaying(false)
 
         dimensionHud.visibility = View.GONE
@@ -813,18 +831,8 @@ class ARActivity : AppCompatActivity() {
             rotationRingToggleButton.visibility = View.VISIBLE
 
             currentAnimationIndex = 0
-            if (wrapped.hasAnimations()) {
-                animationToggleButton.visibility = View.VISIBLE
-                animationToggleButton.alpha      = 0.5f
-                // Show next-anim button only when there are multiple tracks.
-                // Both hidden until the user hits play.
-                animationPauseButton.visibility = View.GONE
-                animationNextButton.visibility = View.GONE
-                animationNextButton.alpha      = 1.0f
-            } else {
-                animationToggleButton.visibility = View.GONE
-                animationNextButton.visibility   = View.GONE
-            }
+            isAnimationPlaying = false
+            refreshAnimationUI()
 
             wireframeModeButton.setOnClickListener {
                 val isNowVisible = wrapped.toggleDimensions(arSceneView, viewAttachmentManager)
@@ -849,6 +857,7 @@ class ARActivity : AppCompatActivity() {
         if (isAnimationPlaying) {
             selectedModel?.stopAllAnimations()
             isAnimationPlaying = false
+            isAnimationStarted = false
         }
 
         val returnedNode = selectedModel?.unwrap()
@@ -859,9 +868,9 @@ class ARActivity : AppCompatActivity() {
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
         wireframeModeButton.alpha      = 0.5f
-        animationToggleButton.visibility    = View.GONE
-        animationNextButton.visibility      = View.GONE
-        animationPauseButton.visibility       = View.GONE
+        isAnimationPlaying = false
+        isAnimationStarted = false
+        refreshAnimationUI()
         rotationRingToggleButton.visibility = View.GONE
         dimensionHud.visibility             = View.GONE
         currentAnimationIndex               = 0
@@ -991,9 +1000,9 @@ class ARActivity : AppCompatActivity() {
         selectedModel = null
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
-        animationToggleButton.visibility    = View.GONE
-        animationNextButton.visibility      = View.GONE
-        animationPauseButton.visibility       = View.GONE
+        isAnimationPlaying = false
+        isAnimationStarted = false
+        refreshAnimationUI()
         rotationRingToggleButton.visibility = View.GONE
         dimensionHud.visibility             = View.GONE
         currentAnimationIndex               = 0
@@ -1052,6 +1061,7 @@ class ARActivity : AppCompatActivity() {
         if (isAnimationPlaying) {
             selectedModel?.stopAllAnimations()
             isAnimationPlaying = false
+            isAnimationStarted = false
         }
 
         // ── 2. Deselect cleanly (destroys rotation ring, overlays, etc.) ──────
@@ -1102,7 +1112,7 @@ class ARActivity : AppCompatActivity() {
             arSceneView.session?.pause()
             arSceneView.lifecycle = null
 
-            if (isAnimationPlaying) { selectedModel?.stopAllAnimations(); isAnimationPlaying = false }
+            if (isAnimationPlaying) { selectedModel?.stopAllAnimations(); isAnimationPlaying = false; isAnimationStarted = false }
             selectedModel?.let { deselectModel() }
             selectedModel = null
 
