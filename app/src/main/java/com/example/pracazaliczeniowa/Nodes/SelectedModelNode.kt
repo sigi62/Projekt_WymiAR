@@ -243,7 +243,7 @@ class SelectedModelNode(
         scope.launch {
             // loadModelGlb returns a ModelInstance (nullable on failure).
             val instance = sceneView.modelLoader.loadModelInstance(
-                fileLocation = "pointerRing.glb"
+                fileLocation = "RotationHandle.glb"
             ) ?: run {
                 Log.w("SelectedModelNode", "pointerRing.glb failed to load")
                 return@launch

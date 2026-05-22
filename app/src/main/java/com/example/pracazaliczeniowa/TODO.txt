@@ -2,21 +2,10 @@
 Thumbnails for auto models are pre-made
 
 Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
+
 Wyraźne zaznaczenie POMACHAJ TELEFONEM MAN
-zmenic kolory w obu trybach aby sie tak ie zlewały
 
 
-!!!
-change color for revert icon in btnSlotDelete
-change others dialog_cofirms!!!
-custom popup for library menu
 
-a way to set the memory in Storage?
-Tłumaczenie na polski
-
-
-Change the ActionBar Color - priamry default is still purple ??
-
-BETTER ROTATION HANDLE
 Measurements more accurate
 

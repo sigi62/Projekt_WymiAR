@@ -1,5 +1,6 @@
 package com.example.pracazaliczeniowa.Dialogs
 
+import android.R.attr.backgroundTint
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -13,6 +14,7 @@ import android.widget.TextView
 import android.content.Context
 import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.DialogFragment
 import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
@@ -152,10 +154,11 @@ class ProfilePickerDialog : DialogFragment() {
         }
 
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
-            visibility = View.VISIBLE                       // ✅ instance property
-            contentDescription = getString(R.string.profile_reset_btn_content_desc) // ✅
+            visibility = View.VISIBLE
+            contentDescription = getString(R.string.profile_reset_btn_content_desc)
             setImageResource(R.drawable.ic_revert)
-            setOnClickListener { confirmResetToOriginal() } // ✅
+            imageTintList = ContextCompat.getColorStateList(context, R.color.icon_tint)
+            setOnClickListener { confirmResetToOriginal() }
         }
 
         container.addView(row)
@@ -346,7 +349,6 @@ class ProfilePickerDialog : DialogFragment() {
 
     override fun onStart() {
         super.onStart()
-        // Make the dialog wider than the default narrow AlertDialog style
         dialog?.window?.setLayout(
             (resources.displayMetrics.widthPixels * 0.92).toInt(),
             ViewGroup.LayoutParams.WRAP_CONTENT

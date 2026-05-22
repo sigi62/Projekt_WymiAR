@@ -105,16 +105,39 @@
 
                 </LinearLayout>
 
-                <ProgressBar
-                    android:id="@+id/progressStorage"
-                    style="?android:attr/progressBarStyleHorizontal"
-                    android:layout_width="80dp"
-                    android:layout_height="80dp"
-                    android:indeterminate="false"
-                    android:max="100"
-                    android:progress="0"
-                    android:progressDrawable="@drawable/circular_progress"
-                    android:rotation="-90" />
+                <!-- Right: progress ring + RulerSeekBar quota slider -->
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical">
+
+                    <ProgressBar
+                        android:id="@+id/progressStorage"
+                        style="?android:attr/progressBarStyleHorizontal"
+                        android:layout_width="80dp"
+                        android:layout_height="80dp"
+                        android:indeterminate="false"
+                        android:max="100"
+                        android:progress="0"
+                        android:progressDrawable="@drawable/circular_progress"
+                        android:rotation="-90" />
+
+                    <!--
+                        RulerSeekBar is horizontal by nature.
+                        Rotating 270° makes it vertical. Because Android reserves
+                        layout space from declared dimensions (before rotation),
+                        width = desired visual HEIGHT and height = desired visual WIDTH.
+                        160dp height → the ruler's own onMeasure minimum (it needs ~160px
+                        for label + ticks + thumb to fit without clipping).
+                    -->
+                    <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+                        android:id="@+id/sliderQuota"
+                        android:layout_width="60dp"
+                        android:layout_height="80dp" />
+
+                </LinearLayout>
+
             </LinearLayout>
 
             <!-- ── Clear Storage button ──────────────────────────────── -->

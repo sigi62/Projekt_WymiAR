@@ -16,10 +16,10 @@
     <color name="icon_tint">#FFFFFF</color>
     <color name="background_tint">#88000000</color>
 
-    <color name="badge_saved_bg">#E6F1FB</color>
-    <color name="badge_saved_text">#185FA5</color>
-    <color name="badge_imported_bg">#F3ECDE</color>
-    <color name="badge_imported_text">#C98318</color>
+    <color name="badge_saved_bg">#F3EFDE</color>
+    <color name="badge_saved_text">#C98318</color>
+    <color name="badge_imported_bg">#EAF3DE</color>
+    <color name="badge_imported_text">#3B6D11</color>
     <color name="badge_normal_bg">#428BFF</color>
 
     <color name="danger_surface">#FA6257</color>

@@ -8,7 +8,9 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageButton
 import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.PopupMenu
+import android.widget.PopupWindow
 import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
@@ -133,30 +135,62 @@ class ModelLibraryManager(
         // ── Three-dots menu ─────────────────────────────────────────────────
         holder.btnOptions.setOnClickListener { anchor ->
             val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
-            PopupMenu(context, anchor, 0, androidx.appcompat.R.attr.popupMenuStyle, R.style.Theme_App_MyDialogColors).apply {
-                menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
-                if (cached.exists()) {
-                    menu.add(0, MENU_DELETE_THUMB, 1, context.getString(R.string.menu_delete_thumbnail))
-                }
-                menu.add(0, MENU_RENAME,       2, context.getString(R.string.menu_rename))
-                if (item.profileKey in savedProfiles) {
-                    menu.add(0, MENU_EXPORT_PROFILE, 3, context.getString(R.string.menu_export_profile))
-                }
-                if (!item.isAsset) {
-                    menu.add(0, MENU_DELETE_MODEL, 4, context.getString(R.string.menu_delete_model))
-                }
-                setOnMenuItemClickListener { menuItem ->
-                    when (menuItem.itemId) {
-                        MENU_PREVIEW      -> { onPreviewClick(item); true }
-                        MENU_DELETE_THUMB -> { deleteThumbnail(cached, item, holder); true }
-                        MENU_RENAME       -> { onRenameImported(item); true }
-                        MENU_EXPORT_PROFILE -> { onExportWithProfile(item); true }
-                        MENU_DELETE_MODEL -> { confirmDeleteModel(context, item); true }
-                        else              -> false
-                    }
-                }
-                show()
+
+// 1. Inflate your beautiful custom container
+            val layoutInflater = LayoutInflater.from(context)
+            val popupView = layoutInflater.inflate(R.layout.dialog_popup, null)
+            val container = popupView.findViewById<LinearLayout>(R.id.menuItemsContainer)
+
+// 2. Initialize the PopupWindow wrapper
+            val popupWindow = PopupWindow(
+                popupView,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                true // Lets it close if the user clicks outside
+            ).apply {
+                elevation = 10f // Matches the card depth feel
             }
+
+            // Helper function to build rows dynamically based on your logic
+            fun addCustomMenuItem(title: String, onClick: () -> Unit) {
+                val itemView = layoutInflater.inflate(R.layout.item_popup_menu, container, false) as TextView
+                itemView.text = title
+                itemView.setOnClickListener {
+                    onClick()
+                    popupWindow.dismiss() // Close menu on click
+                }
+                container.addView(itemView)
+            }
+
+// 3. Build your conditional list using your exact business logic
+            addCustomMenuItem(context.getString(R.string.menu_preview)) {
+                onPreviewClick(item)
+            }
+
+            if (cached.exists()) {
+                addCustomMenuItem(context.getString(R.string.menu_delete_thumbnail)) {
+                    deleteThumbnail(cached, item, holder)
+                }
+            }
+
+            addCustomMenuItem(context.getString(R.string.menu_rename)) {
+                onRenameImported(item)
+            }
+
+            if (item.profileKey in savedProfiles) {
+                addCustomMenuItem(context.getString(R.string.menu_export_profile)) {
+                    onExportWithProfile(item)
+                }
+            }
+
+            if (!item.isAsset) {
+                addCustomMenuItem(context.getString(R.string.menu_delete_model)) {
+                    confirmDeleteModel(context, item)
+                }
+            }
+
+// 4. Show it anchored right next to your button/view
+            popupWindow.showAsDropDown(anchor, 0, 4) // X and Y offsets to clear margins cleanly
         }
 
         // ── Card click → launch AR ───────────────────────────────────────────

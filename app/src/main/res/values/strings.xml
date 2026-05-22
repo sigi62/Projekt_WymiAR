@@ -220,7 +220,7 @@
     <string name="ar_controls_range">Controls Range</string>
     <string name="ar_controls_range_summary">Chose the preferred range for controls in AR View</string>
     <string name="ar_controls_position">AR Position Range</string>
-    <string name="ar_controls_position_desc">Half-range when AR overlay first opens (1–1000 cm).</string>
+    <string name="ar_controls_position_desc">Half-range when AR overlay first opens (1–100 cm).</string>
     <string name="pos_mid_val">±100 cm</string>
     <string name="hint_100">100</string>
     <string name="ar_controls_scale">AR Scale Range</string>

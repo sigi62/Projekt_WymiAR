@@ -6,7 +6,7 @@
     android:orientation="vertical"
     android:padding="24dp"
     android:background="@drawable/bg_rounded_layout"
-    android:backgroundTint="@color/layout_background">
+    android:backgroundTint="@color/card_background">
 
     <TextView
         android:id="@+id/tvDialogTitle"
@@ -35,6 +35,7 @@
         <Button
             android:id="@+id/btnCancel"
             style="?attr/borderlessButtonStyle"
+            android:textSize="16sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/cancel"
@@ -43,6 +44,7 @@
         <Button
             android:id="@+id/btnConfirm"
             style="?attr/borderlessButtonStyle"
+            android:textSize="16sp"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:textColor="@color/color_primary"/>

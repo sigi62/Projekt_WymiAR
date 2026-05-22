@@ -16,8 +16,8 @@
     <color name="icon_tint">#000000</color>
     <color name="background_tint">#88EBEBEB</color>
 
-    <color name="badge_saved_bg">#E6F1FB</color>
-    <color name="badge_saved_text">#185FA5</color>
+    <color name="badge_saved_bg">#F3EFDE</color>
+    <color name="badge_saved_text">#C98318</color>
     <color name="badge_imported_bg">#EAF3DE</color>
     <color name="badge_imported_text">#3B6D11</color>
     <color name="badge_normal_bg">#80428BFF</color>
@@ -28,5 +28,4 @@
     <color name="color_primary">#C90032</color>
     <color name="color_secondary">#428BFF</color>
     <color name="icon_bg_lines">#33D1D1D1</color>
-    <color name="icon_bg">#F5F5F5</color>
 </resources>
