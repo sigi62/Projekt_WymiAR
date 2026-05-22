@@ -27,4 +27,6 @@
 
     <color name="color_primary">#C90032</color>
     <color name="color_secondary">#428BFF</color>
+    <color name="icon_bg_lines">#33D1D1D1</color>
+    <color name="icon_bg">#F5F5F5</color>
 </resources>

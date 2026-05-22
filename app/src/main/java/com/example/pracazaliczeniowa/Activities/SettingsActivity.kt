@@ -299,17 +299,24 @@ class SettingsActivity : AppCompatActivity() {
     }
     // New helper in SettingsActivity:
     private fun confirmClearAll() {
-        AlertDialog.Builder(this, R.style.Theme_App_MyDialogColors)
-            .setTitle(getString(R.string.clear_cache))
-            .setMessage(getString(R.string.clear_cache_confirm_message))
-            .setNegativeButton(getString(R.string.cancel), null)
-            .setPositiveButton(getString(R.string.clear)) { _, _ ->
-                modelDir.listFiles()?.forEach { it.deleteRecursively() }
-                updateStorageSummary()
-                Toast.makeText(this, getString(R.string.cache_cleared), Toast.LENGTH_SHORT).show()
-                setResult(RESULT_OK)   // signal LibraryActivity to refresh
-            }
-            .show()
+        val view = layoutInflater.inflate(R.layout.dialog_confirm, null)
+        view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.clear_cache)
+        view.findViewById<TextView>(R.id.tvDialogMessage).text = getString(R.string.clear_cache_confirm_message)
+        view.findViewById<Button>(R.id.btnConfirm).text = getString(R.string.clear)
+
+        val dialog = android.app.Dialog(this).apply { setContentView(view) }
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button>(R.id.btnConfirm).setOnClickListener {
+            modelDir.listFiles()?.forEach { it.deleteRecursively() }
+            updateStorageSummary()
+            Toast.makeText(this, getString(R.string.cache_cleared), Toast.LENGTH_SHORT).show()
+            setResult(RESULT_OK)
+            dialog.dismiss()
+        }
+
+        dialog.show()
     }
     override fun onSupportNavigateUp(): Boolean { finish(); return true }
 }
