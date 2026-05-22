@@ -1,7 +1,9 @@
 package com.example.pracazaliczeniowa.Activities
 
+import android.app.Dialog
 import android.content.Intent
 import android.content.SharedPreferences
+import android.content.res.ColorStateList
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.RectF
@@ -24,6 +26,7 @@ import android.widget.SeekBar
 import android.widget.TextView
 import androidx.annotation.ColorInt
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material3.AlertDialog
 import androidx.core.graphics.blue
 import androidx.core.graphics.green
 import androidx.core.graphics.red
@@ -316,6 +319,18 @@ class ModelPreviewActivity : AppCompatActivity() {
             is BgMode.SolidColour -> m.color
             else -> DEFAULT_VOID_COLOR
         }
+        listOf(R.id.rbModeHdr, R.id.rbModeStudio, R.id.rbModeVoid).forEach { id ->
+            view.findViewById<RadioButton>(id).buttonTintList = ColorStateList(
+                arrayOf(
+                    intArrayOf(android.R.attr.state_checked),
+                    intArrayOf()
+                ),
+                intArrayOf(
+                    getColor(R.color.color_secondary),
+                    getColor(R.color.text_secondary)
+                )
+            )
+        }
 
         when (currentBgMode) {
             is BgMode.Hdr -> {
@@ -432,23 +447,27 @@ class ModelPreviewActivity : AppCompatActivity() {
     private enum class SurfaceTarget { FLOOR, BACK_WALL, SIDE_WALL }
 
     private fun showSurfaceColorPicker(title: String, @ColorInt initial: Int, onPick: (Int) -> Unit) {
-        val inner = BottomSheetDialog(this)
+        val inner = Dialog(this)
         val dp = resources.displayMetrics.density
         val root = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             setPadding((24 * dp).toInt(), (16 * dp).toInt(), (24 * dp).toInt(), (32 * dp).toInt())
+            background = GradientDrawable().apply {
+                setColor(getColor(R.color.screen_background))
+                cornerRadii = floatArrayOf(20 * dp, 20 * dp, 20 * dp, 20 * dp, 0f, 0f, 0f, 0f)
+            }
         }
         root.addView(View(this).apply {
             layoutParams = LinearLayout.LayoutParams((40 * dp).toInt(), (4 * dp).toInt()).also {
                 it.gravity = Gravity.CENTER_HORIZONTAL
                 it.bottomMargin = (16 * dp).toInt()
             }
-            setBackgroundColor(Color.parseColor("#44888888"))
+            setBackgroundColor(getColor(R.color.background_tint))
         })
         root.addView(TextView(this).apply {
             text = title
             textSize = 15f
-            setTextColor(Color.WHITE)
+            setTextColor(getColor(R.color.text_primary))
             setTypeface(typeface, Typeface.BOLD)
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.WRAP_CONTENT,
@@ -475,7 +494,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             addView(TextView(this@ModelPreviewActivity).apply {
                 text = getString(R.string.studio_color_picker_live_preview)
                 textSize = 13f
-                setTextColor(Color.parseColor("#AAAAAA"))
+                setTextColor(getColor(R.color.text_secondary))
             })
         }
         root.addView(previewRow)
@@ -493,6 +512,15 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         inner.setContentView(root)
         inner.show()
+        inner.window?.apply {
+                setBackgroundDrawableResource(android.R.color.transparent)
+                setLayout(
+                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                    android.view.WindowManager.LayoutParams.WRAP_CONTENT
+                )
+                setGravity(android.view.Gravity.BOTTOM)
+                attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
+            }
     }
 
     private fun applyStudioSurfaceColor(target: SurfaceTarget, @ColorInt color: Int) {

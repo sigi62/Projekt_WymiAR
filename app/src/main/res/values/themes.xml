@@ -2,9 +2,47 @@
 <resources>
 
     <style name="Theme.PracaZaliczeniowa" parent="Theme.Material3.DayNight.NoActionBar">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="materialAlertDialogTheme">@style/Theme.App.MyDialogColors</item>
     </style>
 
-    <style name="Theme.ARActivity" parent="Theme.Material3.Light.NoActionBar" />
+    <style name="Theme.ARActivity" parent="Theme.Material3.Light.NoActionBar">
+        <item name="materialAlertDialogTheme">@style/Theme.App.MyDialogColors</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@android:color/transparent</item>
 
-    <style name="Theme.LibraryActivity" parent="Theme.Material3.Light.NoActionBar" />
+        <!-- Tells the window to draw layout under the system bars (replaces the Kotlin code) -->
+        <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
+        <item name="android:windowTranslucentStatus">true</item>
+        <item name="android:windowTranslucentNavigation">true</item>
+    </style>
+
+    <style name="Theme.LibraryActivity" parent="Theme.Material3.Light.NoActionBar">
+        <item name="colorPrimary">@color/color_primary</item>
+        <item name="materialAlertDialogTheme">@style/Theme.App.MyDialogColors</item>
+    </style>
+
+
+    <style name="Widget.App.LibraryChip" parent="Widget.Material3.Chip.Filter">
+        <item name="chipBackgroundColor">@color/library_chip_background_selector</item>
+        <item name="android:textColor">@color/library_chip_text_selector</item>
+        <item name="chipIconTint">@color/library_chip_text_selector</item>
+    </style>
+
+    <style name="Theme.App.MyDialogColors" parent="ThemeOverlay.Material3.MaterialAlertDialog">
+        <item name="colorPrimary">@color/color_secondary</item>
+        <item name="android:colorBackground">@color/layout_background</item>
+
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.App.DialogButton.Positive</item>
+
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.App.DialogButton.Negative</item>
+    </style>
+
+    <style name="Widget.App.DialogButton.Negative" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/color_secondary</item>
+    </style>
+
+    <style name="Widget.App.DialogButton.Positive" parent="Widget.Material3.Button.TextButton">
+        <item name="android:textColor">@color/color_primary</item>
+    </style>
 </resources>

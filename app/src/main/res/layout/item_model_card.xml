@@ -148,7 +148,7 @@
         android:layout_height="32dp"
         android:layout_gravity="top|end"
         android:layout_margin="6dp"
-        android:background="@drawable/bg_icon_btn_overlay"
+        android:background="?attr/selectableItemBackgroundBorderless"
         android:src="@drawable/ic_more_vert"
         android:contentDescription="@string/more_options"
         android:scaleType="centerInside"

@@ -659,13 +659,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 }
             }
             "POSITION" -> {
-                // posDynMid is already in display units (1 progress = 1 display unit).
-                // Do NOT multiply by currentUnitFactor — that was causing mm to get max=1000.
+                // posDynMid is in display units (1 progress = 1 display unit).
                 val posMax = posDynMid.toFloat()
                 val major = (posMax / 2f).coerceAtLeast(1f)
                 val minor = (posMax / 10f).coerceAtLeast(0.1f)
                 sliders.forEach {
                     it.updateRange(min = -posMax, max = posMax, center = 0f, major = major, minor = minor)
+                    it.setStepsFromRange()  // POSITION only: 1 step = 1 display unit
                     it.decimalPlaces = 1
                 }
             }

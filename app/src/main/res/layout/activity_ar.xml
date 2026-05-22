@@ -16,18 +16,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
+    <!-- ── Settings button – top-start ─────────────────────────────────── -->
     <com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
         android:id="@+id/measureOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent" />
+        android:background="@android:color/transparent"
+        android:fitsSystemWindows="true" />
 
-    <!-- ── Settings button – top-start ─────────────────────────────────── -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
         <ImageButton
             android:id="@+id/btnBack"
@@ -61,7 +63,8 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="16dp"
         android:layout_marginEnd="10dp"
-        android:orientation="horizontal">
+        android:orientation="horizontal"
+        android:fitsSystemWindows="true">
 
         <ImageButton
             android:id="@+id/btnSettings"
@@ -82,7 +85,8 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="10dp"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
         <ImageButton
             android:id="@+id/btnMeasureTapeModeToggle"
@@ -204,7 +208,8 @@
         android:scaleType="centerInside"
         android:padding="12dp"
         android:visibility="gone"
-        android:contentDescription="Clear all measure points"/>
+        android:contentDescription="Clear all measure points"
+        android:fitsSystemWindows="true"/>
 
     <!-- Revert – bottom-end -->
     <ImageButton
@@ -219,14 +224,16 @@
         android:scaleType="centerInside"
         android:padding="12dp"
         android:visibility="gone"
-        android:contentDescription="Undo last measure point"/>
+        android:contentDescription="Undo last measure point"
+        android:fitsSystemWindows="true"/>
 
     <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
         <TextView
             android:id="@+id/statusText"
@@ -235,7 +242,7 @@
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="8dp"
             android:text="@string/status_point_at_surface"
-            android:textColor="@color/AR_text_color"
+            android:textColor="@color/text_primary"
             android:background="@color/AR_text_background"
             android:padding="8dp"
             android:textSize="14sp" />

@@ -160,7 +160,8 @@ object ModelImportManager {
                 thumbnailRes = null,
                 isAsset = false,
                 createdAt = System.currentTimeMillis(),
-                defaultSizeM = bounds
+                defaultSizeM = bounds,
+                sizeBytes = dest.length()
             )
 
         } catch (e: Exception) {
@@ -185,7 +186,8 @@ object ModelImportManager {
                     thumbnailRes = null,
                     isAsset = false,
                     createdAt = file.lastModified(),
-                    defaultSizeM = ModelFileUtils.readBounds(file)
+                    defaultSizeM = ModelFileUtils.readBounds(file),
+                    sizeBytes = file.length()
                 )
             }
             ?: emptyList()
@@ -245,7 +247,8 @@ object ModelImportManager {
                 modelPath = newFile.canonicalPath,
                 thumbnailRes = item.thumbnailRes,
                 isAsset = false,
-                createdAt = item.createdAt
+                createdAt = item.createdAt,
+                sizeBytes = newFile.length()
             )
         } else {
             log("Rename FAILED: File.renameTo returned false for '${item.name}'")
@@ -384,5 +387,20 @@ object ModelImportManager {
         } catch (e: Exception) {
             log("Converter reflection failed: ${e.message}")
         }
+    }
+
+    fun bundledItem(context: Context, assetPath: String): ModelItem {
+        val name = assetPath.substringAfterLast("/").substringBeforeLast(".")
+        val sizeBytes = try { context.assets.openFd(assetPath).use { it.length } } catch (e: Exception) { 0L }
+        val bounds = ModelFileUtils.readBounds(context, assetPath)
+        return ModelItem(
+            name         = name,
+            modelPath    = assetPath,
+            thumbnailRes = null,
+            isAsset      = true,
+            createdAt    = context.packageManager.getPackageInfo(context.packageName, 0).firstInstallTime,
+            defaultSizeM = bounds,
+            sizeBytes    = sizeBytes
+        )
     }
 }

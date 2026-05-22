@@ -32,7 +32,6 @@ class StorageActivity : AppCompatActivity() {
     private lateinit var progressStorage: ProgressBar
     private lateinit var containerModels: LinearLayout
 
-    // assumed quota used for the ring progress (100 MB → 100 %)
     private val QUOTA_BYTES = 100L * 1024 * 1024
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,7 +116,7 @@ class StorageActivity : AppCompatActivity() {
     // ── Dialogs ──────────────────────────────────────────────────────────
 
     private fun confirmClearAll() {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.Theme_App_MyDialogColors)
             .setTitle(getString(R.string.clear_cache))
             .setMessage(getString(R.string.clear_cache_confirm_message))
             .setNegativeButton(getString(R.string.cancel), null)

@@ -16,7 +16,9 @@
         android:layout_height="42dp"
         android:padding="8dp"
         android:scaleType="centerInside"
-        android:tint="@color/accent" />
+        android:src="@drawable/ic_model_placeholder"
+        android:background="@drawable/bg_color_patch_rect"
+        android:backgroundTint="@color/highlight"/>
 
     <!-- Name + meta -->
     <LinearLayout
@@ -53,6 +55,6 @@
         android:background="?attr/selectableItemBackgroundBorderless"
         android:scaleType="centerInside"
         android:contentDescription="@string/delete"
-        app:tint="@color/accent_danger" />
+        app:tint="@color/danger_surface" />
 
 </LinearLayout>

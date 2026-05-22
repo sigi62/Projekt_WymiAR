@@ -6,7 +6,9 @@ import android.os.Bundle
 import android.provider.OpenableColumns
 import android.text.InputFilter
 import android.text.InputType
+import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.TextView
@@ -28,6 +30,7 @@ import com.example.pracazaliczeniowa.Objects.ModelFileUtils
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
 import com.google.android.material.chip.Chip
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
 import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener
@@ -157,22 +160,10 @@ class LibraryActivity : AppCompatActivity() {
 
     private val bundledModels: List<ModelItem> by lazy {
         listOf(
-            ModelItem(
-                "Cat", "models/cat.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this, "models/cat.glb")
-            ),   // ~25×20×30 cm — adjust to reality
-            ModelItem(
-                "Dog", "models/dog.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this, "models/dog.glb")
-            ),
-            ModelItem(
-                "Van", "models/van.glb", R.drawable.ic_model_placeholder,
-                isAsset = true, createdAt = installTime,
-                defaultSizeM = ModelFileUtils.readBounds(this, "models/van.glb")
-            )
-        )
+            "models/cat.glb",
+            "models/dog.glb",
+            "models/van.glb"
+        ).map { ModelImportManager.bundledItem(this, it) }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
@@ -452,30 +443,37 @@ class LibraryActivity : AppCompatActivity() {
      * and refreshes the grid on success.
      */
     private fun showRenameDialog(item: ModelItem) {
-        val input = EditText(this).apply {
-            inputType  = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
+        val input = view.findViewById<EditText>(R.id.etRenameInput).apply {
             setText(item.name)
             selectAll()
-            // Reasonable upper bound; filesystem limits vary but 255 chars is safe
             filters = arrayOf(InputFilter.LengthFilter(255))
-            hint    = getString(R.string.dialog_rename_hint)
+            hint = getString(R.string.dialog_rename_hint)
         }
 
-        AlertDialog.Builder(this)
-            .setTitle(getString(R.string.dialog_rename_title))
-            .setView(input)
-            .setPositiveButton(getString(R.string.btn_rename)) { _, _ ->
-                val newName = input.text.toString()
-                renameModelAsync(item, newName)
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.dialog_rename_title)
+        view.findViewById<Button>(R.id.btnConfirm).text = getString(R.string.confirm)
 
-        // Move cursor to the end and open the keyboard automatically
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(view)
+            .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        view.findViewById<Button>(R.id.btnConfirm).setOnClickListener {
+            renameModelAsync(item, input.text.toString())
+            dialog.dismiss()
+        }
+
+        dialog.show()
+
         input.post {
             input.setSelection(input.text.length)
-            val imm = getSystemService(INPUT_METHOD_SERVICE)
-                    as InputMethodManager
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
             imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
         }
     }
@@ -530,6 +528,7 @@ class LibraryActivity : AppCompatActivity() {
         // Chips that carry a direction icon (togglable)
         val chipAlphabetical = findViewById<Chip>(R.id.chipAlphabetical)
         val chipRecent       = findViewById<Chip>(R.id.chipRecent)
+        val chipSize         = findViewById<Chip>(R.id.chipSize)
 
         // Simple chips — no direction icon
         val simpleChips = mapOf(
@@ -553,6 +552,13 @@ class LibraryActivity : AppCompatActivity() {
                 else
                     R.drawable.ic_sort_desc
             )
+            // Size: show arrow-up (smallest first / ascending) or arrow-down (largest first / default)
+            chipSize.chipIcon = getDrawable(
+                if (filterManager.current == LibraryFilterManager.Filter.SIZE && filterManager.ascending)
+                    R.drawable.ic_sort_asc
+                else
+                    R.drawable.ic_sort_desc
+            )
         }
 
         fun applyAndRefresh() {
@@ -568,6 +574,11 @@ class LibraryActivity : AppCompatActivity() {
 
         chipRecent.setOnClickListener {
             filterManager.select(LibraryFilterManager.Filter.RECENT)
+            applyAndRefresh()
+        }
+
+        chipSize.setOnClickListener {
+            filterManager.select(LibraryFilterManager.Filter.SIZE)
             applyAndRefresh()
         }
 

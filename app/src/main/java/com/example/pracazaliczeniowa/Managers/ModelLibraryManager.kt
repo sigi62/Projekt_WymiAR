@@ -83,7 +83,7 @@ class ModelLibraryManager(
         // and all spacing around the image lights up. The thumbnail frame is
         // pinned to card_image_background so it never changes colour.
         val cardColor = if (item.profileKey == selectedKey) {
-            ContextCompat.getColor(context, R.color.card_highlight)
+            ContextCompat.getColor(context, R.color.highlight)
         } else {
             ContextCompat.getColor(context, R.color.card_background)
         }
@@ -133,7 +133,7 @@ class ModelLibraryManager(
         // ── Three-dots menu ─────────────────────────────────────────────────
         holder.btnOptions.setOnClickListener { anchor ->
             val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
-            PopupMenu(context, anchor).apply {
+            PopupMenu(context, anchor, 0, androidx.appcompat.R.attr.popupMenuStyle, R.style.Theme_App_MyDialogColors).apply {
                 menu.add(0, MENU_PREVIEW,       0, context.getString(R.string.menu_preview))
                 if (cached.exists()) {
                     menu.add(0, MENU_DELETE_THUMB, 1, context.getString(R.string.menu_delete_thumbnail))

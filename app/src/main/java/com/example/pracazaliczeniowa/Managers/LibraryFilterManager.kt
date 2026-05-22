@@ -12,7 +12,7 @@ import com.example.pracazaliczeniowa.Objects.ModelItem
 class LibraryFilterManager(
     private val savedProfiles: Set<String>
 ) {
-    enum class Filter { ALL, ALPHABETICAL, RECENT, IMPORTED, SAVED }
+    enum class Filter { ALL, ALPHABETICAL, RECENT, SIZE, IMPORTED, SAVED }
 
     var current: Filter = Filter.RECENT
         private set
@@ -40,7 +40,8 @@ class LibraryFilterManager(
             current = filter
             ascending = when (filter) {
                 Filter.ALPHABETICAL -> true
-                else                -> false
+                Filter.SIZE        -> false  // default: largest first
+                else               -> false
             }
         }
     }
@@ -50,6 +51,7 @@ class LibraryFilterManager(
             Filter.ALL          -> allModels
             Filter.RECENT       -> allModels
             Filter.ALPHABETICAL -> allModels
+            Filter.SIZE         -> allModels
             Filter.IMPORTED     -> allModels.filter { !it.isAsset }
             Filter.SAVED        -> allModels.filter { it.profileKey in savedProfiles }
         }
@@ -64,6 +66,11 @@ class LibraryFilterManager(
                 if (ascending) filtered.sortedBy           { maxOf(it.lastModified, it.createdAt) }
                 else           filtered.sortedByDescending { maxOf(it.lastModified, it.createdAt) }
             }
+            Filter.SIZE -> {
+                // ascending = smallest first, descending (default) = largest first
+                if (ascending) filtered.sortedBy           { it.sizeBytes }
+                else           filtered.sortedByDescending { it.sizeBytes }
+            }
             // ALL / IMPORTED / SAVED: always newest-first
             else -> filtered.sortedByDescending { maxOf(it.lastModified, it.createdAt) }
         }
@@ -71,6 +78,6 @@ class LibraryFilterManager(
 
     companion object {
         /** Only these filters expose a direction toggle to the UI. */
-        val Filter.hasDirection get() = this == Filter.RECENT || this == Filter.ALPHABETICAL
+        val Filter.hasDirection get() = this == Filter.RECENT || this == Filter.ALPHABETICAL || this == Filter.SIZE
     }
 }

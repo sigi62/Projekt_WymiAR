@@ -68,7 +68,7 @@ class ModelPickerPopup(private val context: Context) {
 
             // Highlighting logic for the active model
             if (item.modelPath == activePath) {
-                row.setBackgroundColor(ContextCompat.getColor(context, R.color.card_highlight))
+                row.setBackgroundColor(ContextCompat.getColor(context, R.color.highlight))
             }
 
             // Thumbnail loading logic

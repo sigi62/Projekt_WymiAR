@@ -1,13 +1,13 @@
 <resources>
-    <string name="app_name">PracaZaliczeniowa</string>
+    <string name="app_name">WymiAR</string>
     <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
 
 
     <!-- Ar view -->
     <string name="status_active_model">Active: %1$s</string>
     <string name="model_picker_prompt">Active: %1$s — tap a surface to place</string>
-    <string name="status_floor_mode">Floor mode: tap a horizontal surface</string>
-    <string name="status_wall_mode">Wall mode: point at a wall and wait, then tap</string>
+    <string name="status_floor_mode">Floor mode: search for horizontal surface</string>
+    <string name="status_wall_mode">Wall mode: search for vertical surface</string>
     <string name="status_point_at_surface">Point at a surface to place model</string>
 
     <!-- Model -->
@@ -105,7 +105,7 @@
     <string name="preview_close">Closing preview</string>
     <string name="change_background">Change background</string>
     <string name="cancel">Cancel</string>
-    <string name="save_thumbnail">✓ Save Thumbnail</string>
+    <string name="save_thumbnail">Save Thumbnail</string>
     <string name="open_in_ar">Open in AR</string>
     <string name="set_thumbnail">Set Thumbnail</string>
 
@@ -159,7 +159,7 @@
 
     <!-- Model Item dialog -->
     <string name="dialog_delete_model_title">Delete %1$s?</string>
-    <string name="dialog_delete_model_msg">The model file will be permanently removed from your library. Saved profiles for this model will remain.</string>
+    <string name="dialog_delete_model_msg">The model file will be permanently removed from your library. Saved profiles for this model will not remain.</string>
 
     <!-- Profile picker — status messages -->
     <string name="profile_loaded_default">Loaded default profile</string>
@@ -210,8 +210,6 @@
 
     <!-- Settings -->
     <string name="settings_title">Settings</string>
-    <string name="settings_save_btn">Save Settings</string>
-    <string name="settings_saved_toast">Settings saved successfully</string>
     <string name="appearance">APPEARANCE</string>
     <string name="app_theme">App Theme</string>
     <string name="app_theme_description">Switch between dark and light theme</string>
@@ -247,18 +245,15 @@
     <!-- Settings language -->
     <string name="accessibility_rowtitle">ACCESSIBILITY</string>
     <string name="language">Language</string>
-    <string name="language_description">Override the system language</string>
+    <string name="language_description">Set the app language</string>
     <string name="language_system">System default</string>
     <string name="language_english">English</string>
-    <string name="language_polish">Polish</string>
-    <string-array name="language_display_names">
-        <item>System default</item>
-        <item>English</item>
-        <item>Polish</item>
-    </string-array>
+    <string name="language_polish">Polski</string>
+
 
     <string name="filter_all">All</string>
     <string name="filter_recent">Recent</string>
+    <string name="filter_size">File size</string>
     <string name="filter_imported">Imported</string>
     <string name="filter_profile">Profile</string>
     <string name="filter_alphabetical">A–Z</string>

@@ -4,7 +4,8 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#DCDCDC">
+    android:background="#DCDCDC"
+    android:fitsSystemWindows="true" >
 
     <io.github.sceneview.SceneView
         android:id="@+id/previewSceneView"
@@ -21,7 +22,7 @@
         android:layout_margin="16dp"
         android:background="?attr/selectableItemBackgroundBorderless"
         android:contentDescription="@string/back"
-        android:src="@drawable/ic_arrow_back_white" />
+        android:src="@drawable/ic_arrow_back_white"/>
 
     <!-- Background picker button (top-right) — always visible, hides during crop -->
 
@@ -34,7 +35,7 @@
         android:layout_gravity="top|end"
         android:layout_margin="16dp"
         android:contentDescription="@string/change_background"
-        android:src="@drawable/ic_color_palette" />
+        android:src="@drawable/ic_color_palette"/>
 
     <!--
         Animation toggle — floats top-end below the background button.
@@ -48,7 +49,7 @@
         android:layout_gravity="top|end"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
+        android:background="@drawable/rounded_button"
         android:src="@drawable/ic_animation"
         app:tint="@android:color/white"
         android:visibility="gone" />
@@ -104,7 +105,7 @@
         android:layout_marginBottom="80dp"
         android:max="3600"
         android:padding="16dp"
-        android:progress="1800" />
+        android:progress="1800"/>
 
     <LinearLayout
         android:id="@+id/normalButtonBar"
@@ -123,7 +124,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginEnd="8dp"
-            android:text="@string/open_in_ar" />
+            android:text="@string/open_in_ar"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/rounded_button"/>
 
         <androidx.appcompat.widget.AppCompatButton
             android:id="@+id/btnTakeScreenshot"
@@ -131,7 +134,9 @@
             android:layout_height="wrap_content"
             android:layout_weight="1"
             android:layout_marginStart="8dp"
-            android:text="@string/set_thumbnail" />
+            android:text="@string/set_thumbnail"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/rounded_button" />
 
     </LinearLayout>
 

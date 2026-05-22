@@ -57,7 +57,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/ar_controls_range"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_primary"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
@@ -100,7 +100,8 @@
                         android:layout_height="64dp"
                         android:text="−"
                         android:textSize="24sp"
-                        android:padding="0dp"/>
+                        android:padding="0dp"
+                        android:backgroundTint="@color/highlight"/>
 
                     <TextView
                         android:id="@+id/tvPosMidValue"
@@ -109,7 +110,7 @@
                         android:text="±100 cm"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:textColor="@color/accent"
+                        android:textColor="@color/text_primary"
                         android:gravity="center"
                         android:layout_marginHorizontal="8dp"/>
 
@@ -119,7 +120,8 @@
                         android:layout_height="64dp"
                         android:text="+"
                         android:textSize="24sp"
-                        android:padding="0dp"/>
+                        android:padding="0dp"
+                        android:backgroundTint="@color/highlight"/>
 
                 </LinearLayout>
             </LinearLayout>
@@ -166,7 +168,8 @@
                         android:layout_height="64dp"
                         android:text="−"
                         android:textSize="24sp"
-                        android:padding="0dp"/>
+                        android:padding="0dp"
+                        android:backgroundTint="@color/highlight"/>
 
                     <TextView
                         android:id="@+id/tvSclMaxValue"
@@ -175,7 +178,7 @@
                         android:text="5.00×"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:textColor="@color/accent"
+                        android:textColor="@color/text_primary"
                         android:gravity="center"
                         android:layout_marginHorizontal="8dp"/>
 
@@ -185,7 +188,8 @@
                         android:layout_height="64dp"
                         android:text="+"
                         android:textSize="24sp"
-                        android:padding="0dp"/>
+                        android:padding="0dp"
+                        android:backgroundTint="@color/highlight"/>
 
                 </LinearLayout>
             </LinearLayout>

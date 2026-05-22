@@ -1,41 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- res/values-night/colors.xml  — DARK mode values -->
 <resources>
-    <color name="screen_background">#1C1B1F</color>
-    <color name="layout_background">#2B2930</color>
+    <color name="screen_background">#212121</color>
+    <color name="layout_background">#2B2B2B</color>
 
     <color name="text_primary">#FFFFFF</color>
     <color name="text_secondary">#E3E3E3</color>
     <color name="text_section_label">#BFBFBF</color>
 
-
     <color name="AR_layout_background">#88000000</color>
     <color name="AR_text_background">#88000000</color>
-    <color name="AR_text_color">#FFFFFF</color>
-
-    <color name="profile_layout_background">#404040</color>
-    <color name="profile_text_background">#3B3B3B</color>
-
     <color name="card_background">#303030</color>
     <color name="card_image_background">#636363</color>
-    <color name="card_highlight">#003DD6</color>
-    <color name="card_text_background">#2B2B2B</color>
-
-    <color name="button_background">#3BC5F7</color>
-    <color name="button_text">#FFFFFF</color>
-
-    <color name="edit_text_hint">#938F99</color>
 
     <color name="icon_tint">#FFFFFF</color>
-    <color name="icon_invert_tint">#000000</color>
     <color name="background_tint">#88000000</color>
-    <color name="accent">#49454F</color>
 
-    <!-- Badge: Saved (blue tint) -->
     <color name="badge_saved_bg">#E6F1FB</color>
     <color name="badge_saved_text">#185FA5</color>
-
-    <!-- Badge: Imported (green tint) -->
     <color name="badge_imported_bg">#EAF3DE</color>
     <color name="badge_imported_text">#3B6D11</color>
+    <color name="badge_normal_bg">#428BFF</color>
+
+    <color name="danger_surface">#FA6257</color>
+    <color name="highlight">#428BFF</color>
 </resources>

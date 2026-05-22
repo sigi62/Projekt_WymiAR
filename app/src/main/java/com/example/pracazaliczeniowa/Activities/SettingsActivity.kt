@@ -1,7 +1,10 @@
 package com.example.pracazaliczeniowa.Activities
 
 import android.content.Intent
+import android.content.res.ColorStateList
 import android.os.Bundle
+import android.view.LayoutInflater
+import android.widget.Button
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -129,7 +132,7 @@ class SettingsActivity : AppCompatActivity() {
         showRadioDialog(
             title    = getString(R.string.unit_label),
             options  = options,
-            selected = currentIndex
+            selected = currentIndex,
         ) { chosenIndex ->
             settings.distanceUnit = when (chosenIndex) {
                 0 -> DistanceUnit.MILLIMETERS
@@ -180,29 +183,44 @@ class SettingsActivity : AppCompatActivity() {
         selected: Int,
         onPick: (Int) -> Unit
     ) {
-        val radioGroup = RadioGroup(this).apply {
-            orientation = RadioGroup.VERTICAL
-            val paddingPx = (20 * resources.displayMetrics.density).toInt()
-            setPadding(paddingPx, paddingPx / 2, paddingPx, paddingPx / 2)
-        }
+        val view = LayoutInflater.from(this).inflate(R.layout.dialog_radio, null)
+
+        view.findViewById<TextView>(R.id.tvRadioTitle).text = title
+
+        val radioGroup = view.findViewById<RadioGroup>(R.id.radioGroup)
+        val vertPx = (10 * resources.displayMetrics.density).toInt()
 
         options.forEachIndexed { index, label ->
             RadioButton(this).apply {
                 text = label
-                id   = index
+                id = index
                 textSize = 15f
+                setTextColor(getColor(R.color.text_primary))
                 isChecked = (index == selected)
-                val vertPx = (10 * resources.displayMetrics.density).toInt()
+                buttonTintList = ColorStateList(
+                    arrayOf(
+                        intArrayOf(android.R.attr.state_checked),
+                        intArrayOf()
+                    ),
+                    intArrayOf(
+                        getColor(R.color.color_secondary),  // checked color
+                        getColor(R.color.text_secondary)  // unchecked color
+                    )
+                )
                 setPadding(paddingLeft, vertPx, paddingRight, vertPx)
                 radioGroup.addView(this)
             }
         }
 
         val dialog = AlertDialog.Builder(this)
-            .setTitle(title)
-            .setView(radioGroup)
-            .setNegativeButton(getString(R.string.cancel), null)
+            .setView(view)
             .create()
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnRadioCancel).setOnClickListener {
+            dialog.dismiss()
+        }
 
         radioGroup.setOnCheckedChangeListener { _, checkedId ->
             onPick(checkedId)
@@ -211,7 +229,6 @@ class SettingsActivity : AppCompatActivity() {
 
         dialog.show()
     }
-
     // ── Summary helpers ───────────────────────────────────────────────────
 
     /** "Dark" / "Light" / "System" under the Appearance row. */
@@ -282,7 +299,7 @@ class SettingsActivity : AppCompatActivity() {
     }
     // New helper in SettingsActivity:
     private fun confirmClearAll() {
-        AlertDialog.Builder(this)
+        AlertDialog.Builder(this, R.style.Theme_App_MyDialogColors)
             .setTitle(getString(R.string.clear_cache))
             .setMessage(getString(R.string.clear_cache_confirm_message))
             .setNegativeButton(getString(R.string.cancel), null)

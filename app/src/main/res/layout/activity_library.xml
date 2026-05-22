@@ -68,7 +68,7 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipAll"
-                style="@style/Widget.Material3.Chip.Filter"
+                style="@style/Widget.App.LibraryChip"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
@@ -78,7 +78,7 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipAlphabetical"
-                style="@style/Widget.Material3.Chip.Filter"
+                style="@style/Widget.App.LibraryChip"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
@@ -92,7 +92,7 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipRecent"
-                style="@style/Widget.Material3.Chip.Filter"
+                style="@style/Widget.App.LibraryChip"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
@@ -106,8 +106,22 @@
                 app:checkedIconVisible="false" />
 
             <com.google.android.material.chip.Chip
+                android:id="@+id/chipSize"
+                style="@style/Widget.App.LibraryChip"
+                android:layout_width="wrap_content"
+                android:layout_height="40dp"
+                android:layout_marginEnd="6dp"
+                android:text="@string/filter_size"
+                android:textSize="12sp"
+                app:chipIcon="@drawable/ic_sort_asc"
+                app:chipIconVisible="true"
+                app:chipIconSize="16dp"
+                app:iconStartPadding="4dp"
+                app:checkedIconVisible="false"/>
+
+            <com.google.android.material.chip.Chip
                 android:id="@+id/chipImported"
-                style="@style/Widget.Material3.Chip.Filter"
+                style="@style/Widget.App.LibraryChip"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
@@ -116,7 +130,7 @@
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipSaved"
-                style="@style/Widget.Material3.Chip.Filter"
+                style="@style/Widget.App.LibraryChip"
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:text="@string/filter_profile"

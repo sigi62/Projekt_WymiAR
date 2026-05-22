@@ -56,7 +56,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/appearance"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_section_label"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
@@ -68,7 +68,8 @@
                 android:gravity="center_vertical"
                 android:padding="16dp"
                 android:layout_marginBottom="24dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -104,111 +105,13 @@
 
             </LinearLayout>
 
-            <!--            <TextView-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:text="@string/appearance"-->
-            <!--                android:textSize="12sp"-->
-            <!--                android:textColor="@color/accent"-->
-            <!--                android:letterSpacing="0.08"-->
-            <!--                android:layout_marginBottom="8dp"/>-->
-
-            <!--            <LinearLayout-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:orientation="horizontal"-->
-            <!--                android:gravity="center_vertical"-->
-            <!--                android:padding="16dp"-->
-            <!--                android:layout_marginBottom="24dp"-->
-            <!--                android:background="@color/layout_background">-->
-
-            <!--                <LinearLayout-->
-            <!--                    android:layout_width="0dp"-->
-            <!--                    android:layout_height="wrap_content"-->
-            <!--                    android:layout_weight="1"-->
-            <!--                    android:orientation="vertical">-->
-
-            <!--                    <TextView-->
-            <!--                        android:layout_width="wrap_content"-->
-            <!--                        android:layout_height="wrap_content"-->
-            <!--                        android:text="@string/dark_mode"-->
-            <!--                        android:textSize="16sp"-->
-            <!--                        android:textColor="@color/text_primary"/>-->
-
-            <!--                    <TextView-->
-            <!--                        android:layout_width="wrap_content"-->
-            <!--                        android:layout_height="wrap_content"-->
-            <!--                        android:text="@string/dark_mode_description"-->
-            <!--                        android:textSize="13sp"-->
-            <!--                        android:textColor="@color/text_secondary"-->
-            <!--                        android:layout_marginTop="2dp"/>-->
-            <!--                </LinearLayout>-->
-
-            <!--                <Switch-->
-            <!--                    android:id="@+id/switchDarkMode"-->
-            <!--                    android:layout_width="wrap_content"-->
-            <!--                    android:layout_height="wrap_content"-->
-            <!--                    android:layout_marginStart="12dp" />-->
-
-            <!--            </LinearLayout>-->
-
-            <!--            &lt;!&ndash; ── UNIT ──────────────────────────────────────────────── &ndash;&gt;-->
-            <!--            <TextView-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:text="@string/ar_controls_unit"-->
-            <!--                android:textSize="12sp"-->
-            <!--                android:textColor="@color/accent"-->
-            <!--                android:letterSpacing="0.08"-->
-            <!--                android:layout_marginBottom="8dp"/>-->
-
-            <!--            <LinearLayout-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="wrap_content"-->
-            <!--                android:orientation="horizontal"-->
-            <!--                android:gravity="center_vertical"-->
-            <!--                android:padding="16dp"-->
-            <!--                android:layout_marginBottom="24dp"-->
-            <!--                android:background="@color/layout_background">-->
-
-            <!--                <LinearLayout-->
-            <!--                    android:layout_width="0dp"-->
-            <!--                    android:layout_height="wrap_content"-->
-            <!--                    android:layout_weight="1"-->
-            <!--                    android:orientation="vertical">-->
-
-            <!--                    <TextView-->
-            <!--                        android:layout_width="wrap_content"-->
-            <!--                        android:layout_height="wrap_content"-->
-            <!--                        android:text="@string/unit_label"-->
-            <!--                        android:textSize="16sp"-->
-            <!--                        android:textColor="@color/text_primary"/>-->
-
-            <!--                    <TextView-->
-            <!--                        android:layout_width="wrap_content"-->
-            <!--                        android:layout_height="wrap_content"-->
-            <!--                        android:text="@string/unit_desc"-->
-            <!--                        android:textSize="13sp"-->
-            <!--                        android:textColor="@color/text_secondary"-->
-            <!--                        android:layout_marginTop="2dp"/>-->
-            <!--                </LinearLayout>-->
-
-            <!--                <Spinner-->
-            <!--                    android:id="@+id/spinnerUnit"-->
-            <!--                    android:layout_width="wrap_content"-->
-            <!--                    android:layout_height="wrap_content"-->
-            <!--                    android:layout_marginStart="12dp"-->
-            <!--                    android:textColor="@color/text_primary"/>-->
-
-            <!--            </LinearLayout>-->
-
             <!-- ── AR OPTIONS ──────────────────────────────────────────── -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:text="@string/ar_options"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_section_label"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
             <LinearLayout
@@ -218,7 +121,8 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="16dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -269,7 +173,8 @@
                 android:gravity="center_vertical"
                 android:padding="16dp"
                 android:layout_marginBottom="24dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -313,7 +218,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/storage_title"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_section_label"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
@@ -325,7 +230,8 @@
                 android:orientation="horizontal"
                 android:gravity="center_vertical"
                 android:padding="16dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -357,7 +263,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:src="@drawable/ic_arrow_right"
-                    android:tint="@color/text_secondary"/>
+                    app:tint="@color/text_secondary" />
 
             </LinearLayout>
 
@@ -376,7 +282,8 @@
                 android:gravity="center_vertical"
                 android:padding="16dp"
                 android:layout_marginBottom="24dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">
@@ -418,7 +325,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/accessibility_rowtitle"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_section_label"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
@@ -430,7 +337,8 @@
                 android:gravity="center_vertical"
                 android:padding="16dp"
                 android:layout_marginBottom="24dp"
-                android:background="@color/layout_background"
+                android:background="@drawable/bg_rounded_layout"
+                android:backgroundTint="@color/layout_background"
                 android:clickable="true"
                 android:focusable="true"
                 android:foreground="?attr/selectableItemBackground">

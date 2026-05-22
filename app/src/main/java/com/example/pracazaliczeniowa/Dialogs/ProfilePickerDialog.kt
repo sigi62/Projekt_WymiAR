@@ -1,6 +1,5 @@
 package com.example.pracazaliczeniowa.Dialogs
 
-import android.app.AlertDialog
 import android.os.Bundle
 import android.text.InputType
 import android.view.LayoutInflater
@@ -11,6 +10,8 @@ import android.widget.EditText
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
+import android.content.Context
+import android.view.inputmethod.InputMethodManager
 import android.widget.Toast
 import androidx.fragment.app.DialogFragment
 import com.example.pracazaliczeniowa.Managers.ModelProfile
@@ -153,7 +154,7 @@ class ProfilePickerDialog : DialogFragment() {
         row.findViewById<ImageButton>(R.id.btnSlotDelete).apply {
             visibility = View.VISIBLE                       // ✅ instance property
             contentDescription = getString(R.string.profile_reset_btn_content_desc) // ✅
-            setImageResource(R.drawable.ic_revert)          // ✅ instance method
+            setImageResource(R.drawable.ic_revert)
             setOnClickListener { confirmResetToOriginal() } // ✅
         }
 
@@ -208,82 +209,116 @@ class ProfilePickerDialog : DialogFragment() {
             return
         }
 
-        val input = EditText(requireContext()).apply {
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_input, null)
+        val input = view.findViewById<EditText>(R.id.etRenameInput).apply {
             hint = getString(R.string.dialog_add_profile_hint)
             maxLines = 1
             inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
         }
+        view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.dialog_add_profile_title)
+        view.findViewById<Button>(R.id.btnConfirm).text = getString(R.string.save)
 
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.dialog_add_profile_title))
-            .setView(input)
-            .setPositiveButton(getString(R.string.save)) { _, _ ->
-                val name = input.text.toString().trim()
-                if (name.isEmpty()) {
-                    Toast.makeText(requireContext(), getString(R.string.profile_error_name_empty), Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+        val dialog = android.app.Dialog(requireContext()).apply {
+            setContentView(view)
+        }
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        view.findViewById<Button>(R.id.btnConfirm).setOnClickListener {
+            val name = input.text.toString().trim()
+            if (name.isEmpty()) {
+                Toast.makeText(requireContext(), getString(R.string.profile_error_name_empty), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            val current = getCurrentProfile?.invoke()
+            if (current == null) {
+                Toast.makeText(requireContext(), getString(R.string.profile_error_no_model), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+            when (profileManager.saveNamed(modelName, name, current)) {
+                ProfileSaveResult.Success -> {
+                    onStatusUpdate?.invoke(getString(R.string.profile_saved_named, name))
+                    onNamedProfileSaved?.invoke(name, current)
+                    dialog.dismiss()
+                    buildList()
                 }
-                val current = getCurrentProfile?.invoke()
-                if (current == null) {
-                    Toast.makeText(requireContext(), getString(R.string.profile_error_no_model), Toast.LENGTH_SHORT).show()
-                    return@setPositiveButton
+                ProfileSaveResult.TooManyProfiles -> {
+                    Toast.makeText(
+                        requireContext(),
+                        getString(R.string.error_too_many_profiles, ProfileManager.Companion.MAX_NAMED),
+                        Toast.LENGTH_SHORT
+                    ).show()
                 }
-                when (profileManager.saveNamed(modelName, name, current)) {
-                    ProfileSaveResult.Success -> {
-                        onStatusUpdate?.invoke(getString(R.string.profile_saved_named, name))
-                        onNamedProfileSaved?.invoke(name, current)
-                        buildList()
-                    }
-                    ProfileSaveResult.TooManyProfiles -> {
-                        Toast.makeText(
-                            requireContext(),
-                            getString(R.string.error_too_many_profiles, ProfileManager.Companion.MAX_NAMED),
-                            Toast.LENGTH_SHORT
-                        ).show()
-                    }
-                    is ProfileSaveResult.Error -> {
-                        Toast.makeText(requireContext(), getString(R.string.profile_error_save_failed), Toast.LENGTH_SHORT).show()
-                    }
+                is ProfileSaveResult.Error -> {
+                    Toast.makeText(requireContext(), getString(R.string.profile_error_save_failed), Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        }
+
+        dialog.show()
+        dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.92).toInt(),
+        ViewGroup.LayoutParams.WRAP_CONTENT
+        )
+        input.post {
+            input.requestFocus()
+            val imm = requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
     }
 
     // ── Confirm delete ───────────────────────────────────────────────────────
 
     private fun confirmDelete(slotName: String) {
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.profile_delete_slot_title, slotName))
-            .setMessage(getString(R.string.profile_delete_slot_message))
-            .setPositiveButton(getString(R.string.delete)) { _, _ ->
-                profileManager.deleteNamed(modelName, slotName)
-                onStatusUpdate?.invoke(getString(R.string.profile_deleted_named, slotName))
-                buildList()
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_confirm, null)
+        view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.profile_delete_slot_title, slotName)
+        view.findViewById<TextView>(R.id.tvDialogMessage).text = getString(R.string.profile_delete_slot_message)
+        view.findViewById<Button>(R.id.btnConfirm).text = getString(R.string.delete)
+
+        val dialog = android.app.Dialog(requireContext()).apply { setContentView(view) }
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button>(R.id.btnConfirm).setOnClickListener {
+            profileManager.deleteNamed(modelName, slotName)
+            onStatusUpdate?.invoke(getString(R.string.profile_deleted_named, slotName))
+            dialog.dismiss()
+            buildList()
+        }
+        dialog.show()
+        dialog.window?.setLayout(
+                (resources.displayMetrics.widthPixels * 0.92).toInt(),
+        ViewGroup.LayoutParams.WRAP_CONTENT
+        )
     }
 
     private fun confirmResetToOriginal() {
-        AlertDialog.Builder(requireContext())
-            .setTitle(getString(R.string.profile_reset_default_title))
-            .setMessage(getString(R.string.profile_reset_default_message))
-            .setPositiveButton(getString(R.string.reset)) { _, _ ->
-                val original = ModelProfile(
-                    scaleX = 1f, scaleY = 1f, scaleZ = 1f,
-                    rotationX = 0f, rotationY = 0f, rotationZ = 0f
-                )
-                profileManager.saveDefault(modelName, original)
-                lastLoadedProfileName = SLOT_DEFAULT
-                dismiss()
-                onLoadProfile?.invoke(original)
-                onDefaultProfileSaved?.invoke(original)
-                onResetDefault?.invoke()
-                onStatusUpdate?.invoke(getString(R.string.status_reset_done))
-            }
-            .setNegativeButton(getString(R.string.cancel), null)
-            .show()
+        val view = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_confirm, null)
+        view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.profile_reset_default_title)
+        view.findViewById<TextView>(R.id.tvDialogMessage).text = getString(R.string.profile_reset_default_message)
+        view.findViewById<Button>(R.id.btnConfirm).text = getString(R.string.reset)
+
+        val dialog = android.app.Dialog(requireContext()).apply { setContentView(view) }
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+
+        view.findViewById<Button>(R.id.btnCancel).setOnClickListener { dialog.dismiss() }
+        view.findViewById<Button>(R.id.btnConfirm).setOnClickListener {
+            val original = ModelProfile(
+                scaleX = 1f, scaleY = 1f, scaleZ = 1f,
+                rotationX = 0f, rotationY = 0f, rotationZ = 0f
+            )
+            profileManager.saveDefault(modelName, original)
+            lastLoadedProfileName = SLOT_DEFAULT
+            dialog.dismiss()
+            dismiss()
+            onLoadProfile?.invoke(original)
+            onDefaultProfileSaved?.invoke(original)
+            onResetDefault?.invoke()
+            onStatusUpdate?.invoke(getString(R.string.status_reset_done))
+        }
+        dialog.show()
     }
 
     // ─── Helpers ─────────────────────────────────────────────────────────────

@@ -46,7 +46,7 @@
             android:background="?attr/selectableItemBackgroundBorderless"
             android:scaleType="centerInside"
             android:contentDescription="@string/clear_cache"
-            app:tint="@color/accent_danger" />
+            app:tint="@color/danger_surface" />
 
     </LinearLayout>
 
@@ -91,7 +91,7 @@
                         android:text="0 MB"
                         android:textSize="32sp"
                         android:textStyle="bold"
-                        android:textColor="@color/accent"
+                        android:textColor="@color/text_section_label"
                         android:layout_marginTop="4dp"/>
 
                     <TextView
@@ -105,7 +105,6 @@
 
                 </LinearLayout>
 
-                <!-- Right: circular progress ring -->
                 <ProgressBar
                     android:id="@+id/progressStorage"
                     style="?android:attr/progressBarStyleHorizontal"
@@ -114,8 +113,8 @@
                     android:indeterminate="false"
                     android:max="100"
                     android:progress="0"
-                    android:rotation="-90"/>
-
+                    android:progressDrawable="@drawable/circular_progress"
+                    android:rotation="-90" />
             </LinearLayout>
 
             <!-- ── Clear Storage button ──────────────────────────────── -->
@@ -125,7 +124,7 @@
                 android:layout_height="56dp"
                 android:text="@string/clear_storage"
                 android:textSize="15sp"
-                android:textColor="@color/accent_danger"
+                android:textColor="@color/text_primary"
                 android:backgroundTint="@color/danger_surface"
                 android:layout_marginBottom="24dp"/>
 
@@ -135,7 +134,7 @@
                 android:layout_height="wrap_content"
                 android:text="@string/cached_models"
                 android:textSize="12sp"
-                android:textColor="@color/accent"
+                android:textColor="@color/text_secondary"
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
