@@ -229,16 +229,29 @@ class ModelLibraryManager(
     private fun buildDimensionString(item: ModelItem): String? {
         val (baseW, baseH, baseD) = item.defaultSizeM ?: return null
         val profile = loadDefaultProfile(item.profileKey)
-        val w = if (profile != null) baseW * profile.scaleX else baseW
-        val h = if (profile != null) baseH * profile.scaleY else baseH
-        val d = if (profile != null) baseD * profile.scaleZ else baseD
-        // Convert metres → centimetres and round to one decimal place
-        val wCm = (w * 100f)
-        val hCm = (h * 100f)
-        val dCm = (d* 100f)
-        // Use Int display when the value is a whole number, else one decimal
+        // defaultSizeM is always in metres (readBounds normalises to m)
+        val wM = if (profile != null) baseW * profile.scaleX else baseW
+        val hM = if (profile != null) baseH * profile.scaleY else baseH
+        val dM = if (profile != null) baseD * profile.scaleZ else baseD
+
         fun fmt(v: Float) = if (v % 1f == 0f) v.toInt().toString() else "%.1f".format(v)
-        return "${fmt(wCm)} × ${fmt(hCm)} × ${fmt(dCm)} cm"
+
+        // Pick display unit based on the largest dimension:
+        //   ≥ 1 m  → display in metres
+        //   ≥ 0.1 m (10 cm) → display in centimetres
+        //   < 0.1 m  → display in millimetres
+        val maxM = maxOf(wM, hM, dM)
+        return when {
+            maxM >= 1f -> {
+                "${fmt(wM)} × ${fmt(hM)} × ${fmt(dM)} m"
+            }
+            maxM >= 0.1f -> {
+                "${fmt(wM * 100f)} × ${fmt(hM * 100f)} × ${fmt(dM * 100f)} cm"
+            }
+            else -> {
+                "${fmt(wM * 1000f)} × ${fmt(hM * 1000f)} × ${fmt(dM * 1000f)} mm"
+            }
+        }
     }
 
     // ── Thumbnail helpers ─────────────────────────────────────────────────────

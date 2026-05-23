@@ -185,6 +185,9 @@ class ARActivity : AppCompatActivity() {
             unit = newUnit
             settings.distanceUnit = newUnit
             measureOverlay.setUnit(newUnit)
+            if (dimensionHud.visibility == View.VISIBLE) {
+                selectedModel?.getDimensionOverlay()?.let { updateDimensionHud(it.getDimensions()) }
+            }
         }
 
         backButton.setOnClickListener { closeScene() }
@@ -1141,5 +1144,12 @@ class ARActivity : AppCompatActivity() {
         }
         viewAttachmentManager.onPause()
         super.onDestroy()
+    }
+
+    override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+        super.onConfigurationChanged(newConfig)
+        // ARSceneView's Surface resizes automatically via its SurfaceHolder.
+        // We just need to re-push any overlay state that depends on screen dimensions.
+        if (isMeasureToolActive) pushOverlayState()
     }
 }

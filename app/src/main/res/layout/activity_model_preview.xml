@@ -51,7 +51,30 @@
         android:layout_marginEnd="16dp"
         android:background="@drawable/rounded_button"
         android:src="@drawable/ic_animation"
-        app:tint="@android:color/white"
+        android:visibility="gone" />
+
+    <!-- Pause / Resume — shown only while animation is started -->
+    <ImageButton
+        android:id="@+id/btnAnimationPause"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="136dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button"
+        android:src="@drawable/ic_play_pause"
+        android:visibility="gone" />
+
+    <!-- Next track — shown only when started and model has >1 track -->
+    <ImageButton
+        android:id="@+id/btnAnimationNext"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="192dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button"
+        android:src="@drawable/ic_skip_next"
         android:visibility="gone" />
 
     <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────

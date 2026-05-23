@@ -18,7 +18,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text=""
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_primary"
             android:layout_centerInParent="true"/>
 
         <!-- Unit toggle: only meaningful in POSITION mode, hidden otherwise -->
@@ -32,7 +32,7 @@
             android:paddingRight="10dp"
             android:text="cm"
             android:textSize="13sp"
-            android:textColor="@android:color/white"
+            android:textColor="@color/text_primary"
             android:visibility="gone"/>
 
     </RelativeLayout>
@@ -57,7 +57,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/label_axis_x"
-                android:textColor="@android:color/white"/>
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
             <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek1"
@@ -91,7 +92,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/label_axis_y"
-                android:textColor="@android:color/white"/>
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
             <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek2"
@@ -125,7 +127,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/label_axis_z"
-                android:textColor="@android:color/white"/>
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
             <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek3"
@@ -160,7 +163,8 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="@string/label_axis_uni"
-                android:textColor="@android:color/white"/>
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
             <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seekUniversalScale"

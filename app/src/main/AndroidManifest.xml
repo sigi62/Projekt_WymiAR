@@ -41,7 +41,9 @@
         <activity
             android:name=".Activities.ARActivity"
             android:exported="false"
-            android:theme="@style/Theme.ARActivity" />
+            android:theme="@style/Theme.ARActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
+            android:screenOrientation="fullSensor" />
         <activity
             android:name=".Activities.LibraryActivity"
             android:exported="false"

@@ -30,11 +30,10 @@ object ModelFileUtils {
         )
     }
 
-    private fun detectUnitScale(rawExtent: Float): Float = when {
-        rawExtent > 10_000f -> 0.001f   // mm → m
-        rawExtent > 10f     -> 0.01f    // cm → m
-        else                -> 1.0f     // already m
-    }
+    // GLB/glTF spec mandates metres as the unit for all geometry.
+    // Our converter (glb_converter.cpp) applies aiProcess_GlobalScale for every
+    // format that needs rescaling (STL, FBX, DAE, 3DS). Direct GLB/GLTF/OBJ/PLY
+    // files are already in metres by spec or by convention. No heuristic needed.
 
     // ── Shared implementation ─────────────────────────────────────────────────
 
@@ -134,72 +133,16 @@ object ModelFileUtils {
             val rawW = maxX - minX
             val rawH = maxY - minY
             val rawD = maxZ - minZ
-            val rawExtent = maxOf(rawW, rawH, rawD)
-            val unitScale = detectUnitScale(rawExtent)
 
-            val w = (rawW * unitScale).coerceAtLeast(0.001f)
-            val h = (rawH * unitScale).coerceAtLeast(0.001f)
-            val d = (rawD * unitScale).coerceAtLeast(0.001f)
-            log("GLB bounds [$label]: ${w * 100}×${h * 100}×${d * 100} cm (unitScale=$unitScale)")
+            val w = rawW.coerceAtLeast(0.001f)
+            val h = rawH.coerceAtLeast(0.001f)
+            val d = rawD.coerceAtLeast(0.001f)
+            log("GLB bounds [$label]: ${w}×${h}×${d} m")
             Triple(w, h, d)
 
         } catch (e: Exception) {
             log("readBounds FAILED [$label]: ${e.message}")
             null
-        }
-    }
-
-    fun logRawBounds(context: Context, assetPath: String) {
-        val bytes = runCatching {
-            context.assets.open(assetPath).use { it.readBytes() }
-        }.getOrNull() ?: return
-        if (bytes.size < 20) return
-
-        val jsonLen = readInt32LE(bytes, 12)
-        val jsonStr = String(bytes, 20, minOf(jsonLen, bytes.size - 20), Charsets.UTF_8)
-        val json      = JSONObject(jsonStr)
-        val accessors = json.optJSONArray("accessors") ?: return
-        val meshes    = json.optJSONArray("meshes")    ?: return
-
-        val nodes = json.optJSONArray("nodes")
-        if (nodes != null) {
-            for (ni in 0 until nodes.length()) {
-                val node = nodes.getJSONObject(ni)
-                val scale  = node.optJSONArray("scale")
-                val matrix = node.optJSONArray("matrix")
-                if (scale != null || matrix != null) {
-                    log(
-                        "NODE[$ni] name=${node.optString("name")} " +
-                                "scale=$scale matrix=$matrix"
-                    )
-                }
-            }
-        }
-
-        for (mi in 0 until meshes.length()) {
-            val primitives = meshes.getJSONObject(mi).optJSONArray("primitives") ?: continue
-            for (pi in 0 until primitives.length()) {
-                val posIdx = primitives.getJSONObject(pi)
-                    .optJSONObject("attributes")
-                    ?.optInt("POSITION", -1)
-                    ?.takeIf { it >= 0 } ?: continue
-                val acc    = accessors.getJSONObject(posIdx)
-                val minArr = acc.optJSONArray("min") ?: continue
-                val maxArr = acc.optJSONArray("max") ?: continue
-                log(
-                    "RAW [$assetPath] mesh=$mi prim=$pi " +
-                            "min=(${minArr.getDouble(0)}, ${minArr.getDouble(1)}, ${
-                                minArr.getDouble(
-                                    2
-                                )
-                            }) " +
-                            "max=(${maxArr.getDouble(0)}, ${maxArr.getDouble(1)}, ${
-                                maxArr.getDouble(
-                                    2
-                                )
-                            })"
-                )
-            }
         }
     }
 

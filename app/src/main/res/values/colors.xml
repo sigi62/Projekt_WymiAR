@@ -23,7 +23,7 @@
     <color name="badge_normal_bg">#80428BFF</color>
 
     <color name="danger_surface">#FA6257</color>
-    <color name="highlight">#80428BFF</color>
+    <color name="highlight">#80428BFF </color>
 
     <color name="color_primary">#C90032</color>
     <color name="color_secondary">#428BFF</color>

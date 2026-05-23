@@ -18,6 +18,12 @@
         android:paddingTop="14dp"
         android:paddingBottom="14dp">
 
+        <ImageButton
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:src="@drawable/ic_launcher_foreground"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"/>
 
         <TextView
             android:layout_width="0dp"

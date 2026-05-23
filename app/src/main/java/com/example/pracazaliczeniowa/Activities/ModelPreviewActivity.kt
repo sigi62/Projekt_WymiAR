@@ -48,6 +48,9 @@ import io.github.sceneview.math.Rotation
 import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
@@ -109,6 +112,8 @@ class ModelPreviewActivity : AppCompatActivity() {
     private lateinit var cropConfirmBar: LinearLayout
     private lateinit var btnBackground: ImageButton
     private lateinit var btnAnimationToggle: ImageButton
+    private lateinit var btnAnimationPause: ImageButton
+    private lateinit var btnAnimationNext: ImageButton
 
     private var modelNode: ModelNode? = null
     private lateinit var profileKey: String
@@ -154,7 +159,12 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     // ── Animation state ───────────────────────────────────────────────────────
     private var isAnimationPlaying: Boolean = false
-    private var pausedAnimationTime: Float = 0f   // ← add this field
+    private var isAnimationStarted: Boolean = false
+    private var currentAnimationIndex: Int = 0
+    private var activeAnimationIndex: Int = 0
+    private val elapsedTimes = mutableMapOf<Int, Float>()
+    private var animJob: Job? = null
+    private var lastTickNanos: Long = 0L
 
     private fun srgbToLinear(channel: Int): Float {
         val c = channel / 255f
@@ -180,6 +190,8 @@ class ModelPreviewActivity : AppCompatActivity() {
         cropConfirmBar      = findViewById(R.id.cropConfirmBar)
         btnBackground       = findViewById(R.id.btnBackground)
         btnAnimationToggle  = findViewById(R.id.btnAnimationToggle)
+        btnAnimationPause   = findViewById(R.id.btnAnimationPause)
+        btnAnimationNext    = findViewById(R.id.btnAnimationNext)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
@@ -225,12 +237,36 @@ class ModelPreviewActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        // ── Animation toggle ──────────────────────────────────────────────────
+        // ── Play / Stop ───────────────────────────────────────────────────────
         btnAnimationToggle.setOnClickListener {
-            val node = modelNode ?: return@setOnClickListener
-            isAnimationPlaying = !isAnimationPlaying
-            setPreviewAnimationPlaying(node, isAnimationPlaying)
-            btnAnimationToggle.alpha = if (isAnimationPlaying) 1.0f else 0.5f
+            if (isAnimationStarted) {
+                stopAllPreviewAnimations()
+            } else {
+                isAnimationStarted = true
+                isAnimationPlaying = true
+                resumePreviewAnimation(currentAnimationIndex)
+            }
+            refreshAnimationUI()
+        }
+
+        // ── Pause / Resume ────────────────────────────────────────────────────
+        btnAnimationPause.setOnClickListener {
+            if (isAnimationPlaying) {
+                pausePreviewAnimation()
+                isAnimationPlaying = false
+            } else {
+                resumePreviewAnimation(currentAnimationIndex)
+                isAnimationPlaying = true
+            }
+            refreshAnimationUI()
+        }
+
+        // ── Next track ────────────────────────────────────────────────────────
+        btnAnimationNext.setOnClickListener {
+            val count = modelNode?.modelInstance?.animator?.animationCount ?: return@setOnClickListener
+            if (count < 2) return@setOnClickListener
+            currentAnimationIndex = (currentAnimationIndex + 1) % count
+            resumePreviewAnimation(currentAnimationIndex)
         }
 
         val rotationSlider = findViewById<RulerSeekBar>(R.id.rotationSlider)
@@ -513,14 +549,14 @@ class ModelPreviewActivity : AppCompatActivity() {
         inner.setContentView(root)
         inner.show()
         inner.window?.apply {
-                setBackgroundDrawableResource(android.R.color.transparent)
-                setLayout(
-                    android.view.WindowManager.LayoutParams.MATCH_PARENT,
-                    android.view.WindowManager.LayoutParams.WRAP_CONTENT
-                )
-                setGravity(android.view.Gravity.BOTTOM)
-                attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
-            }
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
+            setGravity(android.view.Gravity.BOTTOM)
+            attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
+        }
     }
 
     private fun applyStudioSurfaceColor(target: SurfaceTarget, @ColorInt color: Int) {
@@ -689,23 +725,14 @@ class ModelPreviewActivity : AppCompatActivity() {
                 isRotationEditable = false
                 rotation           = io.github.sceneview.math.Rotation(0f, modelRotationY, 0f)
                 // autoAnimate is not set here — ModelNode defaults vary by SceneView version.
-                // We control playback explicitly via playAnimation / stopAnimation below.
-
-                isAnimationPlaying = false
-                pausedAnimationTime = 0f
+                // We control playback explicitly via resumePreviewAnimation / pausePreviewAnimation.
             }
             sceneView.addChildNode(modelNode!!)
 
-            // ── Show animation button only if the model has animation tracks ──
+            // ── Show/hide animation buttons based on track count ──────────────
             val animCount = modelNode!!.modelInstance.animator?.animationCount ?: 0
-            if (animCount > 0) {
-                btnAnimationToggle.visibility = View.VISIBLE
-                btnAnimationToggle.alpha      = 0.5f  // dim = stopped
-                Log.d(TAG, "Model has $animCount animation track(s) — button shown")
-            } else {
-                btnAnimationToggle.visibility = View.GONE
-                Log.d(TAG, "Model has no animations — button hidden")
-            }
+            Log.d(TAG, "Model has $animCount animation track(s)")
+            refreshAnimationUI()
 
         } catch (e: Exception) {
             Log.e(TAG, "Failed to load model", e)
@@ -729,22 +756,66 @@ class ModelPreviewActivity : AppCompatActivity() {
         sceneView.cameraNode.lookAt(io.github.sceneview.math.Position(0f, 0f, 0f))
     }
 
-    // Add this private helper:
-    private fun setPreviewAnimationPlaying(node: ModelNode, playing: Boolean) {
+    private fun resumePreviewAnimation(index: Int) {
+        val node = modelNode ?: return
         val animator = node.modelInstance.animator ?: return
-        if (playing) {
-            node.playAnimation(0)
-            // Seek to where we paused
-            animator.applyAnimation(0, pausedAnimationTime)
-            animator.updateBoneMatrices()
-        } else {
-            // Sample current time before stopping
-            pausedAnimationTime = animator.getAnimationDuration(0)
-                .let { duration -> if (duration > 0f) (System.currentTimeMillis() % (duration * 1000).toLong()) / 1000f else 0f }
-            node.stopAnimation(0)
-            animator.applyAnimation(0, pausedAnimationTime)
+        val duration = animator.getAnimationDuration(index)
+        if (duration <= 0f) return
+
+        animJob?.cancel()
+        activeAnimationIndex = index
+        lastTickNanos = System.nanoTime()
+
+        animJob = lifecycleScope.launch {
+            while (isActive) {
+                val now = System.nanoTime()
+                val delta = (now - lastTickNanos) / 1_000_000_000f
+                lastTickNanos = now
+
+                val elapsed = (elapsedTimes[index] ?: 0f) + delta
+                elapsedTimes[index] = elapsed % duration
+
+                animator.applyAnimation(index, elapsedTimes[index]!!)
+                animator.updateBoneMatrices()
+
+                delay(16L)
+            }
+        }
+    }
+
+    private fun pausePreviewAnimation() {
+        animJob?.cancel()
+        animJob = null
+        // pose stays frozen at the last applyAnimation call
+    }
+
+    private fun stopAllPreviewAnimations() {
+        animJob?.cancel()
+        animJob = null
+        elapsedTimes.clear()
+        activeAnimationIndex = 0
+        currentAnimationIndex = 0
+        isAnimationStarted = false
+        isAnimationPlaying = false
+        val animator = modelNode?.modelInstance?.animator ?: return
+        if (animator.animationCount > 0) {
+            animator.applyAnimation(0, 0f)
             animator.updateBoneMatrices()
         }
+    }
+
+    private fun refreshAnimationUI() {
+        val animCount = modelNode?.modelInstance?.animator?.animationCount ?: 0
+        val hasAnim   = animCount > 0
+        val multiAnim = animCount > 1
+
+        btnAnimationToggle.visibility = if (hasAnim) View.VISIBLE else View.GONE
+        btnAnimationToggle.alpha      = if (isAnimationStarted) 1.0f else 0.5f
+
+        btnAnimationPause.visibility  = if (hasAnim && isAnimationStarted) View.VISIBLE else View.GONE
+        btnAnimationPause.alpha       = if (isAnimationPlaying) 1.0f else 0.5f
+
+        btnAnimationNext.visibility   = if (hasAnim && isAnimationStarted && multiAnim) View.VISIBLE else View.GONE
     }
     private fun setupTouchListener() {
         sceneView.setOnTouchListener { _, event ->
@@ -770,13 +841,23 @@ class ModelPreviewActivity : AppCompatActivity() {
         val x = e.getX(0) - e.getX(1); val y = e.getY(0) - e.getY(1); return sqrt(x * x + y * y)
     }
 
-    private fun showCropOverlay() { cropOverlay.visibility = View.VISIBLE; cropConfirmBar.visibility = View.VISIBLE; normalButtonBar.visibility = View.GONE; btnBackground.visibility = View.GONE; btnAnimationToggle.visibility = View.GONE; sceneView.setOnTouchListener(null) }
+    private fun showCropOverlay() {
+        cropOverlay.visibility = View.VISIBLE
+        cropConfirmBar.visibility = View.VISIBLE
+        normalButtonBar.visibility = View.GONE
+        btnBackground.visibility = View.GONE
+        btnAnimationToggle.visibility = View.GONE
+        btnAnimationPause.visibility = View.GONE
+        btnAnimationNext.visibility = View.GONE
+        sceneView.setOnTouchListener(null)
+    }
+
     private fun hideCropOverlay() {
-        cropOverlay.visibility = View.GONE; cropConfirmBar.visibility = View.GONE
-        normalButtonBar.visibility = View.VISIBLE; btnBackground.visibility = View.VISIBLE
-        // Restore animation button visibility based on whether model has animations
-        val animCount = modelNode?.modelInstance?.animator?.animationCount ?: 0
-        if (animCount > 0) btnAnimationToggle.visibility = View.VISIBLE
+        cropOverlay.visibility = View.GONE
+        cropConfirmBar.visibility = View.GONE
+        normalButtonBar.visibility = View.VISIBLE
+        btnBackground.visibility = View.VISIBLE
+        refreshAnimationUI()
         setupTouchListener()
     }
 
@@ -821,7 +902,7 @@ class ModelPreviewActivity : AppCompatActivity() {
     override fun onDestroy() {
         try {
             // Stop animation before touching Filament resources
-            modelNode?.let { if (isAnimationPlaying) setPreviewAnimationPlaying(it, false) }
+            stopAllPreviewAnimations()
             // Cancel frame callback so no screenshot fires after destroy
             sceneView.onFrame = null
 

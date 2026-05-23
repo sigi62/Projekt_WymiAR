@@ -79,114 +79,131 @@
     </LinearLayout>
 
     <!-- ── Measure tape / wireframe / animation toggles – top-end ───────── -->
-    <LinearLayout
+    <!--
+        Wrapped in a ScrollView so buttons don't overflow off-screen in
+        landscape mode when multiple animation buttons are visible at once.
+        layout_height="0dp" + weight trick doesn't work in FrameLayout, so we
+        use match_parent and let fitsSystemWindows + the margins bound the size.
+    -->
+    <ScrollView
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_height="match_parent"
         android:layout_gravity="top|end"
         android:layout_marginTop="80dp"
         android:layout_marginEnd="10dp"
-        android:orientation="vertical"
-        android:fitsSystemWindows="true">
+        android:layout_marginBottom="80dp"
+        android:fitsSystemWindows="true"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:fillViewport="false"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp">
 
-        <ImageButton
-            android:id="@+id/btnMeasureTapeModeToggle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_measure_tape"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:contentDescription="@string/measure_tap_first"/>
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-        <!--
-            Wall-magnet mode toggle — ic_stack (flat = horizontal planes),
-            rotated -90° (counter-clockwise) when in vertical/wall mode.
-        -->
-        <ImageButton
-            android:id="@+id/btnWallMagnet"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_stack"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"/>
+            <ImageButton
+                android:id="@+id/btnMeasureTapeModeToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_measure_tape"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:contentDescription="@string/measure_tap_first"/>
 
-        <ImageButton
-            android:id="@+id/btnWireframeToggle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_wireframe"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
+            <!--
+                Wall-magnet mode toggle — ic_stack (flat = horizontal planes),
+                rotated -90° (counter-clockwise) when in vertical/wall mode.
+            -->
+            <ImageButton
+                android:id="@+id/btnWallMagnet"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_stack"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"/>
 
-        <!--
-            Rotation ring toggle — shown when a model is selected.
-            Full alpha = ring visible; dimmed = ring hidden.
-        -->
-        <ImageButton
-            android:id="@+id/btnRotationRingToggle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_circle_delete"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
+            <ImageButton
+                android:id="@+id/btnWireframeToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_wireframe"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
 
-        <!--
-            Animation toggle — only shown when a model with animations is
-            selected. Hidden by default; ARActivity shows/hides it
-            inside selectModel() / deselectModel().
-        -->
-        <ImageButton
-            android:id="@+id/btnAnimationToggle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_animation"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
+            <!--
+                Rotation ring toggle — shown when a model is selected.
+                Full alpha = ring visible; dimmed = ring hidden.
+            -->
+            <ImageButton
+                android:id="@+id/btnRotationRingToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_circle_delete"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
 
-        <!--
-            Stop button — stops animation and resets to frame 0.
-            Only shown while animation is playing.
-        -->
-        <ImageButton
-            android:id="@+id/btnAnimationPause"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_play_pause"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
+            <!--
+                Animation toggle — only shown when a model with animations is
+                selected. Hidden by default; ARActivity shows/hides it
+                inside selectModel() / deselectModel().
+            -->
+            <ImageButton
+                android:id="@+id/btnAnimationToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_animation"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
 
-        <!--
-            Next-animation button — cycles to the next animation track.
-            Only shown when the selected model has more than one animation
-            and animation is playing.
-        -->
-        <ImageButton
-            android:id="@+id/btnAnimationNext"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_skip_next"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"
-            android:layout_marginBottom="10dp"
-            android:visibility="gone"/>
+            <!--
+                Stop button — stops animation and resets to frame 0.
+                Only shown while animation is playing.
+            -->
+            <ImageButton
+                android:id="@+id/btnAnimationPause"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_play_pause"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
 
-    </LinearLayout>
+            <!--
+                Next-animation button — cycles to the next animation track.
+                Only shown when the selected model has more than one animation
+                and animation is playing.
+            -->
+            <ImageButton
+                android:id="@+id/btnAnimationNext"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_skip_next"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+    </ScrollView>
 
     <!-- ── Measure-mode action buttons ─────────────────────────────────── -->
     <!--

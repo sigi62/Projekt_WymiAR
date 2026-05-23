@@ -159,11 +159,9 @@ class LibraryActivity : AppCompatActivity() {
 
 
     private val bundledModels: List<ModelItem> by lazy {
-        listOf(
-            "models/cat.glb",
-            "models/dog.glb",
-            "models/van.glb"
-        ).map { ModelImportManager.bundledItem(this, it) }
+        (this.assets.list("models") ?: emptyArray())
+            .filter { it.endsWith(".glb", ignoreCase = true) }
+            .map { ModelImportManager.bundledItem(this, "models/$it") }
     }
 
     // ── Lifecycle ─────────────────────────────────────────────────────────────
