@@ -151,6 +151,12 @@ object ModelImportManager {
                 return null
             }
 
+            val format = if (isGlb) null else ext
+            if (format != null) {
+                File(dest.parentFile, "${dest.nameWithoutExtension}.meta")
+                    .writeText(format)
+            }
+
             val displayName = dest.nameWithoutExtension
             val bounds = ModelFileUtils.readBounds(dest)
             log("Import SUCCESS: $displayName (${dest.length()} bytes), bounds=$bounds")
@@ -165,7 +171,7 @@ object ModelImportManager {
                 // Record the original format so activities can decide whether
                 // to show the model colour picker without inspecting the filename.
                 // GLBs imported directly get null — they have their own materials.
-                sourceFormat = if (isGlb) null else ext
+                sourceFormat = format
             )
 
         } catch (e: Exception) {
@@ -184,14 +190,17 @@ object ModelImportManager {
             .listFiles { f -> f.extension.equals("glb", ignoreCase = true) }
             ?.sortedBy { it.nameWithoutExtension }
             ?.map { file ->
+                val metaFile = File(file.parentFile, "${file.nameWithoutExtension}.meta")
+                val sourceFormat = if (metaFile.exists()) metaFile.readText().trim().lowercase() else null
                 ModelItem(
-                    name = file.nameWithoutExtension,
-                    modelPath = file.canonicalPath,
+                    name         = file.nameWithoutExtension,
+                    modelPath    = file.canonicalPath,
                     thumbnailRes = null,
-                    isAsset = false,
-                    createdAt = file.lastModified(),
+                    isAsset      = false,
+                    createdAt    = file.lastModified(),
                     defaultSizeM = ModelFileUtils.readBounds(file),
-                    sizeBytes = file.length()
+                    sizeBytes    = file.length(),
+                    sourceFormat = sourceFormat
                 )
             }
             ?: emptyList()
@@ -204,6 +213,8 @@ object ModelImportManager {
     fun deleteImported(context: Context, item: ModelItem): Boolean {
         if (item.isAsset) return false
         val file = File(item.modelPath)
+        // Delete meta sidecar alongside the glb
+        File(file.parentFile, "${file.nameWithoutExtension}.meta").delete()
         return !file.exists() || file.delete()
     }
 
@@ -243,6 +254,10 @@ object ModelImportManager {
             log("Rename FAILED: a model named '$sanitised' already exists")
             return null
         }
+        val oldMeta = File(oldFile.parentFile, "${oldFile.nameWithoutExtension}.meta")
+        val newMeta = File(newFile.parentFile, "${newFile.nameWithoutExtension}.meta")
+        if (oldMeta.exists()) oldMeta.renameTo(newMeta)
+
 
         return if (oldFile.renameTo(newFile)) {
             log("Rename SUCCESS: '${item.name}' → '$sanitised'")

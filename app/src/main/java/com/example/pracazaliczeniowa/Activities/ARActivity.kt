@@ -86,10 +86,6 @@ class ARActivity : AppCompatActivity() {
     // ── Model colour override ─────────────────────────────────────────────────
     /** Currently applied override colour on the selected model; null = no override. */
     @androidx.annotation.ColorInt private var currentModelColour: Int? = null
-    /** MaterialInstances created for the colour override — destroyed when model deselected. */
-    private val modelColourOverrideMats = mutableListOf<com.google.android.filament.MaterialInstance>()
-    /** Snapshot of original MaterialInstances before any override. */
-    private var modelOriginalMats: List<com.google.android.filament.MaterialInstance>? = null
 
     private lateinit var btnModelColour: FrameLayout
     private lateinit var modelColourBgRect: android.view.View
@@ -153,6 +149,7 @@ class ARActivity : AppCompatActivity() {
     private var activeModelIsAsset: Boolean = true
     /** Source format recorded at import time; null for assets and direct GLB imports. */
     private var activeModelSourceFormat: String? = null
+    private val modelSourceFormats = mutableMapOf<String, String?>()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -761,6 +758,7 @@ class ARActivity : AppCompatActivity() {
 
             log("Adding new model to models list")
             models.add(node)
+            modelSourceFormats[node.getModeleName()] = activeModelSourceFormat
             node.setAnimationPlaying(false)
 
             // Apply the default profile scale before wrapping so the model
@@ -808,11 +806,10 @@ class ARActivity : AppCompatActivity() {
         // Assimp's grey default PBR material; hidden for everything else.
         // Use the source format recorded at import time rather than the
         // file path, which is always .glb at this point.
-        val needsColour = activeModelSourceFormat in setOf("stl", "ply", "3ds")
+        val needsColour = modelSourceFormats[defaultNode.getModeleName()] in setOf("stl", "obj", "ply", "3ds")
         btnModelColour.visibility = if (needsColour) View.VISIBLE else View.GONE
         if (needsColour) {
-            val swatch = currentModelColour ?: android.graphics.Color.parseColor("#B2B2B2")
-            updateModelColourSwatch(swatch)
+            updateModelColourSwatch(currentModelColour ?: android.graphics.Color.parseColor("#B2B2B2"))
         }
 
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
@@ -1011,11 +1008,11 @@ class ARActivity : AppCompatActivity() {
         modelPickerPopup.onModelPicked = { picked ->
             activeModelPath = picked.modelPath
             activeModelIsAsset = picked.isAsset
+            activeModelSourceFormat = picked.sourceFormat  // ← ADD THIS
 
             val label = picked.modelPath.substringAfterLast('/').substringBeforeLast('.')
             statusText.text = getString(R.string.model_picker_prompt, label)
         }
-
         modelPickerPopup.show(btnLibrary, activeModelPath)
     }
 
@@ -1030,54 +1027,68 @@ class ARActivity : AppCompatActivity() {
     }
 
     /**
-     * Applies [color] to every primitive of the currently selected model's
-     * [DefaultModelNode]. Snapshots the originals on first call.
+     * Applies [color] to every primitive of the currently selected model by
+     * mutating the existing MaterialInstance parameters in place.
+     * Never creates or destroys MaterialInstances — safe to call at any time.
      */
     private fun applyModelColour(@androidx.annotation.ColorInt color: Int) {
         val node = selectedModel?.getWrappedNode() ?: return
         val rm = arSceneView.engine.renderableManager
-        val ri = rm.getInstance(node.entity)
-        if (ri == 0) return
 
-        if (modelOriginalMats == null) {
-            modelOriginalMats = (0 until rm.getPrimitiveCount(ri))
-                .map { rm.getMaterialInstanceAt(ri, it) }
-        }
-
-        modelColourOverrideMats.forEach {
-            runCatching { arSceneView.materialLoader.destroyMaterialInstance(it) }
-        }
-        modelColourOverrideMats.clear()
-
-        for (i in 0 until rm.getPrimitiveCount(ri)) {
-            val mat = arSceneView.materialLoader.createColorInstance(color)
-            rm.setMaterialInstanceAt(ri, i, mat)
-            modelColourOverrideMats.add(mat)
+        for (entity in node.modelInstance.asset.renderableEntities) {
+            val ri = rm.getInstance(entity)
+            if (ri == 0) continue
+            for (i in 0 until rm.getPrimitiveCount(ri)) {
+                runCatching {
+                    rm.getMaterialInstanceAt(ri, i).setParameter(
+                        "baseColorFactor",
+                        srgbToLinear(android.graphics.Color.red(color)),
+                        srgbToLinear(android.graphics.Color.green(color)),
+                        srgbToLinear(android.graphics.Color.blue(color)),
+                        1f
+                    )
+                }
+            }
         }
 
         currentModelColour = color
         updateModelColourSwatch(color)
     }
 
-    /** Restores the original GLB materials, removing any colour override. */
-    private fun restoreModelMaterials() {
-        val node = selectedModel?.getWrappedNode() ?: return
-        val originals = modelOriginalMats ?: return
-        val rm = arSceneView.engine.renderableManager
-        val ri = rm.getInstance(node.entity)
-        if (ri == 0) return
-
-        originals.forEachIndexed { i, mat -> rm.setMaterialInstanceAt(ri, i, mat) }
-        clearModelColourOverride()
+    private fun srgbToLinear(channel: Int): Float {
+        val c = channel / 255f
+        return if (c <= 0.04045f) c / 12.92f
+        else Math.pow((c + 0.055) / 1.055, 2.4).toFloat()
     }
 
-    /** Destroys override mats and resets all override tracking state. */
-    private fun clearModelColourOverride() {
-        modelColourOverrideMats.forEach {
-            runCatching { arSceneView.materialLoader.destroyMaterialInstance(it) }
+    /** Resets the model colour back to Assimp's default grey by mutating parameters in place. */
+    private fun restoreModelMaterials() {
+        val grey = android.graphics.Color.parseColor("#B2B2B2")
+        val node = selectedModel?.getWrappedNode() ?: return
+        val rm = arSceneView.engine.renderableManager
+
+        for (entity in node.modelInstance.asset.renderableEntities) {
+            val ri = rm.getInstance(entity)
+            if (ri == 0) continue
+            for (i in 0 until rm.getPrimitiveCount(ri)) {
+                runCatching {
+                    rm.getMaterialInstanceAt(ri, i).setParameter(
+                        "baseColorFactor",
+                        srgbToLinear(android.graphics.Color.red(grey)),
+                        srgbToLinear(android.graphics.Color.green(grey)),
+                        srgbToLinear(android.graphics.Color.blue(grey)),
+                        1f
+                    )
+                }
+            }
         }
-        modelColourOverrideMats.clear()
-        modelOriginalMats = null
+
+        currentModelColour = null
+        updateModelColourSwatch(grey)
+    }
+
+    /** Resets colour override tracking state — no Filament resources to destroy. */
+    private fun clearModelColourOverride() {
         currentModelColour = null
     }
 
@@ -1147,22 +1158,42 @@ class ARActivity : AppCompatActivity() {
             setColor(initial)
         }
         root.addView(picker)
+        var pendingColour = initial
+
         picker.onColorChanged = { color ->
+            pendingColour = color
             (previewDot.background as? android.graphics.drawable.GradientDrawable)?.setColor(color)
-            applyModelColour(color)
         }
-        // Restore button
-        root.addView(android.widget.Button(this).apply {
-            text = getString(R.string.model_colour_restore)
+
+        // Restore | Confirm button row
+        root.addView(android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.topMargin = (8 * dp).toInt() }
-            setOnClickListener {
-                restoreModelMaterials()
-                updateModelColourSwatch(android.graphics.Color.parseColor("#B2B2B2"))
-                inner.dismiss()
-            }
+
+            addView(android.widget.Button(this@ARActivity).apply {
+                text = getString(R.string.model_colour_restore)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                ).also { it.marginEnd = (8 * dp).toInt() }
+                setOnClickListener {
+                    restoreModelMaterials()
+                    inner.dismiss()
+                }
+            })
+
+            addView(android.widget.Button(this@ARActivity).apply {
+                text = getString(R.string.confirm)
+                layoutParams = android.widget.LinearLayout.LayoutParams(
+                    0, android.widget.LinearLayout.LayoutParams.WRAP_CONTENT, 1f
+                )
+                setOnClickListener {
+                    applyModelColour(pendingColour)
+                    inner.dismiss()
+                }
+            })
         })
         inner.setContentView(root)
         inner.show()
@@ -1196,9 +1227,11 @@ class ARActivity : AppCompatActivity() {
         val default   = selected.unwrap()
         val modelName = default?.getModeleName()
         models.remove(default)
+        modelSourceFormats.remove(default?.getModeleName())
         selectedModel = null
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
+        btnModelColour.visibility           = View.GONE
         isAnimationPlaying = false
         isAnimationStarted = false
         refreshAnimationUI()

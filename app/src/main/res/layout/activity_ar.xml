@@ -54,7 +54,7 @@
             android:id="@+id/btnModelColour"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="12dp"
             android:layout_marginStart="16dp"
             android:background="@drawable/rounded_button"
             android:visibility="gone"
@@ -62,21 +62,21 @@
             android:clickable="true"
             android:focusable="true">
 
-            <!-- Full-button background tint (tracks current override colour) -->
+            <!-- Background rect (shows through as a contrast border/shadow) -->
             <View
                 android:id="@+id/modelColourBgRect"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@drawable/rounded_button"
-                android:alpha="0.35"/>
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
 
-            <!-- Small swatch square centred inside -->
+            <!-- Foreground colour patch — this is what gets tinted with the model colour -->
             <View
                 android:id="@+id/modelColourPatchRect"
                 android:layout_width="22dp"
                 android:layout_height="22dp"
                 android:layout_gravity="center"
-                android:background="@drawable/rounded_button"/>
+                android:background="@drawable/bg_color_patch_rect" />
 
         </FrameLayout>
 

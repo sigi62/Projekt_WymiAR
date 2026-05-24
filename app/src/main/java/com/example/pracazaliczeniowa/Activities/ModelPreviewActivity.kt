@@ -777,7 +777,7 @@ class ModelPreviewActivity : AppCompatActivity() {
     private fun detectAndShowColourButton(modelPath: String, sourceFormat: String?) {
         // Use the source format recorded at import time — the modelPath is always
         // .glb at this point so extension-sniffing would never match.
-        modelNeedsColourPicker = sourceFormat in setOf("stl", "ply", "3ds")
+        modelNeedsColourPicker = sourceFormat in setOf("stl", "obj", "ply", "3ds")
         btnModelColour.visibility = if (modelNeedsColourPicker) View.VISIBLE else View.GONE
         if (modelNeedsColourPicker) {
             // Seed the swatch with the Assimp default grey so it looks right
@@ -803,23 +803,17 @@ class ModelPreviewActivity : AppCompatActivity() {
     private fun applyModelColour(@ColorInt color: Int) {
         val node = modelNode ?: return
         val rm = sceneView.engine.renderableManager
-        val ri = rm.getInstance(node.entity)
-        if (ri == 0) return
 
-        if (modelOriginalMats == null) {
-            modelOriginalMats = (0 until rm.getPrimitiveCount(ri))
-                .map { rm.getMaterialInstanceAt(ri, it) }
-        }
-
-        modelColourOverrideMats.forEach {
-            runCatching { sceneView.materialLoader.destroyMaterialInstance(it) }
-        }
-        modelColourOverrideMats.clear()
-
-        for (i in 0 until rm.getPrimitiveCount(ri)) {
-            val mat = sceneView.materialLoader.createColorInstance(color)
-            rm.setMaterialInstanceAt(ri, i, mat)
-            modelColourOverrideMats.add(mat)
+        for (entity in node.modelInstance.asset.renderableEntities) {
+            val ri = rm.getInstance(entity)
+            if (ri == 0) continue
+            for (i in 0 until rm.getPrimitiveCount(ri)) {
+                val mat = rm.getMaterialInstanceAt(ri, i)
+                runCatching {
+                    mat.setParameter("baseColorFactor",
+                        color.linearR(), color.linearG(), color.linearB(), 1f)
+                }
+            }
         }
 
         currentModelColour = color
@@ -829,21 +823,24 @@ class ModelPreviewActivity : AppCompatActivity() {
     /** Restores the original GLB materials, removing any colour override. */
     private fun restoreModelMaterials() {
         val node = modelNode ?: return
-        val originals = modelOriginalMats ?: return
         val rm = sceneView.engine.renderableManager
-        val ri = rm.getInstance(node.entity)
-        if (ri == 0) return
+        val grey = Color.parseColor("#B2B2B2")
 
-        originals.forEachIndexed { i, mat -> rm.setMaterialInstanceAt(ri, i, mat) }
-        modelColourOverrideMats.forEach {
-            runCatching { sceneView.materialLoader.destroyMaterialInstance(it) }
+        for (entity in node.modelInstance.asset.renderableEntities) {
+            val ri = rm.getInstance(entity)
+            if (ri == 0) continue
+            for (i in 0 until rm.getPrimitiveCount(ri)) {
+                val mat = rm.getMaterialInstanceAt(ri, i)
+                runCatching {
+                    mat.setParameter("baseColorFactor",
+                        grey.linearR(), grey.linearG(), grey.linearB(), 1f)
+                }
+            }
         }
-        modelColourOverrideMats.clear()
-        modelOriginalMats = null
-        currentModelColour = null
-        updateModelColourSwatch(Color.parseColor("#B2B2B2"))
-    }
 
+        currentModelColour = null
+        updateModelColourSwatch(grey)
+    }
     /**
      * Shows a bottom-sheet colour picker for the model's surface colour.
      * Reuses the same [showSurfaceColorPicker] infrastructure already in place
@@ -902,6 +899,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         })
 
         // Colour picker wheel
+        var pendingColour = initial  // tracks what the user has dragged to, not yet applied
         val picker = HsvColorPicker(this).apply {
             layoutParams = LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT, (200 * dp).toInt()
@@ -910,33 +908,40 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         root.addView(picker)
 
-        // ── FIX: Ensure we use the correct method listener definition ──
-        // If HsvColorPicker uses onColorChanged function property:
+        // Only update the preview dot — do NOT touch Filament here
         picker.onColorChanged = { color ->
+            pendingColour = color
             (previewDot.background as? GradientDrawable)?.setColor(color)
-            applyModelColour(color) // Uses the exact method in your file
         }
 
-        // NOTE: If the wheel still doesn't update, your HsvColorPicker view might rely on
-        // an explicit listener pattern instead. If 'onColorChanged' doesn't fire, replace the block above with:
-        /*
-        picker.setOnColorChangedListener { color ->
-            (previewDot.background as? GradientDrawable)?.setColor(color)
-            applyModelColour(color)
-        }
-        */
-
-        // Restore button
-        root.addView(Button(this).apply {
-            text = getString(R.string.model_colour_restore)
+        // Button row: Restore | Confirm
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
             layoutParams = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.topMargin = (8 * dp).toInt() }
-            setOnClickListener {
-                restoreModelMaterials() // Uses the exact method in your file
-                inner.dismiss()
-            }
+
+            addView(Button(this@ModelPreviewActivity).apply {
+                text = getString(R.string.model_colour_restore)
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                    .also { it.marginEnd = (8 * dp).toInt() }
+                setOnClickListener {
+                    restoreModelMaterials()
+                    inner.dismiss()
+                }
+            })
+
+            addView(Button(this@ModelPreviewActivity).apply {
+                text = getString(R.string.confirm)   // add this string resource if missing
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+                setOnClickListener {
+                    applyModelColour(pendingColour)
+                    inner.dismiss()
+                }
+            })
         })
+
         inner.setContentView(root)
         inner.show()
         inner.window?.apply {
@@ -949,7 +954,6 @@ class ModelPreviewActivity : AppCompatActivity() {
             attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
         }
     }
-
 
     private fun updateCamera() {
         val elev = Math.toRadians(camElevDeg).toFloat(); val azim = Math.toRadians(camAzimDeg).toFloat()
@@ -1106,27 +1110,26 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         try {
-            // Stop animation before touching Filament resources
             stopAllPreviewAnimations()
-            // Cancel frame callback so no screenshot fires after destroy
             sceneView.onFrame = null
 
-            modelNode?.let {
-                sceneView.removeChildNode(it)
-                // Destroy colour-override MaterialInstances before the node goes away
-                modelColourOverrideMats.forEach { mat ->
-                    runCatching { sceneView.materialLoader.destroyMaterialInstance(mat) }
-                }
-                modelColourOverrideMats.clear()
-                it.destroy()
+            modelNode?.let { node ->
+                sceneView.removeChildNode(node)
+                node.destroy()
             }
-            sceneView.engine.flushAndWait()
+            modelNode = null
+
+            // modelColourOverrideMats and modelOriginalMats no longer needed —
+            // we mutate the model's own material instances in place, never create new ones
+            modelColourOverrideMats.clear()
+            modelOriginalMats = null
+
             sceneView.destroy()
 
         } catch (e: Exception) {
-            Log.e(TAG, "onDestroy cleanup error", e)  // don't silently swallow this
+            Log.e(TAG, "onDestroy cleanup error", e)
         } finally {
-            super.onDestroy()  // ✅ called exactly once, at the very end
+            super.onDestroy()
         }
     }
 }
