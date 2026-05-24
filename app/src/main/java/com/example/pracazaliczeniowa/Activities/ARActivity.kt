@@ -770,6 +770,35 @@ class ARActivity : AppCompatActivity() {
                 node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             }
 
+            // Load any saved colour override. We need to apply it directly to
+            // the node here (before selectModel wraps it) because applyModelColour
+            // operates on selectedModel which isn't set yet.
+            val savedColour = profileManager.loadColorOverride(node.getModeleName())
+            if (savedColour != null &&
+                modelSourceFormats[node.getModeleName()] in setOf("stl", "obj", "ply", "3ds")) {
+                val rm = arSceneView.engine.renderableManager
+                for (entity in node.modelInstance.asset.renderableEntities) {
+                    val ri = rm.getInstance(entity)
+                    if (ri == 0) continue
+                    for (i in 0 until rm.getPrimitiveCount(ri)) {
+                        runCatching {
+                            rm.getMaterialInstanceAt(ri, i).setParameter(
+                                "baseColorFactor",
+                                srgbToLinear(android.graphics.Color.red(savedColour)),
+                                srgbToLinear(android.graphics.Color.green(savedColour)),
+                                srgbToLinear(android.graphics.Color.blue(savedColour)),
+                                1f
+                            )
+                        }
+                    }
+                }
+                // Seed currentModelColour so the picker opens pre-filled and
+                // selectModel shows the right swatch colour immediately.
+                currentModelColour = savedColour
+            } else {
+                currentModelColour = null
+            }
+
             selectModel(node)
 
 
@@ -1028,7 +1057,8 @@ class ARActivity : AppCompatActivity() {
 
     /**
      * Applies [color] to every primitive of the currently selected model by
-     * mutating the existing MaterialInstance parameters in place.
+     * mutating the existing MaterialInstance parameters in place, then persists
+     * it via [ProfileManager] so ModelPreviewActivity loads it on next open.
      * Never creates or destroys MaterialInstances — safe to call at any time.
      */
     private fun applyModelColour(@androidx.annotation.ColorInt color: Int) {
@@ -1053,6 +1083,10 @@ class ARActivity : AppCompatActivity() {
 
         currentModelColour = color
         updateModelColourSwatch(color)
+
+        // Persist so ModelPreviewActivity and future AR placements load the same colour.
+        val modelName = selectedModel?.getWrappedNode()?.getModeleName() ?: return
+        profileManager.saveColorOverride(modelName, color)
     }
 
     private fun srgbToLinear(channel: Int): Float {
@@ -1061,7 +1095,8 @@ class ARActivity : AppCompatActivity() {
         else Math.pow((c + 0.055) / 1.055, 2.4).toFloat()
     }
 
-    /** Resets the model colour back to Assimp's default grey by mutating parameters in place. */
+    /** Resets the model colour back to Assimp's default grey by mutating parameters in place,
+     *  then clears the persisted override so ModelPreviewActivity also returns to grey. */
     private fun restoreModelMaterials() {
         val grey = android.graphics.Color.parseColor("#B2B2B2")
         val node = selectedModel?.getWrappedNode() ?: return
@@ -1085,6 +1120,11 @@ class ARActivity : AppCompatActivity() {
 
         currentModelColour = null
         updateModelColourSwatch(grey)
+
+        // Clear the persisted override so ModelPreviewActivity and future AR
+        // placements both start with the default grey.
+        val modelName = node.getModeleName()
+        profileManager.clearColorOverride(modelName)
     }
 
     /** Resets colour override tracking state — no Filament resources to destroy. */

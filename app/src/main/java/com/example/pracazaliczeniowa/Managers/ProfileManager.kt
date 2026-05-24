@@ -25,15 +25,20 @@ data class ModelProfile(
 /**
  * Everything stored for one model in a single JSON file.
  *
- * @param default  The profile that is applied automatically when the model
- *                 is placed.  Null until the user saves one.
- * @param named    Up to [ProfileManager.MAX_NAMED] user-named profiles,
- *                 keyed by the name the user typed.
+ * @param default       The profile that is applied automatically when the model
+ *                      is placed.  Null until the user saves one.
+ * @param named         Up to [ProfileManager.MAX_NAMED] user-named profiles,
+ *                      keyed by the name the user typed.
+ * @param colorOverride The last colour chosen in ModelPreviewActivity for
+ *                      texture-less models (STL/OBJ/PLY/3DS).  Stored as a
+ *                      packed ARGB integer (same as [android.graphics.Color]).
+ *                      Null means "no override — use Assimp's default grey".
  */
 @Serializable
 data class ModelProfileBundle(
     val default: ModelProfile? = null,
-    val named: Map<String, ModelProfile> = emptyMap()
+    val named: Map<String, ModelProfile> = emptyMap(),
+    val colorOverride: Int? = null
 )
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -159,6 +164,34 @@ class ProfileManager(context: Context) {
         val updatedNamed = bundle.named.toMutableMap()
         updatedNamed.remove(slotName)
         saveBundle(modelName, bundle.copy(named = updatedNamed))
+    }
+
+    // ── Colour override ──────────────────────────────────────────────────────
+
+    /**
+     * Returns the saved colour override for [modelName], or null if none has
+     * been set (meaning Assimp's default grey should be used).
+     */
+    fun loadColorOverride(modelName: String): Int? =
+        loadBundle(modelName).colorOverride
+
+    /**
+     * Persists [color] (packed ARGB) as the colour override for [modelName].
+     * Called by ModelPreviewActivity when the user leaves the screen.
+     */
+    fun saveColorOverride(modelName: String, color: Int) {
+        val bundle = loadBundle(modelName)
+        saveBundle(modelName, bundle.copy(colorOverride = color))
+    }
+
+    /**
+     * Removes the colour override for [modelName], returning the model to
+     * Assimp's default grey on next placement.
+     * Called by ModelPreviewActivity when the user taps "Restore original".
+     */
+    fun clearColorOverride(modelName: String) {
+        val bundle = loadBundle(modelName)
+        saveBundle(modelName, bundle.copy(colorOverride = null))
     }
 
     /** Clears the default profile. The model reverts to its raw scale/rotation on next placement. */

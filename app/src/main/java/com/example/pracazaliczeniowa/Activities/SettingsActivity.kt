@@ -165,7 +165,9 @@ class SettingsActivity : AppCompatActivity() {
                 2 -> "pl"
                 else -> ""
             }
+            settings.applyLocale(this)
             updateAccessibilitySummary()
+            recreate()
         }
     }
 

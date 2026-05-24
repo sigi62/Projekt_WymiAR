@@ -162,7 +162,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
             val savedMode = currentMode
 
             currentMode = "SCALE"
-            maybeExpandRange(sx); maybeExpandRange(sy); maybeExpandRange(sz)
             val psx = valueToProgress(sx); val psy = valueToProgress(sy); val psz = valueToProgress(sz)
             // Use the average as the universal scale seed (they're usually equal).
             val pUni = valueToProgress((sx + sy + sz) / 3f).coerceIn(SCL_MIN, sclDynMax)
@@ -184,7 +183,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
             val modeLabel      = findViewById<TextView>(R.id.modeLabel)
             val layoutUni      = findViewById<LinearLayout>(R.id.layoutUniversalScale)
             if (seekBarsLayout.visibility == View.VISIBLE) {
-                modeLabel.text       = currentMode
+                val stringResId = when (currentMode) {
+                    "ROTATE"   -> R.string.label_mode_rotate
+                    "POSITION" -> R.string.label_mode_position
+                    "SCALE"    -> R.string.label_mode_scale
+                    else       -> 0
+                }
+                modeLabel.text       = if (stringResId != 0) context.getString(stringResId) else currentMode
                 layoutUni.visibility = if (currentMode == "SCALE") View.VISIBLE else View.GONE
             }
             refreshSlidersForMode()
@@ -199,7 +204,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val savedMode = currentMode
 
         currentMode = "SCALE"
-        maybeExpandRange(relX); maybeExpandRange(relY); maybeExpandRange(relZ)
         scaleProgress = Triple(valueToProgress(relX), valueToProgress(relY), valueToProgress(relZ))
         universalScaleProgress = valueToProgress((relX + relY + relZ) / 3f).coerceIn(SCL_MIN, sclDynMax)
 
@@ -416,7 +420,19 @@ class ModelControlOverlayView @JvmOverloads constructor(
                 currentMode = mode
                 seekBarsLayout.visibility = View.VISIBLE
                 modeLabelRow.visibility      = View.VISIBLE
-                modeLabel.text            = currentMode
+
+                val stringResId = when (mode) {
+                    "ROTATE"   -> R.string.label_mode_rotate
+                    "POSITION" -> R.string.label_mode_position
+                    "SCALE"    -> R.string.label_mode_scale
+                    else       -> 0
+                }
+                if (stringResId != 0) {
+                    modeLabel.text = context.getString(stringResId)
+                } else {
+                    modeLabel.text = mode
+                }
+
                 layoutUni.visibility      = if (mode == "SCALE") View.VISIBLE else View.GONE
                 unitToggleBtn.visibility  = if (mode == "POSITION") View.VISIBLE else View.GONE  // ← add
 

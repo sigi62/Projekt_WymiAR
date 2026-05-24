@@ -34,6 +34,7 @@ import androidx.core.graphics.red
 import androidx.lifecycle.lifecycleScope
 import com.example.pracazaliczeniowa.Helpers.HsvColorPicker
 import com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+import com.example.pracazaliczeniowa.Managers.ProfileManager
 import com.example.pracazaliczeniowa.Overlays.CropOverlayView
 import com.example.pracazaliczeniowa.R
 import com.google.android.filament.Box
@@ -119,6 +120,10 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     private var modelNode: ModelNode? = null
     private lateinit var profileKey: String
+    private lateinit var profileManager: ProfileManager
+    /** Source format recorded at import time; null for assets and direct GLB imports.
+     *  Stored as a field so it's available to [btnOpenInAR] and [saveColourOverride]. */
+    private var activeSourceFormat: String? = null
     private var currentBgMode: BgMode = BgMode.SolidColour(DEFAULT_VOID_COLOR)
 
     private lateinit var prefs: SharedPreferences
@@ -202,6 +207,9 @@ class ModelPreviewActivity : AppCompatActivity() {
         profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run { finish(); return }
         // Null for bundled assets, direct GLB imports, and pre-existing models
         val sourceFormat = intent.getStringExtra(EXTRA_SOURCE_FORMAT)
+        activeSourceFormat = sourceFormat
+
+        profileManager = ProfileManager(this)
 
         sceneView           = findViewById(R.id.previewSceneView)
         cropOverlay         = findViewById(R.id.cropOverlay)
@@ -254,8 +262,9 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
         findViewById<Button>(R.id.btnOpenInAR).setOnClickListener {
             val intent = Intent(this, ARActivity::class.java).apply {
-                putExtra(LibraryActivity.EXTRA_MODEL_PATH,    modelPath)
+                putExtra(LibraryActivity.EXTRA_MODEL_PATH,     modelPath)
                 putExtra(LibraryActivity.EXTRA_MODEL_IS_ASSET, modelIsAsset)
+                putExtra(LibraryActivity.EXTRA_SOURCE_FORMAT,  activeSourceFormat)
             }
             startActivity(intent)
         }
@@ -757,6 +766,14 @@ class ModelPreviewActivity : AppCompatActivity() {
             // real textures and always receive Assimp's grey default PBR material.
             detectAndShowColourButton(path, sourceFormat)
 
+            // ── Restore any previously saved colour override ──────────────────
+            if (modelNeedsColourPicker) {
+                val saved = profileManager.loadColorOverride(profileKey)
+                if (saved != null) {
+                    applyModelColour(saved)
+                }
+            }
+
             // ── Show/hide animation buttons based on track count ──────────────
             val animCount = modelNode!!.modelInstance.animator?.animationCount ?: 0
             Log.d(TAG, "Model has $animCount animation track(s)")
@@ -771,17 +788,27 @@ class ModelPreviewActivity : AppCompatActivity() {
 
     /**
      * Shows the colour button when the model's source format never has textures.
-     * The three formats that always receive Assimp's injected grey default PBR
-     * material are STL, PLY, and 3DS — everything else carries its own materials.
+     * Uses [sourceFormat] from the intent extra when available; falls back to
+     * reading the .meta sidecar from disk so this works even if the launching
+     * activity forgot to pass [EXTRA_SOURCE_FORMAT].
      */
     private fun detectAndShowColourButton(modelPath: String, sourceFormat: String?) {
-        // Use the source format recorded at import time — the modelPath is always
-        // .glb at this point so extension-sniffing would never match.
-        modelNeedsColourPicker = sourceFormat in setOf("stl", "obj", "ply", "3ds")
+        // Prefer the value forwarded via intent. If null (asset, direct GLB, or
+        // caller bug), read the .meta sidecar that ModelImportManager wrote next
+        // to the .glb file so we never miss a texture-less model.
+        val resolvedFormat = sourceFormat
+            ?: run {
+                val glbFile = java.io.File(modelPath)
+                val metaFile = java.io.File(glbFile.parentFile, "${glbFile.nameWithoutExtension}.meta")
+                if (metaFile.exists()) metaFile.readText().trim().lowercase() else null
+            }
+
+        // Keep activeSourceFormat in sync so btnOpenInAR forwards the right value.
+        if (resolvedFormat != null) activeSourceFormat = resolvedFormat
+
+        modelNeedsColourPicker = resolvedFormat in setOf("stl", "obj", "ply", "3ds")
         btnModelColour.visibility = if (modelNeedsColourPicker) View.VISIBLE else View.GONE
         if (modelNeedsColourPicker) {
-            // Seed the swatch with the Assimp default grey so it looks right
-            // before the user picks anything
             val defaultGrey = Color.parseColor("#B2B2B2")
             updateModelColourSwatch(defaultGrey)
         }
@@ -840,6 +867,10 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         currentModelColour = null
         updateModelColourSwatch(grey)
+
+        // Clear the persisted override so ARActivity and future preview sessions
+        // both start with the default grey.
+        profileManager.clearColorOverride(profileKey)
     }
     /**
      * Shows a bottom-sheet colour picker for the model's surface colour.
@@ -964,6 +995,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         )
         sceneView.cameraNode.lookAt(io.github.sceneview.math.Position(0f, 0f, 0f))
     }
+
 
     private fun resumePreviewAnimation(index: Int) {
         val node = modelNode ?: return
@@ -1101,7 +1133,53 @@ class ModelPreviewActivity : AppCompatActivity() {
         return true
     }
 
+    /**
+     * When returning from ARActivity the user may have changed the colour there.
+     * Re-read from ProfileManager and re-apply if it differs from what we last had,
+     * so Preview always reflects the latest saved value.
+     */
+    override fun onResume() {
+        super.onResume()
+        if (!modelNeedsColourPicker) return
+        val saved = profileManager.loadColorOverride(profileKey)
+        if (saved != currentModelColour) {
+            if (saved != null) {
+                applyModelColour(saved)
+            } else {
+                // AR hit Restore — reset to grey without writing back to disk again.
+                val node = modelNode ?: return
+                val rm = sceneView.engine.renderableManager
+                val grey = Color.parseColor("#B2B2B2")
+                for (entity in node.modelInstance.asset.renderableEntities) {
+                    val ri = rm.getInstance(entity)
+                    if (ri == 0) continue
+                    for (i in 0 until rm.getPrimitiveCount(ri)) {
+                        val mat = rm.getMaterialInstanceAt(ri, i)
+                        runCatching {
+                            mat.setParameter("baseColorFactor",
+                                grey.linearR(), grey.linearG(), grey.linearB(), 1f)
+                        }
+                    }
+                }
+                currentModelColour = null
+                updateModelColourSwatch(grey)
+            }
+        }
+    }
+
+    /** Persists the current colour override whenever the activity stops. */
+    private fun saveColourOverride() {
+        if (!modelNeedsColourPicker) return
+        val colour = currentModelColour
+        if (colour != null) {
+            profileManager.saveColorOverride(profileKey, colour)
+        }
+        // If colour is null the user hit Restore, which already called
+        // clearColorOverride() — nothing extra to do.
+    }
+
     override fun onStop() {
+        saveColourOverride()
         if (currentBgMode is BgMode.Studio) {
             removeStudioPlanes()
         }

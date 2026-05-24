@@ -153,7 +153,7 @@
     <string name="thumbnail">Zdjęcie</string>
     <string name="menu_delete_thumbnail">Usuń zdjęcie</string>
     <string name="menu_rename">Zmień nazwę</string>
-    <string name="menu_delete_model">Usuń nazwę</string>
+    <string name="menu_delete_model">Usuń model</string>
     <string name="model_thumbnail">Zdjęcie modelu</string>
     <string name="toast_thumbnail_deleted">Zdjęcie usunięto</string>
     <string name="toast_thumbnail_delete_failed">Nie udało się usunąć zdjęcia</string>

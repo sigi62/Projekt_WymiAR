@@ -263,8 +263,7 @@
         android:scaleType="centerInside"
         android:padding="12dp"
         android:visibility="gone"
-        android:contentDescription="Clear all measure points"
-        android:fitsSystemWindows="true"/>
+        android:contentDescription="Clear all measure points"/>
 
     <!-- Revert – bottom-end -->
     <ImageButton
@@ -279,8 +278,7 @@
         android:scaleType="centerInside"
         android:padding="12dp"
         android:visibility="gone"
-        android:contentDescription="Undo last measure point"
-        android:fitsSystemWindows="true"/>
+        android:contentDescription="Undo last measure point"/>
 
     <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout
