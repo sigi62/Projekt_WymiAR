@@ -161,7 +161,11 @@ object ModelImportManager {
                 isAsset = false,
                 createdAt = System.currentTimeMillis(),
                 defaultSizeM = bounds,
-                sizeBytes = dest.length()
+                sizeBytes = dest.length(),
+                // Record the original format so activities can decide whether
+                // to show the model colour picker without inspecting the filename.
+                // GLBs imported directly get null — they have their own materials.
+                sourceFormat = if (isGlb) null else ext
             )
 
         } catch (e: Exception) {
@@ -248,7 +252,10 @@ object ModelImportManager {
                 thumbnailRes = item.thumbnailRes,
                 isAsset = false,
                 createdAt = item.createdAt,
-                sizeBytes = newFile.length()
+                sizeBytes = newFile.length(),
+                // Carry the original source format forward so the colour picker
+                // detection still works after a rename.
+                sourceFormat = item.sourceFormat
             )
         } else {
             log("Rename FAILED: File.renameTo returned false for '${item.name}'")

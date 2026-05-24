@@ -21,5 +21,6 @@ data class ModelItem(
     val defaultSizeM: Triple<Float, Float, Float>? = null,
     val sizeBytes: Long = 0L,
     val lastModified: Long = 0L,
-    val createdAt: Long = 0L
+    val createdAt: Long = 0L,
+    val sourceFormat: String? = null
 )

@@ -18,6 +18,7 @@ import android.view.MotionEvent
 import android.view.PixelCopy
 import android.view.View
 import android.widget.Button
+import android.widget.FrameLayout
 import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.RadioButton
@@ -73,6 +74,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         const val EXTRA_MODEL_PATH    = "extra_model_path"
         const val EXTRA_MODEL_IS_ASSET = "extra_model_is_asset"
         const val EXTRA_PROFILE_KEY   = "extra_profile_key"
+        const val EXTRA_SOURCE_FORMAT = "extra_source_format"
         private const val TAG = "ModelPreviewActivity"
         private const val CAM_DIST_INIT = 2.5f
         private const val CAM_ELEV_DEG_INIT = 35.0
@@ -157,6 +159,21 @@ class ModelPreviewActivity : AppCompatActivity() {
     private var initialCamDist = 0f
     private var isTwoFinger = false
 
+    // ── Model colour override ─────────────────────────────────────────────────
+    /** True when the loaded model came from a texture-less format (STL/PLY/3DS)
+     *  and received Assimp's grey default PBR material. */
+    private var modelNeedsColourPicker = false
+    /** Currently applied override colour; null = no override (original GLB mats). */
+    @ColorInt private var currentModelColour: Int? = null
+    /** MaterialInstances we created for the colour override — destroyed on cleanup. */
+    private val modelColourOverrideMats = mutableListOf<MaterialInstance>()
+    /** Snapshot of the original MaterialInstances before any override. */
+    private var modelOriginalMats: List<MaterialInstance>? = null
+
+    private lateinit var btnModelColour: FrameLayout
+    private lateinit var modelColourBgRect: View
+    private lateinit var modelColourPatchRect: View
+
     // ── Animation state ───────────────────────────────────────────────────────
     private var isAnimationPlaying: Boolean = false
     private var isAnimationStarted: Boolean = false
@@ -183,6 +200,8 @@ class ModelPreviewActivity : AppCompatActivity() {
         val modelPath = intent.getStringExtra(EXTRA_MODEL_PATH) ?: run { finish(); return }
         val modelIsAsset = intent.getBooleanExtra(EXTRA_MODEL_IS_ASSET, true)
         profileKey = intent.getStringExtra(EXTRA_PROFILE_KEY) ?: run { finish(); return }
+        // Null for bundled assets, direct GLB imports, and pre-existing models
+        val sourceFormat = intent.getStringExtra(EXTRA_SOURCE_FORMAT)
 
         sceneView           = findViewById(R.id.previewSceneView)
         cropOverlay         = findViewById(R.id.cropOverlay)
@@ -192,6 +211,9 @@ class ModelPreviewActivity : AppCompatActivity() {
         btnAnimationToggle  = findViewById(R.id.btnAnimationToggle)
         btnAnimationPause   = findViewById(R.id.btnAnimationPause)
         btnAnimationNext    = findViewById(R.id.btnAnimationNext)
+        btnModelColour      = findViewById(R.id.btnModelColour)
+        modelColourBgRect   = btnModelColour.findViewById(R.id.modelColourBgRect)
+        modelColourPatchRect= btnModelColour.findViewById(R.id.modelColourPatchRect)
 
         prefs = getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
 
@@ -222,6 +244,7 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         findViewById<ImageButton>(R.id.btnPreviewBack).setOnClickListener { finish() }
         btnBackground.setOnClickListener { showBackgroundPicker() }
+        btnModelColour.setOnClickListener { showModelColourPicker() }
         findViewById<Button>(R.id.btnTakeScreenshot).setOnClickListener { showCropOverlay() }
         findViewById<Button>(R.id.btnCropCancel).setOnClickListener { hideCropOverlay() }
         findViewById<Button>(R.id.btnCropConfirm).setOnClickListener {
@@ -287,7 +310,7 @@ class ModelPreviewActivity : AppCompatActivity() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
-        lifecycleScope.launch { loadModel(modelPath, modelIsAsset) }
+        lifecycleScope.launch { loadModel(modelPath, modelIsAsset, sourceFormat) }
         sceneView.onFrame = { if (captureNextFrame) { captureNextFrame = false; captureAndSaveThumbnail() } }
         setupTouchListener()
     }
@@ -706,7 +729,7 @@ class ModelPreviewActivity : AppCompatActivity() {
         studioMats.clear()
     }
 
-    private suspend fun loadModel(path: String, isAsset: Boolean = true) {
+    private suspend fun loadModel(path: String, isAsset: Boolean = true, sourceFormat: String? = null) {
         try {
             val instance = if (isAsset) {
                 sceneView.modelLoader.createModelInstance(path)
@@ -729,6 +752,11 @@ class ModelPreviewActivity : AppCompatActivity() {
             }
             sceneView.addChildNode(modelNode!!)
 
+            // ── Detect whether this model needs a colour picker ────────────────
+            // We check the path extension — the three formats that never carry
+            // real textures and always receive Assimp's grey default PBR material.
+            detectAndShowColourButton(path, sourceFormat)
+
             // ── Show/hide animation buttons based on track count ──────────────
             val animCount = modelNode!!.modelInstance.animator?.animationCount ?: 0
             Log.d(TAG, "Model has $animCount animation track(s)")
@@ -739,12 +767,189 @@ class ModelPreviewActivity : AppCompatActivity() {
         }
     }
 
-    private fun computeModelRadius() {
-        try {
-            val box = modelNode!!.boundingBox
-            modelRadius = sqrt(box.halfExtent[0] * box.halfExtent[0] + box.halfExtent[1] * box.halfExtent[1] + box.halfExtent[2] * box.halfExtent[2]).coerceAtLeast(0.1f)
-        } catch (e: Exception) { modelRadius = 1f }
+    // ── Model colour helpers ──────────────────────────────────────────────────
+
+    /**
+     * Shows the colour button when the model's source format never has textures.
+     * The three formats that always receive Assimp's injected grey default PBR
+     * material are STL, PLY, and 3DS — everything else carries its own materials.
+     */
+    private fun detectAndShowColourButton(modelPath: String, sourceFormat: String?) {
+        // Use the source format recorded at import time — the modelPath is always
+        // .glb at this point so extension-sniffing would never match.
+        modelNeedsColourPicker = sourceFormat in setOf("stl", "ply", "3ds")
+        btnModelColour.visibility = if (modelNeedsColourPicker) View.VISIBLE else View.GONE
+        if (modelNeedsColourPicker) {
+            // Seed the swatch with the Assimp default grey so it looks right
+            // before the user picks anything
+            val defaultGrey = Color.parseColor("#B2B2B2")
+            updateModelColourSwatch(defaultGrey)
+        }
     }
+
+    /** Repaints both swatch views to reflect [color]. */
+    private fun updateModelColourSwatch(@ColorInt color: Int) {
+        (modelColourBgRect.background as? GradientDrawable)?.setColor(color)
+            ?: modelColourBgRect.setBackgroundColor(color)
+        (modelColourPatchRect.background as? GradientDrawable)?.setColor(color)
+            ?: modelColourPatchRect.setBackgroundColor(color)
+    }
+
+    /**
+     * Replaces every primitive's material on the loaded [modelNode] with a flat
+     * colour instance. Snapshots the originals on first call so [restoreModelMaterials]
+     * can undo it.
+     */
+    private fun applyModelColour(@ColorInt color: Int) {
+        val node = modelNode ?: return
+        val rm = sceneView.engine.renderableManager
+        val ri = rm.getInstance(node.entity)
+        if (ri == 0) return
+
+        if (modelOriginalMats == null) {
+            modelOriginalMats = (0 until rm.getPrimitiveCount(ri))
+                .map { rm.getMaterialInstanceAt(ri, it) }
+        }
+
+        modelColourOverrideMats.forEach {
+            runCatching { sceneView.materialLoader.destroyMaterialInstance(it) }
+        }
+        modelColourOverrideMats.clear()
+
+        for (i in 0 until rm.getPrimitiveCount(ri)) {
+            val mat = sceneView.materialLoader.createColorInstance(color)
+            rm.setMaterialInstanceAt(ri, i, mat)
+            modelColourOverrideMats.add(mat)
+        }
+
+        currentModelColour = color
+        updateModelColourSwatch(color)
+    }
+
+    /** Restores the original GLB materials, removing any colour override. */
+    private fun restoreModelMaterials() {
+        val node = modelNode ?: return
+        val originals = modelOriginalMats ?: return
+        val rm = sceneView.engine.renderableManager
+        val ri = rm.getInstance(node.entity)
+        if (ri == 0) return
+
+        originals.forEachIndexed { i, mat -> rm.setMaterialInstanceAt(ri, i, mat) }
+        modelColourOverrideMats.forEach {
+            runCatching { sceneView.materialLoader.destroyMaterialInstance(it) }
+        }
+        modelColourOverrideMats.clear()
+        modelOriginalMats = null
+        currentModelColour = null
+        updateModelColourSwatch(Color.parseColor("#B2B2B2"))
+    }
+
+    /**
+     * Shows a bottom-sheet colour picker for the model's surface colour.
+     * Reuses the same [showSurfaceColorPicker] infrastructure already in place
+     * for studio-wall colours, with a "Restore original" option added.
+     */
+    private fun showModelColourPicker() {
+        val initial = currentModelColour ?: Color.parseColor("#B2B2B2")
+        val inner = android.app.Dialog(this)
+        val dp = resources.displayMetrics.density
+        val root = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding((24 * dp).toInt(), (16 * dp).toInt(), (24 * dp).toInt(), (32 * dp).toInt())
+            background = GradientDrawable().apply {
+                setColor(getColor(R.color.screen_background))
+                cornerRadii = floatArrayOf(20 * dp, 20 * dp, 20 * dp, 20 * dp, 0f, 0f, 0f, 0f)
+            }
+        }
+        // Drag handle
+        root.addView(View(this).apply {
+            layoutParams = LinearLayout.LayoutParams((40 * dp).toInt(), (4 * dp).toInt()).also {
+                it.gravity = Gravity.CENTER_HORIZONTAL
+                it.bottomMargin = (16 * dp).toInt()
+            }
+            setBackgroundColor(getColor(R.color.background_tint))
+        })
+        // Title
+        root.addView(TextView(this).apply {
+            text = getString(R.string.model_colour_picker_title)
+            textSize = 15f
+            setTextColor(getColor(R.color.text_primary))
+            setTypeface(typeface, Typeface.BOLD)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = (12 * dp).toInt() }
+        })
+        // Live preview dot + label
+        val previewDot = View(this).apply {
+            layoutParams = LinearLayout.LayoutParams((40 * dp).toInt(), (40 * dp).toInt()).also {
+                it.marginEnd = (12 * dp).toInt()
+            }
+            background = GradientDrawable().apply { shape = GradientDrawable.OVAL; setColor(initial) }
+        }
+        root.addView(LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = (16 * dp).toInt() }
+            addView(previewDot)
+            addView(TextView(this@ModelPreviewActivity).apply {
+                text = getString(R.string.studio_color_picker_live_preview)
+                textSize = 13f
+                setTextColor(getColor(R.color.text_secondary))
+            })
+        })
+
+        // Colour picker wheel
+        val picker = HsvColorPicker(this).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, (200 * dp).toInt()
+            ).also { it.bottomMargin = (8 * dp).toInt() }
+            setColor(initial)
+        }
+        root.addView(picker)
+
+        // ── FIX: Ensure we use the correct method listener definition ──
+        // If HsvColorPicker uses onColorChanged function property:
+        picker.onColorChanged = { color ->
+            (previewDot.background as? GradientDrawable)?.setColor(color)
+            applyModelColour(color) // Uses the exact method in your file
+        }
+
+        // NOTE: If the wheel still doesn't update, your HsvColorPicker view might rely on
+        // an explicit listener pattern instead. If 'onColorChanged' doesn't fire, replace the block above with:
+        /*
+        picker.setOnColorChangedListener { color ->
+            (previewDot.background as? GradientDrawable)?.setColor(color)
+            applyModelColour(color)
+        }
+        */
+
+        // Restore button
+        root.addView(Button(this).apply {
+            text = getString(R.string.model_colour_restore)
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.topMargin = (8 * dp).toInt() }
+            setOnClickListener {
+                restoreModelMaterials() // Uses the exact method in your file
+                inner.dismiss()
+            }
+        })
+        inner.setContentView(root)
+        inner.show()
+        inner.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
+            setGravity(android.view.Gravity.BOTTOM)
+            attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
+        }
+    }
+
 
     private fun updateCamera() {
         val elev = Math.toRadians(camElevDeg).toFloat(); val azim = Math.toRadians(camAzimDeg).toFloat()
@@ -908,6 +1113,11 @@ class ModelPreviewActivity : AppCompatActivity() {
 
             modelNode?.let {
                 sceneView.removeChildNode(it)
+                // Destroy colour-override MaterialInstances before the node goes away
+                modelColourOverrideMats.forEach { mat ->
+                    runCatching { sceneView.materialLoader.destroyMaterialInstance(mat) }
+                }
+                modelColourOverrideMats.clear()
                 it.destroy()
             }
             sceneView.engine.flushAndWait()

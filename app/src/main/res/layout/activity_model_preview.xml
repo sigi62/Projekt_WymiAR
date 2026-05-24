@@ -13,16 +13,50 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
-    <!-- Back button (top-left) -->
-    <ImageButton
-        android:id="@+id/btnPreviewBack"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
+    <!-- Top-start column: back button + model colour button -->
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_gravity="top|start"
-        android:layout_margin="16dp"
-        android:background="?attr/selectableItemBackgroundBorderless"
-        android:contentDescription="@string/back"
-        android:src="@drawable/ic_arrow_back_white"/>
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
+
+        <ImageButton
+            android:id="@+id/btnPreviewBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_arrow_back_white"/>
+
+        <!--
+            Model colour button — shown only when the loaded model has no real
+            textures (STL / PLY / 3DS with the injected grey PBR default).
+            Hidden by default; revealed in loadModel() after detection.
+        -->
+        <FrameLayout
+            android:id="@+id/btnModelColour"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/rounded_button"
+            android:visibility="gone"
+            android:contentDescription="Change model colour"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/modelColourPatchRect"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
+        </FrameLayout>
+
+    </LinearLayout>
 
     <!-- Background picker button (top-right) — always visible, hides during crop -->
 

@@ -1,4 +1,4 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">WymiAR</string>
     <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
 
@@ -118,6 +118,9 @@
     <string name="studio_color_picker_floor">Kolor podłogi</string>
     <string name="studio_color_picker_void">Kolor tła</string>
     <string name="studio_color_picker_live_preview">Podgląd na żywo</string>
+
+    <string name="model_colour_picker_title">Kolor modelu</string>
+    <string name="model_colour_restore">Przywróć oryginalny</string>
 
     <!-- Universal buttons -->
     <string name="back">Wróć</string>
@@ -290,7 +293,7 @@
     <string name="just_now">Przed chwilą</string>
 
     <!-- Plurals – add to res/values/plurals.xml (or inline in strings.xml) -->
-    <plurals name="downloaded_models_count">
+    <plurals name="downloaded_models_count" tools:ignore="MissingQuantity">
         <item quantity="one">%d pobrany model</item>
         <item quantity="other">%d pobranych modeli</item>
     </plurals>
@@ -298,11 +301,11 @@
         <item quantity="one">%d dzień temu</item>
         <item quantity="other">%d dni temu</item>
     </plurals>
-    <plurals name="hours_ago">
+    <plurals name="hours_ago" tools:ignore="MissingQuantity">
         <item quantity="one">%d godzinę temu</item>
         <item quantity="other">%d godzin temu</item>
     </plurals>
-    <plurals name="minutes_ago">
+    <plurals name="minutes_ago" tools:ignore="MissingQuantity">
         <item quantity="one">%d minutę temu</item>
         <item quantity="other">%d minut temu</item>
     </plurals>

@@ -20,6 +20,7 @@ import kotlinx.coroutines.withContext
 import java.nio.ByteBuffer
 import kotlin.math.sqrt
 import android.util.Log
+import android.widget.FrameLayout
 import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Helpers.ModelPickerPopup
 import com.example.pracazaliczeniowa.Managers.ModelProfile
@@ -82,6 +83,18 @@ class ARActivity : AppCompatActivity() {
     private var isRotationRingVisible: Boolean = true
     private var isClosing: Boolean = false
 
+    // ── Model colour override ─────────────────────────────────────────────────
+    /** Currently applied override colour on the selected model; null = no override. */
+    @androidx.annotation.ColorInt private var currentModelColour: Int? = null
+    /** MaterialInstances created for the colour override — destroyed when model deselected. */
+    private val modelColourOverrideMats = mutableListOf<com.google.android.filament.MaterialInstance>()
+    /** Snapshot of original MaterialInstances before any override. */
+    private var modelOriginalMats: List<com.google.android.filament.MaterialInstance>? = null
+
+    private lateinit var btnModelColour: FrameLayout
+    private lateinit var modelColourBgRect: android.view.View
+    private lateinit var modelColourPatchRect: android.view.View
+
     private lateinit var planeGridRenderer: PlaneGridRenderer
 
     // ── Dimension HUD views ──────────────────────────────────────────────────
@@ -138,6 +151,8 @@ class ARActivity : AppCompatActivity() {
      */
     private var activeModelPath: String    = "models/cat.glb"
     private var activeModelIsAsset: Boolean = true
+    /** Source format recorded at import time; null for assets and direct GLB imports. */
+    private var activeModelSourceFormat: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -145,6 +160,7 @@ class ARActivity : AppCompatActivity() {
 
         activeModelPath    = intent.getStringExtra(LibraryActivity.Companion.EXTRA_MODEL_PATH)    ?: "models/cat.glb"
         activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.Companion.EXTRA_MODEL_IS_ASSET, true)
+        activeModelSourceFormat = intent.getStringExtra(LibraryActivity.Companion.EXTRA_SOURCE_FORMAT)
 
         profileManager = ProfileManager(this)
         settings = AppSettings(this)
@@ -166,6 +182,9 @@ class ARActivity : AppCompatActivity() {
         wallMagnetButton          = findViewById(R.id.btnWallMagnet)
         settingsButton            = findViewById(R.id.btnSettings)
         btnLibrary                = findViewById<ImageButton>(R.id.btnLibrary)
+        btnModelColour            = findViewById(R.id.btnModelColour)
+        modelColourBgRect         = btnModelColour.findViewById(R.id.modelColourBgRect)
+        modelColourPatchRect      = btnModelColour.findViewById(R.id.modelColourPatchRect)
 
         // ── Measure action buttons ───────────────────────────────────────────
         btnMeasureDelete     = findViewById(R.id.btnMeasureDelete)
@@ -197,6 +216,7 @@ class ARActivity : AppCompatActivity() {
         }
 
         btnLibrary.setOnClickListener { showModelPicker() }
+        btnModelColour.setOnClickListener { showModelColourPicker() }
         viewAttachmentManager = ViewAttachmentManager(this, arSceneView)
         arSceneView.lifecycle = lifecycle
 
@@ -783,6 +803,18 @@ class ARActivity : AppCompatActivity() {
         dimensionHud.visibility = View.GONE
         models.remove(defaultNode)
 
+        // ── Model colour button visibility ────────────────────────────────────
+        // Show only for texture-less formats (STL / PLY / 3DS) that received
+        // Assimp's grey default PBR material; hidden for everything else.
+        // Use the source format recorded at import time rather than the
+        // file path, which is always .glb at this point.
+        val needsColour = activeModelSourceFormat in setOf("stl", "ply", "3ds")
+        btnModelColour.visibility = if (needsColour) View.VISIBLE else View.GONE
+        if (needsColour) {
+            val swatch = currentModelColour ?: android.graphics.Color.parseColor("#B2B2B2")
+            updateModelColourSwatch(swatch)
+        }
+
         val wrapped = defaultNode.wrapAsSelected(scope = lifecycleScope)
         selectedModel = wrapped
 
@@ -871,6 +903,10 @@ class ARActivity : AppCompatActivity() {
         modelControls.visibility            = View.GONE
         wireframeModeButton.visibility      = View.GONE
         wireframeModeButton.alpha      = 0.5f
+        btnModelColour.visibility           = View.GONE
+        // Clear colour override state when deselecting so a freshly placed
+        // instance of the same model starts with no override applied.
+        clearModelColourOverride()
         isAnimationPlaying = false
         isAnimationStarted = false
         refreshAnimationUI()
@@ -983,6 +1019,164 @@ class ARActivity : AppCompatActivity() {
         modelPickerPopup.show(btnLibrary, activeModelPath)
     }
 
+    // ── Model colour helpers ──────────────────────────────────────────────────
+
+    /** Repaints both swatch views on the colour button to reflect [color]. */
+    private fun updateModelColourSwatch(@androidx.annotation.ColorInt color: Int) {
+        (modelColourBgRect.background as? android.graphics.drawable.GradientDrawable)
+            ?.setColor(color) ?: modelColourBgRect.setBackgroundColor(color)
+        (modelColourPatchRect.background as? android.graphics.drawable.GradientDrawable)
+            ?.setColor(color) ?: modelColourPatchRect.setBackgroundColor(color)
+    }
+
+    /**
+     * Applies [color] to every primitive of the currently selected model's
+     * [DefaultModelNode]. Snapshots the originals on first call.
+     */
+    private fun applyModelColour(@androidx.annotation.ColorInt color: Int) {
+        val node = selectedModel?.getWrappedNode() ?: return
+        val rm = arSceneView.engine.renderableManager
+        val ri = rm.getInstance(node.entity)
+        if (ri == 0) return
+
+        if (modelOriginalMats == null) {
+            modelOriginalMats = (0 until rm.getPrimitiveCount(ri))
+                .map { rm.getMaterialInstanceAt(ri, it) }
+        }
+
+        modelColourOverrideMats.forEach {
+            runCatching { arSceneView.materialLoader.destroyMaterialInstance(it) }
+        }
+        modelColourOverrideMats.clear()
+
+        for (i in 0 until rm.getPrimitiveCount(ri)) {
+            val mat = arSceneView.materialLoader.createColorInstance(color)
+            rm.setMaterialInstanceAt(ri, i, mat)
+            modelColourOverrideMats.add(mat)
+        }
+
+        currentModelColour = color
+        updateModelColourSwatch(color)
+    }
+
+    /** Restores the original GLB materials, removing any colour override. */
+    private fun restoreModelMaterials() {
+        val node = selectedModel?.getWrappedNode() ?: return
+        val originals = modelOriginalMats ?: return
+        val rm = arSceneView.engine.renderableManager
+        val ri = rm.getInstance(node.entity)
+        if (ri == 0) return
+
+        originals.forEachIndexed { i, mat -> rm.setMaterialInstanceAt(ri, i, mat) }
+        clearModelColourOverride()
+    }
+
+    /** Destroys override mats and resets all override tracking state. */
+    private fun clearModelColourOverride() {
+        modelColourOverrideMats.forEach {
+            runCatching { arSceneView.materialLoader.destroyMaterialInstance(it) }
+        }
+        modelColourOverrideMats.clear()
+        modelOriginalMats = null
+        currentModelColour = null
+    }
+
+    /**
+     * Shows a bottom-sheet colour picker for the selected model's surface colour.
+     * Only reachable when [btnModelColour] is visible (texture-less models).
+     */
+    private fun showModelColourPicker() {
+        val initial = currentModelColour ?: android.graphics.Color.parseColor("#B2B2B2")
+        val inner = android.app.Dialog(this)
+        val dp = resources.displayMetrics.density
+
+        val root = android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.VERTICAL
+            setPadding((24 * dp).toInt(), (16 * dp).toInt(), (24 * dp).toInt(), (32 * dp).toInt())
+            background = android.graphics.drawable.GradientDrawable().apply {
+                setColor(getColor(R.color.screen_background))
+                cornerRadii = floatArrayOf(20 * dp, 20 * dp, 20 * dp, 20 * dp, 0f, 0f, 0f, 0f)
+            }
+        }
+        // Drag handle
+        root.addView(android.view.View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                (40 * dp).toInt(), (4 * dp).toInt()
+            ).also { it.gravity = android.view.Gravity.CENTER_HORIZONTAL; it.bottomMargin = (16 * dp).toInt() }
+            setBackgroundColor(getColor(R.color.background_tint))
+        })
+        // Title
+        root.addView(android.widget.TextView(this).apply {
+            text = getString(R.string.model_colour_picker_title)
+            textSize = 15f
+            setTextColor(getColor(R.color.text_primary))
+            setTypeface(typeface, android.graphics.Typeface.BOLD)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = (12 * dp).toInt() }
+        })
+        // Live preview dot
+        val previewDot = android.view.View(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                (40 * dp).toInt(), (40 * dp).toInt()
+            ).also { it.marginEnd = (12 * dp).toInt() }
+            background = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL; setColor(initial)
+            }
+        }
+        root.addView(android.widget.LinearLayout(this).apply {
+            orientation = android.widget.LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.bottomMargin = (16 * dp).toInt() }
+            addView(previewDot)
+            addView(android.widget.TextView(this@ARActivity).apply {
+                text = getString(R.string.studio_color_picker_live_preview)
+                textSize = 13f
+                setTextColor(getColor(R.color.text_secondary))
+            })
+        })
+        // Colour picker wheel
+        val picker = com.example.pracazaliczeniowa.Helpers.HsvColorPicker(this).apply {
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (200 * dp).toInt()
+            ).also { it.bottomMargin = (8 * dp).toInt() }
+            setColor(initial)
+        }
+        root.addView(picker)
+        picker.onColorChanged = { color ->
+            (previewDot.background as? android.graphics.drawable.GradientDrawable)?.setColor(color)
+            applyModelColour(color)
+        }
+        // Restore button
+        root.addView(android.widget.Button(this).apply {
+            text = getString(R.string.model_colour_restore)
+            layoutParams = android.widget.LinearLayout.LayoutParams(
+                android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
+                android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
+            ).also { it.topMargin = (8 * dp).toInt() }
+            setOnClickListener {
+                restoreModelMaterials()
+                updateModelColourSwatch(android.graphics.Color.parseColor("#B2B2B2"))
+                inner.dismiss()
+            }
+        })
+        inner.setContentView(root)
+        inner.show()
+        inner.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            setLayout(
+                android.view.WindowManager.LayoutParams.MATCH_PARENT,
+                android.view.WindowManager.LayoutParams.WRAP_CONTENT
+            )
+            setGravity(android.view.Gravity.BOTTOM)
+            attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
+        }
+    }
+
     // ── Delete model from scene ───────────────────────────────────────────────
 
     private fun deleteSelectedModel() {
@@ -996,6 +1190,8 @@ class ARActivity : AppCompatActivity() {
 
         anchorNode?.anchor?.detach()
         anchorNode?.parent = null
+
+        clearModelColourOverride()
 
         val default   = selected.unwrap()
         val modelName = default?.getModeleName()

@@ -11,6 +11,7 @@ import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import com.example.pracazaliczeniowa.Activities.LibraryActivity
 import com.example.pracazaliczeniowa.Managers.ModelImportManager
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
@@ -25,13 +26,17 @@ class ModelPickerPopup(private val context: Context) {
      * Internal helper to build the full list of available models.
      */
     private fun getAllAvailableModels(): List<ModelItem> {
-        val bundled = listOf(
-            ModelItem("Cat", "models/cat.glb", R.drawable.ic_model_placeholder, isAsset = true),
-            ModelItem("Dog", "models/dog.glb", R.drawable.ic_model_placeholder, isAsset = true),
-            ModelItem("Van", "models/van.glb", R.drawable.ic_model_placeholder, isAsset = true),
-        )
-        // Combine bundled assets with user-imported models
-        return bundled + ModelImportManager.loadImported(context)
+        val bundled = try {
+            (context.assets.list("models") ?: emptyArray())
+                .filter { it.endsWith(".glb", ignoreCase = true) }
+                .map { ModelImportManager.bundledItem(context, "models/$it") }
+        } catch (e: Exception) {
+            emptyList()
+        }
+
+        val imported = ModelImportManager.loadImported(context)
+
+        return bundled + imported
     }
 
     fun show(anchorView: View, activePath: String) {

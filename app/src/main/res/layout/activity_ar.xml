@@ -42,6 +42,44 @@
             android:scaleType="centerInside"
             android:contentDescription="@string/back"/>
 
+        <!--
+            Model colour button — shown only when a texture-less model is selected
+            (STL / PLY / 3DS that received the grey default PBR material from the
+            native converter). Hidden by default; ARActivity toggles visibility
+            inside selectModel() / deselectModel().
+            The outer FrameLayout layers a solid bg_rect behind a smaller
+            patch_rect swatch so the user sees the currently applied colour.
+        -->
+        <FrameLayout
+            android:id="@+id/btnModelColour"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/rounded_button"
+            android:visibility="gone"
+            android:contentDescription="Change model colour"
+            android:clickable="true"
+            android:focusable="true">
+
+            <!-- Full-button background tint (tracks current override colour) -->
+            <View
+                android:id="@+id/modelColourBgRect"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@drawable/rounded_button"
+                android:alpha="0.35"/>
+
+            <!-- Small swatch square centred inside -->
+            <View
+                android:id="@+id/modelColourPatchRect"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/rounded_button"/>
+
+        </FrameLayout>
+
         <ImageButton
             android:id="@+id/btnLibrary"
             android:layout_width="48dp"

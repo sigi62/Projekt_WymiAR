@@ -66,7 +66,6 @@ class AppSettings(context: Context) {
     fun applyLocale(context: Context) {
         val tag = languageOverride
         val locale = if (tag.isEmpty()) {
-            // Restore system default
             LocaleListCompat.getEmptyLocaleList()
         } else {
             LocaleListCompat.forLanguageTags(tag)
@@ -116,13 +115,6 @@ class AppSettings(context: Context) {
     /**
      * Sets posMidDefault from a value expressed in the current distanceUnit.
      */
-    fun setPosMidFromCurrentUnit(value: Float) {
-        posMidDefault = when (distanceUnit) {
-            DistanceUnit.METERS      -> (value * 100f).toInt()
-            DistanceUnit.CENTIMETERS -> value.toInt()
-            DistanceUnit.MILLIMETERS -> (value / 10f).toInt()
-        }.coerceIn(1, 1_000)
-    }
 
     // -------------------------------------------------------------------------
     // ModelControlOverlayView – scale default max progress

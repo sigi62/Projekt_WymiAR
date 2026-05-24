@@ -324,13 +324,5 @@ class ModelLibraryManager(
         return false to ""
     }
 
-    // ── Constants ─────────────────────────────────────────────────────────────
 
-    companion object {
-        private const val MENU_PREVIEW       = 1
-        private const val MENU_DELETE_THUMB  = 2
-        private const val MENU_RENAME        = 3
-        private const val MENU_EXPORT_PROFILE =4
-        private const val MENU_DELETE_MODEL  = 5
-    }
 }

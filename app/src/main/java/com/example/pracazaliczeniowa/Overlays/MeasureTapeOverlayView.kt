@@ -28,9 +28,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
-    companion object {
-        const val MAX_LINES = 5
-    }
+
 
     private var sceneView: ARSceneView? = null
 

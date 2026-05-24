@@ -119,6 +119,9 @@
     <string name="studio_color_picker_void">Void Color</string>
     <string name="studio_color_picker_live_preview">Live preview</string>
 
+    <string name="model_colour_picker_title">Model colour</string>
+    <string name="model_colour_restore">Restore original</string>
+
     <!-- Universal buttons -->
     <string name="back">Back</string>
     <string name="confirm">Confirm</string>

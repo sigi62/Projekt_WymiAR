@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.text.InputFilter
-import android.text.InputType
 import android.view.LayoutInflater
 import android.view.inputmethod.InputMethodManager
 import android.widget.Button
@@ -26,11 +25,9 @@ import com.example.pracazaliczeniowa.Managers.ModelImportManager
 import com.example.pracazaliczeniowa.Managers.ModelLibraryManager
 import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
-import com.example.pracazaliczeniowa.Objects.ModelFileUtils
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
 import com.google.android.material.chip.Chip
-import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.play.core.splitinstall.SplitInstallManagerFactory
 import com.google.android.play.core.splitinstall.SplitInstallRequest
 import com.google.android.play.core.splitinstall.SplitInstallStateUpdatedListener
@@ -45,6 +42,7 @@ class LibraryActivity : AppCompatActivity() {
     companion object {
         const val EXTRA_MODEL_PATH     = "extra_model_path"
         const val EXTRA_MODEL_IS_ASSET = "extra_model_is_asset"
+        const val EXTRA_SOURCE_FORMAT  = "extra_source_format"
     }
 
 
@@ -150,13 +148,6 @@ class LibraryActivity : AppCompatActivity() {
         }
     }
 
-    // ── Bundled models ────────────────────────────────────────────────────────
-    private val installTime: Long by lazy {
-        packageManager
-            .getPackageInfo(packageName, 0)
-            .firstInstallTime
-    }
-
 
     private val bundledModels: List<ModelItem> by lazy {
         (this.assets.list("models") ?: emptyArray())
@@ -223,6 +214,7 @@ class LibraryActivity : AppCompatActivity() {
                     Intent(this, ARActivity::class.java).apply {
                         putExtra(EXTRA_MODEL_PATH, selectedModel.modelPath)
                         putExtra(EXTRA_MODEL_IS_ASSET, selectedModel.isAsset)
+                        putExtra(EXTRA_SOURCE_FORMAT, selectedModel.sourceFormat)
                     }
                 )
             },
@@ -240,6 +232,10 @@ class LibraryActivity : AppCompatActivity() {
                         putExtra(
                             ModelPreviewActivity.Companion.EXTRA_PROFILE_KEY,
                             selectedModel.profileKey
+                        )
+                        putExtra(
+                            ModelPreviewActivity.Companion.EXTRA_SOURCE_FORMAT,
+                            selectedModel.sourceFormat
                         )
                     }
                 )
