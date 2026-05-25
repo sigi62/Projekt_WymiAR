@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -12,64 +13,223 @@
         android:id="@+id/measureOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:background="@android:color/transparent" />
+        android:background="@android:color/transparent"
+        android:fitsSystemWindows="true" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginStart="8dp"
+            android:src="@drawable/ic_arrow_back_white"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:scaleType="centerInside"
+            android:contentDescription="@string/back"/>
+
+        <FrameLayout
+            android:id="@+id/btnModelColour"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/rounded_button"
+            android:visibility="gone"
+            android:contentDescription="Change model colour"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/modelColourBgRect"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
+
+            <View
+                android:id="@+id/modelColourPatchRect"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
+
+        </FrameLayout>
+
+        <ImageButton
+            android:id="@+id/btnLibrary"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:layout_gravity="top|start"
+            android:src="@drawable/ic_library"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="@string/library_tittle"/>
+    </LinearLayout>
 
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="top|end"
         android:layout_marginTop="16dp"
-        android:layout_marginEnd="16dp"
-        android:orientation="horizontal">
-
-        <Button
-            android:id="@+id/btnUnit"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="cm"
-            android:background="#88000000"
-            android:textColor="#FFFFFF" />
-
-
-
-    </LinearLayout>
-
-    <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
-        android:layout_marginTop="120dp"
         android:layout_marginEnd="10dp"
-        android:orientation="vertical">
+        android:orientation="horizontal"
+        android:fitsSystemWindows="true">
 
         <ImageButton
-            android:id="@+id/btnMeasureTapeModeToggle"
+            android:id="@+id/btnSettings"
             android:layout_width="48dp"
             android:layout_height="48dp"
-            android:src="@drawable/ic_measure_tape"
+            android:src="@drawable/ic_settings"
             android:background="@drawable/rounded_button"
             android:scaleType="centerInside"
             android:padding="10dp"
-            android:layout_marginBottom="10dp"/>
-
-        <ImageButton
-            android:id="@+id/btnWireframeToggle"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:src="@drawable/ic_wireframe"
-            android:background="@drawable/rounded_button"
-            android:scaleType="centerInside"
-            android:padding="10dp"/>
-
-
+            android:contentDescription="@string/settings_title"/>
 
     </LinearLayout>
+
+    <ScrollView
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="10dp"
+        android:layout_marginBottom="80dp"
+        android:fitsSystemWindows="true"
+        android:scrollbars="none"
+        android:overScrollMode="never"
+        android:fillViewport="false"
+        android:clipToPadding="false"
+        android:paddingBottom="8dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+
+            <ImageButton
+                android:id="@+id/btnMeasureTapeModeToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_measure_tape"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:contentDescription="@string/measure_tap_first"/>
+
+            <ImageButton
+                android:id="@+id/btnWallMagnet"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_stack"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"/>
+
+            <ImageButton
+                android:id="@+id/btnWireframeToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_wireframe"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/btnRotationRingToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_circle_delete"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/btnAnimationToggle"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_animation"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/btnAnimationPause"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_play_pause"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+            <ImageButton
+                android:id="@+id/btnAnimationNext"
+                android:layout_width="48dp"
+                android:layout_height="48dp"
+                android:src="@drawable/ic_skip_next"
+                android:background="@drawable/rounded_button"
+                android:scaleType="centerInside"
+                android:padding="10dp"
+                android:layout_marginBottom="10dp"
+                android:visibility="gone"/>
+
+        </LinearLayout>
+    </ScrollView>
+
+
+    <ImageButton
+        android:id="@+id/btnMeasureDelete"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="bottom|start"
+        android:layout_marginBottom="24dp"
+        android:layout_marginStart="12dp"
+        android:src="@drawable/ic_delete"
+        android:background="@drawable/rounded_button"
+        android:scaleType="centerInside"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:contentDescription="Clear all measure points"/>
+
+    <ImageButton
+        android:id="@+id/btnMeasureRevert"
+        android:layout_width="52dp"
+        android:layout_height="52dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="12dp"
+        android:src="@drawable/ic_revert"
+        android:background="@drawable/rounded_button"
+        android:scaleType="centerInside"
+        android:padding="12dp"
+        android:visibility="gone"
+        android:contentDescription="Undo last measure point"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
-        android:orientation="vertical">
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
 
         <TextView
             android:id="@+id/statusText"
@@ -77,18 +237,28 @@
             android:layout_height="wrap_content"
             android:layout_gravity="center_horizontal"
             android:layout_marginBottom="8dp"
-            android:text="Point at a surface to place model"
-            android:textColor="#FFFFFF"
-            android:background="#88000000"
+            android:text="@string/status_point_at_surface"
+            android:textColor="@color/text_primary"
+            android:background="@color/AR_text_background"
             android:padding="8dp"
             android:textSize="14sp" />
+
+        <include
+            android:id="@+id/dimensionHud"
+            layout="@layout/view_model_dimension_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="start"
+            android:layout_marginStart="12dp"
+            android:layout_marginBottom="4dp"
+            android:visibility="gone" />
 
         <com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
             android:id="@+id/modelControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:paddingTop="10dp"
-            android:background="#AA000000"/>
+            android:background="@color/AR_layout_background"/>
 
     </LinearLayout>
 

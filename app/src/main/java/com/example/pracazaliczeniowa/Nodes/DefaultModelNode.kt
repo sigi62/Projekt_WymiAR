@@ -1,82 +1,118 @@
 package com.example.pracazaliczeniowa.Nodes
 
-import android.util.Log
-import android.widget.TextView
-import com.google.android.filament.Engine
 import dev.romainguy.kotlin.math.Float3
-import com.google.android.filament.Box
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
-import dev.romainguy.kotlin.math.Float4
 import io.github.sceneview.ar.ARSceneView
-import io.github.sceneview.loaders.MaterialLoader
 import io.github.sceneview.model.ModelInstance
-import io.github.sceneview.model.engine
-import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.ModelNode
-import io.github.sceneview.node.PlaneNode
-import io.github.sceneview.node.ViewNode
 import kotlinx.coroutines.CoroutineScope
-import android.view.LayoutInflater
-import android.widget.SearchView
-import com.example.pracazaliczeniowa.R
-import com.example.pracazaliczeniowa.R.layout
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 
 
-/**
- * Default node for AR models.
- * Minimal UI, triggers selection when tapped.
- */
+
 class DefaultModelNode(
+    val modelId: String,
     val modelPath: String,
     modelInstance: ModelInstance,
     private val scope: CoroutineScope,
     private val sceneView: ARSceneView,
-    private val viewAttachmentManager: ViewAttachmentManager
 ) : ModelNode(
     modelInstance = modelInstance,
-    autoAnimate = true
-)
+    autoAnimate = false
+) {
 
-{
-    // Helper to get a clean name for the file system (e.g., "cat")
+    var profileApplied: Boolean = false
+    var currentRelativeRotation: Float3 = Float3(0f)
+    var currentRelativeScale: Float3 = Float3(1f)
+    fun hasAnimations(): Boolean =
+        (modelInstance.animator?.animationCount ?: 0) > 0
+
+    var activeAnimationIndex: Int = 0
+        private set
+    private val elapsedTimes = mutableMapOf<Int, Float>()
+    private var animJob: Job? = null
+    private var lastTickNanos: Long = 0L
+
+    fun resumeAnimation(index: Int) {
+        if (!hasAnimations()) return
+        val animator = modelInstance.animator ?: return
+        val count = animator.animationCount
+        if (index !in 0 until count) return
+
+        animJob?.cancel()
+        activeAnimationIndex = index
+        val duration = animator.getAnimationDuration(index)
+        if (duration <= 0f) return
+
+        lastTickNanos = System.nanoTime()
+
+        animJob = scope.launch {
+            while (isActive) {
+                val now = System.nanoTime()
+                val delta = (now - lastTickNanos) / 1_000_000_000f
+                lastTickNanos = now
+
+                val elapsed = (elapsedTimes[index] ?: 0f) + delta
+                elapsedTimes[index] = elapsed % duration
+
+                animator.applyAnimation(index, elapsedTimes[index]!!)
+                animator.updateBoneMatrices()
+
+                delay(16)
+            }
+        }
+    }
+
+    fun pauseAnimation() {
+        if (!hasAnimations()) return
+        animJob?.cancel()
+        animJob = null
+    }
+
+    fun stopAllAnimations() {
+        animJob?.cancel()
+        animJob = null
+        elapsedTimes.clear()
+        activeAnimationIndex = 0
+        val animator = modelInstance.animator ?: return
+        if (animator.animationCount > 0) {
+            animator.applyAnimation(0, 0f)
+            animator.updateBoneMatrices()
+        }
+    }
+
+    fun setAnimationPlaying(playing: Boolean) {
+        if (playing) resumeAnimation(activeAnimationIndex) else pauseAnimation()
+    }
+
     fun getModeleName(): String {
         return modelPath.substringAfterLast("/").substringBeforeLast(".")
     }
-    fun wrapAsSelected(scope: CoroutineScope, ): SelectedModelNode? {
+    fun wrapAsSelected(scope: CoroutineScope): SelectedModelNode? {
         val parentNode = this.parent ?: return null
 
-        // 1. Capture current world state
         val worldPos = this.worldPosition
         val worldRot = this.worldQuaternion
-        val worldScl = this.worldScale // Capture the actual visual scale
+        val worldScl = this.worldScale
 
-        // 2. Create wrapper at the exact same world location
-        val wrapper = SelectedModelNode(engine,scope)
+        val wrapper = SelectedModelNode(engine, scope)
 
         parentNode.addChildNode(wrapper)
-
 
         wrapper.attachNode(this)
         wrapper.worldPosition = worldPos
         wrapper.worldQuaternion = worldRot
-        // Note: We keep wrapper scale at 1.0 to avoid distorting children
 
-        // 3. Move the model into the wrapper ??
-        //parentNode.removeChildNode(this)
-        //wrapper.addChildNode(this)
-
-        // change -= wrapper.attachNode(this)
         wrapper.showRotationHandle(engine, sceneView)
 
-        // 4. RESET local transforms of 'this' so it sits at 0,0,0 inside wrapper
-        // But keep the local scale that makes the model look right
         this.position = Float3(0f)
         this.quaternion = dev.romainguy.kotlin.math.Quaternion()
 
         return wrapper
     }
 
-    fun scaleToUnits(f: Float) {
-        this.scale = Float3(f)
-    }
+
 }

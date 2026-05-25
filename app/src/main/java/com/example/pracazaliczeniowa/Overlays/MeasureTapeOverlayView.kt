@@ -3,6 +3,7 @@ package com.example.pracazaliczeniowa.Overlays
 import android.content.Context
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Typeface
 import android.opengl.Matrix
@@ -10,33 +11,34 @@ import android.util.AttributeSet
 import android.view.Choreographer
 import android.view.View
 import com.google.ar.core.TrackingState
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
+import io.github.sceneview.ar.node.AnchorNode
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-/**
- * Transparent overlay that draws a "measuring tape" line between two world-space points
- * (set by ARActivity) and shows the distance label at the midpoint.
- */
 class MeasureTapeOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
+
     private var sceneView: ARSceneView? = null
 
-    private var p0: Float3? = null
-    private var p1: Float3? = null
+    private val measureLines = mutableListOf<Pair<AnchorNode, AnchorNode>>()
+
+    private var pendingAnchor: AnchorNode? = null
+
     private var unit: DistanceUnit = DistanceUnit.METERS
 
-    // ── Paints ────────────────────────────────────────────────────────────
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.YELLOW
-        strokeWidth = 8f
+        color = Color.WHITE
+        strokeWidth = 6f
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
+        pathEffect = DashPathEffect(floatArrayOf(20f, 12f), 0f)
     }
 
     private val textPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -52,7 +54,7 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
     }
 
     private val pointFillPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = Color.YELLOW
+        color = Color.WHITE
         style = Paint.Style.FILL
     }
 
@@ -62,13 +64,9 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         style = Paint.Style.STROKE
     }
 
-    // ── Projection matrices ───────────────────────────────────────────────
-
     private val proj = FloatArray(16)
     private val view = FloatArray(16)
-    private val vp = FloatArray(16)
-
-    // ── Choreographer (per-frame redraw) ──────────────────────────────────
+    private val vp   = FloatArray(16)
 
     private val frameCallback: Choreographer.FrameCallback = Choreographer.FrameCallback {
         invalidate()
@@ -85,31 +83,34 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    fun attach(sceneView: ARSceneView) {
-        this.sceneView = sceneView
+    fun attach(sv: ARSceneView) {
+        sceneView = sv
+    }
+
+    fun setMeasureData(
+        lines: List<Pair<AnchorNode, AnchorNode>>,
+        pending: AnchorNode?,
+    ) {
+        measureLines.clear()
+        measureLines.addAll(lines)
+        pendingAnchor = pending
+    }
+
+    fun setUnit(u: DistanceUnit) {
+        unit = u
     }
 
     fun clear() {
-        p0 = null
-        p1 = null
+        measureLines.clear()
+        pendingAnchor = null
     }
 
-    fun setPoints(a: Float3?, b: Float3?) {
-        p0 = a
-        p1 = b
-    }
-
-    fun setUnit(unit: DistanceUnit) {
-        this.unit = unit
-    }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val sv = sceneView ?: return
-        val a = p0 ?: return
-
-        val frame = sv.frame ?: return
+        val sv    = sceneView ?: return
+        val frame = sv.frame  ?: return
         val camera = frame.camera
         if (camera.trackingState != TrackingState.TRACKING) return
 
@@ -120,34 +121,41 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         val sw = width.toFloat()
         val sh = height.toFloat()
 
-        val pa = project(a, sw, sh) ?: return
-        drawPoint(canvas, pa[0], pa[1])
+        for ((nodeA, nodeB) in measureLines) {
+            val a = nodeA.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val b = nodeB.worldPosition.let { Float3(it.x, it.y, it.z) }
 
-        val b = p1
-        if (b != null) {
-            val pb = project(b, sw, sh) ?: return
+            val pa = project(a, sw, sh) ?: continue
+            val pb = project(b, sw, sh) ?: continue
+
             canvas.drawLine(pa[0], pa[1], pb[0], pb[1], linePaint)
+            drawPoint(canvas, pa[0], pa[1])
             drawPoint(canvas, pb[0], pb[1])
 
-            val mid = floatArrayOf((pa[0] + pb[0]) / 2f, (pa[1] + pb[1]) / 2f)
+            val mid  = floatArrayOf((pa[0] + pb[0]) / 2f, (pa[1] + pb[1]) / 2f)
             val dist = distanceMeters(a, b)
             val (value, suffix) = unit.convert(dist)
             drawLabel(canvas, String.format("%.1f %s", value, suffix), mid)
         }
+
+        pendingAnchor?.let { node ->
+            val p = node.worldPosition.let { Float3(it.x, it.y, it.z) }
+            val sp = project(p, sw, sh) ?: return@let
+            drawPoint(canvas, sp[0], sp[1])
+        }
     }
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+
     private fun distanceMeters(a: Float3, b: Float3): Float {
-        val dx = a.x - b.x
-        val dy = a.y - b.y
-        val dz = a.z - b.z
+        val dx = a.x - b.x; val dy = a.y - b.y; val dz = a.z - b.z
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
-    /** Column-major VP multiply then perspective divide → screen pixels. */
     private fun project(world: Float3, sw: Float, sh: Float): FloatArray? {
-        val x = vp[0] * world.x + vp[4] * world.y + vp[8] * world.z + vp[12]
-        val y = vp[1] * world.x + vp[5] * world.y + vp[9] * world.z + vp[13]
-        val w = vp[3] * world.x + vp[7] * world.y + vp[11] * world.z + vp[15]
+        val x = vp[0]*world.x + vp[4]*world.y + vp[8]*world.z  + vp[12]
+        val y = vp[1]*world.x + vp[5]*world.y + vp[9]*world.z  + vp[13]
+        val w = vp[3]*world.x + vp[7]*world.y + vp[11]*world.z + vp[15]
         if (abs(w) < 1e-6f || w < 0f) return null
         val ndcX = x / w
         val ndcY = -y / w
@@ -158,17 +166,12 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
     }
 
     private fun drawLabel(canvas: Canvas, text: String, mid: FloatArray) {
-        val tw = textPaint.measureText(text)
-        val th = textPaint.textSize
+        val tw  = textPaint.measureText(text)
+        val th  = textPaint.textSize
         val pad = 10f
-        val x = mid[0] - tw / 2f
-        val y = mid[1]
-
-        canvas.drawRoundRect(
-            x - pad, y - th - pad,
-            x + tw + pad, y + pad,
-            14f, 14f, bgPaint
-        )
+        val x   = mid[0] - tw / 2f
+        val y   = mid[1]
+        canvas.drawRoundRect(x - pad, y - th - pad, x + tw + pad, y + pad, 14f, 14f, bgPaint)
         canvas.drawText(text, x, y, textPaint)
     }
 
@@ -178,15 +181,3 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         canvas.drawCircle(x, y, r, pointStrokePaint)
     }
 }
-
-enum class DistanceUnit {
-    METERS, CENTIMETERS, MILLIMETERS;
-
-    fun convert(meters: Float): Pair<Float, String> =
-        when (this) {
-            METERS      -> meters to "m"
-            CENTIMETERS -> (meters * 100f) to "cm"
-            MILLIMETERS -> (meters * 1000f) to "mm"
-        }
-}
-

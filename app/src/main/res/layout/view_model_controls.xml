@@ -4,50 +4,66 @@
     android:layout_height="wrap_content"
     android:orientation="vertical">
 
-    <TextView android:id="@+id/modeLabel"
-        android:layout_width="wrap_content"
+    <RelativeLayout
+        android:id="@+id/modeLabelRow"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text=""
-        android:textColor="@android:color/white"
         android:paddingTop="8dp"
-        android:visibility="gone"
-        android:layout_gravity="center"/>
+        android:paddingBottom="4dp"
+        android:visibility="gone">
+
+        <TextView
+            android:id="@+id/modeLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=""
+            android:textColor="@color/text_primary"
+            android:layout_centerInParent="true"/>
+
+        <Button
+            android:id="@+id/btnUnitToggle"
+            style="@style/Widget.AppCompat.Button.Borderless"
+            android:layout_width="wrap_content"
+            android:layout_height="32dp"
+            android:layout_alignParentEnd="true"
+            android:layout_centerVertical="true"
+            android:paddingRight="10dp"
+            android:text="cm"
+            android:textSize="13sp"
+            android:textColor="@color/text_primary"
+            android:visibility="gone"/>
+
+    </RelativeLayout>
 
     <LinearLayout
         android:id="@+id/seekBarsLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:padding="12dp"
         android:orientation="vertical"
+        android:paddingBottom="5dp"
         android:visibility="gone">
 
-        <!-- X row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label1"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="X"
-                android:textColor="@android:color/white"/>
+                android:text="@string/label_axis_x"
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"/>
+                android:max="1000"/>
 
-            <!--
-                inputType="numberSigned|numberDecimal" allows negative values and
-                a decimal point.  imeOptions="actionDone" closes the keyboard and
-                triggers the IME action listener we attach in code.
-            -->
             <EditText
                 android:id="@+id/input1"
                 android:layout_width="70dp"
@@ -61,27 +77,26 @@
                 android:gravity="center"/>
         </LinearLayout>
 
-        <!-- Y row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label2"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Y"
-                android:textColor="@android:color/white"/>
+                android:text="@string/label_axis_y"
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"/>
+                android:max="1000"/>
 
             <EditText
                 android:id="@+id/input2"
@@ -96,27 +111,26 @@
                 android:gravity="center"/>
         </LinearLayout>
 
-        <!-- Z row -->
         <LinearLayout
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="8dp">
+            android:gravity="center_vertical">
 
             <TextView
                 android:id="@+id/label3"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Z"
-                android:textColor="@android:color/white"/>
+                android:text="@string/label_axis_z"
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seek3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"/>
+                android:max="1000"/>
 
             <EditText
                 android:id="@+id/input3"
@@ -131,11 +145,10 @@
                 android:gravity="center"/>
         </LinearLayout>
 
-        <!-- Universal Scale row (SCALE mode only) -->
         <LinearLayout
             android:id="@+id/layoutUniversalScale"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="56dp"
             android:orientation="horizontal"
             android:gravity="center_vertical"
             android:visibility="gone">
@@ -143,16 +156,17 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Uni"
-                android:textColor="@android:color/white"/>
+                android:text="@string/label_axis_uni"
+                android:paddingLeft="2dp"
+                android:textColor="@color/text_primary"/>
 
-            <SeekBar
+            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                 android:id="@+id/seekUniversalScale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:max="100"
-                android:progress="10"/>
+                android:max="1000"
+                android:progress="100"/>
 
             <EditText
                 android:id="@+id/inputUniScale"

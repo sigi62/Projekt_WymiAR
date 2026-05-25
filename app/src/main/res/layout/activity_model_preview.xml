@@ -1,0 +1,185 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#DCDCDC"
+    android:fitsSystemWindows="true" >
+
+    <io.github.sceneview.SceneView
+        android:id="@+id/previewSceneView"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="@android:color/transparent" />
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:orientation="vertical"
+        android:fitsSystemWindows="true">
+
+        <ImageButton
+            android:id="@+id/btnPreviewBack"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="16dp"
+            android:layout_marginStart="16dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:contentDescription="@string/back"
+            android:src="@drawable/ic_arrow_back_white"/>
+
+        <FrameLayout
+            android:id="@+id/btnModelColour"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:background="@drawable/rounded_button"
+            android:visibility="gone"
+            android:contentDescription="Change model colour"
+            android:clickable="true"
+            android:focusable="true">
+
+            <View
+                android:id="@+id/modelColourBgRect"
+                android:layout_width="26dp"
+                android:layout_height="26dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
+
+            <View
+                android:id="@+id/modelColourPatchRect"
+                android:layout_width="22dp"
+                android:layout_height="22dp"
+                android:layout_gravity="center"
+                android:background="@drawable/bg_color_patch_rect" />
+
+        </FrameLayout>
+
+    </LinearLayout>
+
+    <ImageButton
+        android:id="@+id/btnBackground"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:background="@drawable/rounded_button"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp"
+        android:contentDescription="@string/change_background"
+        android:src="@drawable/ic_color_palette"/>
+
+    <ImageButton
+        android:id="@+id/btnAnimationToggle"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="80dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button"
+        android:src="@drawable/ic_animation"
+        android:visibility="gone" />
+
+    <ImageButton
+        android:id="@+id/btnAnimationPause"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="136dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button"
+        android:src="@drawable/ic_play_pause"
+        android:visibility="gone" />
+
+    <ImageButton
+        android:id="@+id/btnAnimationNext"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_gravity="top|end"
+        android:layout_marginTop="192dp"
+        android:layout_marginEnd="16dp"
+        android:background="@drawable/rounded_button"
+        android:src="@drawable/ic_skip_next"
+        android:visibility="gone" />
+
+    <com.example.pracazaliczeniowa.Overlays.CropOverlayView
+        android:id="@+id/cropOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone" />
+
+    <LinearLayout
+        android:id="@+id/cropConfirmBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp"
+        android:visibility="gone">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCropCancel"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/cancel" />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnCropConfirm"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/save_thumbnail" />
+
+    </LinearLayout>
+
+
+    <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+        android:id="@+id/rotationSlider"
+        android:layout_width="match_parent"
+        android:layout_height="80dp"
+        android:layout_gravity="bottom"
+        android:layout_marginBottom="80dp"
+        android:max="3600"
+        android:padding="16dp"
+        android:progress="1800"/>
+
+    <LinearLayout
+        android:id="@+id/normalButtonBar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:layout_marginBottom="32dp"
+        android:paddingLeft="24dp"
+        android:paddingRight="24dp">
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnOpenInAR"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:text="@string/open_in_ar"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/rounded_button"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/btnTakeScreenshot"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:text="@string/set_thumbnail"
+            android:textColor="@color/text_primary"
+            android:background="@drawable/rounded_button" />
+
+    </LinearLayout>
+
+</FrameLayout>

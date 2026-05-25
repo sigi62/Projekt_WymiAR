@@ -1,0 +1,314 @@
+<resources xmlns:tools="http://schemas.android.com/tools">
+    <string name="app_name">WymiAR</string>
+    <string name="title_converter">STL&amp;OBJ_Extension_Converter</string>
+
+
+    <!-- Ar view -->
+    <string name="status_active_model">Aktywny: %1$s</string>
+    <string name="model_picker_prompt">Aktywny: %1$s — kliknij na wyświetlne powierzchnie aby postawić</string>
+    <string name="status_floor_mode">Tryb podłóg: Poszukaj poziomych powierzchni</string>
+    <string name="status_wall_mode">Tryb ścian: Poszukaj pionowych powierzchni</string>
+    <string name="status_point_at_surface">Zeskanuj powierzchnie aby postawić model</string>
+
+    <!-- Model -->
+    <string name="status_loading">Ładowanie modelu…</string>
+    <string name="status_error_not_found">Błąd: nie można było znaleść modelu</string>
+    <string name="status_model_selected">Model zaznaczony</string>
+    <string name="status_model_deselected">Model odznaczony</string>
+    <string name="status_model_deleted">Usunięto model %1$s</string>
+
+    <!-- Profiles -->
+    <string name="profiles">Profile</string>
+    <string name="profile_label_default">★ Domyślny</string>
+    <string name="profile_add_named_prompt">+ Dodaj własny profil…</string>
+    <string name="dialog_add_profile_title">Zapisz obecny stan</string>
+    <string name="dialog_add_profile_msg">Wprowadź imię dla tego profilu:</string>
+    <string name="status_profile_saved">Profil zapisany — suwaki zostały zresetowany</string>
+    <string name="dialog_profiles_title">Profile – %1$s</string>
+    <string name="dialog_add_profile_hint">n.p. Wielkości szafy</string>
+    <string name="dialog_overwrite_msg">Zastąpić zapisane wartości w \"%1$s\" obecnymi?</string>
+    <string name="dialog_reset_title">Zresetować do domyślnego?</string>
+    <string name="dialog_reset_msg">Wyczyścić zapisany profil? Spowoduje to utratę wprowadzonym zmian.</string>
+
+    <string name="status_reset_done">Zresetowane</string>
+    <string name="error_too_many_profiles">Limit osiągnięty: Maksymalnie %1$d profili na model.</string>
+    <string name="error_profile_save_failed">Błąd zapisu: %1$s</string>
+
+    <!-- Animation -->
+    <string name="animation_toggle_on">Animation gra</string>
+    <string name="animation_toggle_off">Animation zatrzymana</string>
+
+    <!-- RotationRing -->
+    <string name="rotation_ring_on">Pierścień rotatcji pokazany</string>
+    <string name="rotation_ring_off">Pierścień rotatcji schowany</string>
+
+    <!-- Dimensions -->
+    <string name="status_dimensions_shown">Wymiary pokazane</string>
+    <string name="status_dimensions_hidden">Wymiary schowane</string>
+    <string name="status_all_surfaces">Wszystkie płaszczyzny aktywne</string>
+    <string name="status_planes_hidden">Tryb szukania płaszczyzn wyłączony</string>
+
+    <!-- Measure Points -->
+    <string name="measure_distance">Odległość: %1$.1f %2$s </string>
+    <string name="measure_tap_first">Kliknij aby postawić pierwszy punkt pomiarowy</string>
+    <string name="measure_tap_second">Kliknij aby postawić drugi punkt</string>
+    <string name="measure_no_point">Nie ma już żadnych punktów...</string>
+    <string name="measure_add_point"> · Kilknij aby dodać kolejny punkt</string>
+    <string name="measure_point_limit"> · limit osiągnięty</string>
+
+    <!-- Converter -->
+    <string name="toast_converter_ready">Konwerter gotowy!</string>
+    <string name="toast_converter_failed">Wystąpił błąd podczas pobierania modułu konwertera (error %1$s)</string>
+    <string name="toast_converter_downloading">Pobieranie konwertera plików 3D…</string>
+    <string name="toast_converter_download_failed">Pobieranie nieudane: %1$s</string>
+    <string name="error_conversion_failed">Konwersja do formatu GLB się nie powiodła</string>
+    <string name="error_extension_unsupported">Niewspierany format pliku</string>
+
+    <!-- Importing -->
+    <string name="toast_importing">Importowanie…</string>
+    <string name="toast_import_failed">Import nieudany – niewspierany lub uszkodzony plik</string>
+    <string name="toast_unsupported_format">Niewspierany format pliku: .%s — użyj .glb, .obj, albo .stl</string>
+    <string name="toast_import_verify_failed">Zaimportowany plik nie przeszedł weryfikacji</string>
+    <string name="toast_import_added">%1$s został dodany do Biblioteki</string>
+
+    <!-- Exporting -->
+    <string name="menu_export_profile">Eksportowanie z profilem…</string>
+    <string name="dialog_export_title">Eksport "%s"</string>
+    <string name="dialog_export_pick_profile">Eksport "%s" — wybierz profil</string>
+    <string name="dialog_export_no_profiles">Model nie posiada żadnego profilu. Eksportować w oryginalnym stanie?</string>
+    <string name="btn_export_as_is">Eksportowanie jak jest</string>
+    <string name="toast_export_success">Model został pomyślnie eksportowany</string>
+    <string name="toast_no_profile_to_export">Model nie posiada profilu do eksprotu</string>
+    <string name="toast_export_failed">Eksport nieudany: %s</string>
+    <string name="toast_export_prepare_failed">Nie udało się przygotować modelu do eksportu</string>
+    <string name="btn_export">Eksport</string>
+
+    <!-- Library Options -->
+
+    <string name="library_tittle">Bilbioteka modeli</string>
+    <string name="dialog_rename_title">Zmień nazwę</string>
+    <string name="dialog_rename_hint">Nazwa modelu</string>
+    <string name="btn_rename">Zmień</string>
+    <string name="toast_rename_success">\'%1$s\' zmieniono na \'%2$s\'</string>
+    <string name="toast_rename_failed">Zmiana nieudana. %1$s</string>
+    <string name="error_name_blank">Nazwa nie może być pusta.</string>
+    <string name="error_name_exists">Model z tą nazwą już istnieje. Użyj innej.</string>
+    <string name="toast_delete_success">Usunięto %1$s</string>
+    <string name="toast_delete_failed">Nie można było usunąć %1$s</string>
+
+
+
+    <!-- Model preview -->
+    <string name="preview_loading">Ładowanie podglądu…</string>
+    <string name="preview_error_load">Error: Nie znaleziono pliku modelu lub jest on uszkodzony</string>
+    <string name="preview_status_ready">Podgląd gotowy</string>
+    <string name="preview_no_animations">Model nie posiada animacji</string>
+    <string name="preview_dimensions_format">Szerokość: %1$.1f, Wysokość: %2$.1f, Głębokość: %3$.1f %4$s</string>
+    <string name="preview_close">Zamykanie podglądu</string>
+    <string name="change_background">Zmień tło</string>
+    <string name="cancel">Anuluj</string>
+    <string name="save_thumbnail">Zapisz zdjęcie</string>
+    <string name="open_in_ar">Otwórz w AR</string>
+    <string name="set_thumbnail">Ustaw zdjęcie</string>
+
+
+
+    <!-- Preview Studio Mode Surfaces -->
+
+    <string name="studio_color_picker_back_wall">Kolor ściany tylniej</string>
+    <string name="studio_color_picker_side_wall">Kolor ściany bocznej</string>
+    <string name="studio_color_picker_floor">Kolor podłogi</string>
+    <string name="studio_color_picker_void">Kolor tła</string>
+    <string name="studio_color_picker_live_preview">Podgląd na żywo</string>
+
+    <string name="model_colour_picker_title">Kolor modelu</string>
+    <string name="model_colour_restore">Przywróć oryginalny</string>
+
+    <!-- Universal buttons -->
+    <string name="back">Wróć</string>
+    <string name="confirm">Potwierdź</string>
+    <string name="save">Zapisz</string>
+    <string name="reset">Zresetuj</string>
+    <string name="delete">Usuń</string>
+    <string name="overwrite">Nadpisz</string>
+    <string name="load">Wczytaj</string>
+
+    <!-- Control Modes and values -->
+    <string name="label_mode_position">POZYCJA</string>
+    <string name="label_mode_rotate">ROTACJA</string>
+    <string name="label_mode_scale">SKALA</string>
+    <string name="label_axis_x">X:</string>
+    <string name="label_axis_y">Y:</string>
+    <string name="label_axis_z">Z:</string>
+    <string name="format_decimal_value">%1$.1f</string>
+
+    <!-- Model Control Overlay -->
+    <string name="debug_scale_expanded">Skala rozszrzona → maksymalnu profres %1$d (%2$.2f×)</string>
+    <string name="label_axis_uni">Uni</string>
+
+
+    <!-- Model Item Options -->
+
+    <string name="import_model">Importuj model</string>
+    <string name="imported_badge">↓ Import</string>
+    <string name="menu_preview">Podgląd</string>
+    <string name="thumbnail">Zdjęcie</string>
+    <string name="menu_delete_thumbnail">Usuń zdjęcie</string>
+    <string name="menu_rename">Zmień nazwę</string>
+    <string name="menu_delete_model">Usuń model</string>
+    <string name="model_thumbnail">Zdjęcie modelu</string>
+    <string name="toast_thumbnail_deleted">Zdjęcie usunięto</string>
+    <string name="toast_thumbnail_delete_failed">Nie udało się usunąć zdjęcia</string>
+    <string name="profile_badge">✓ Profil</string>
+
+
+    <!-- Model Item dialog -->
+    <string name="dialog_delete_model_title">Usunąć %1$s?</string>
+    <string name="dialog_delete_model_msg">Plik modelu zostanie na trwałe usunięty z twojej Biblioteki. Utracisz przy tym wszystkie profile.</string>
+
+    <!-- Profile picker — status messages -->
+    <string name="profile_loaded_default">Załadowano profil domyślny</string>
+    <string name="profile_saved_default">Profil domyślny zapisany</string>
+    <string name="profile_loaded_named">Załadowano profil \"%1$s\"</string>
+    <string name="profile_updated_named">Profil \"%1$s\" zauktalizowany</string>
+    <string name="profile_saved_named">Zapisano profil \"%1$s\"</string>
+    <string name="profile_deleted_named">Usunięto profil \"%1$s\"</string>
+
+    <!-- Profile picker — errors -->
+    <string name="profile_error_name_empty">Nazwa nie może być pusta</string>
+    <string name="profile_error_no_model">Nie wybrano modelu</string>
+    <string name="profile_error_save_failed">Zapis się nie powiódł</string>
+
+    <!-- Profile picker — dialogs -->
+    <string name="profile_delete_slot_title">Usunąć \"%1$s\"?</string>
+    <string name="delete_profile">Usuń profil</string>
+    <string name="profile_delete_slot_message">Tej akcji nie można cofnąć.</string>
+    <string name="profile_reset_default_title">Zresetować?</string>
+    <string name="profile_reset_default_message">Ta akcja trawe usunie wszystkie zmiany wprowadzone w profilu i przywróci model do stanu domyślnego.</string>
+    <string name="profile_reset_btn_content_desc">Zresetuj</string>
+
+
+    <!-- Navigation -->
+    <string name="tap_to_change">Kliknij aby zmienić</string>
+    <string name="more_options">więcej opcji</string>
+
+    <!-- dialog_background_color_picker.xml -->
+    <string name="background">Tło</string>
+    <string name="hdr">HDR</string>
+    <string name="studio">Studio</string>
+    <string name="solid">Solidne</string>
+    <string name="surface_colors">Kolory powierzchni</string>
+    <string name="floor">Podłoga</string>
+    <string name="back_wall">Ściana tylnia</string>
+    <string name="side_wall">Ściana boczna</string>
+    <string name="ambient_void">soldine otoczenie </string>
+    <string name="space_beyond_walls">Tło za ścianami</string>
+    <string name="presets">Predefiniowane</string>
+    <string name="custom_mixer">Własny kolor</string>
+    <string name="selected_color">Wybrany kolor</string>
+    <string name="color_realtime_desc">Aktualizuje tło na żywo</string>
+
+    <!-- Dimension HUD placeholders -->
+    <string name="dim_w_placeholder">Szerokość: – cm</string>
+    <string name="dim_h_placeholder">Wysokość: – cm</string>
+    <string name="dim_d_placeholder">Głębokość: – cm</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Ustawienia</string>
+    <string name="appearance">WYGLĄD</string>
+    <string name="app_theme">Motyw aplikacji</string>
+    <string name="app_theme_description">Zmień wygląd aplikacji między trybem jasnym a ciemnym</string>
+    <string name="theme_dark">Ciemny</string>
+    <string name="theme_light">Jasny</string>
+    <string name="theme_system">Użyj systemowego</string>
+    <string name="ar_options">OPCJE AR</string>
+    <string name="ar_controls_range">Zakres kontrolek</string>
+    <string name="ar_controls_range_summary">Wybierz preferowany zakres dla kontrolek w widoku AR</string>
+    <string name="ar_controls_position">Zakres pozycji w AR</string>
+    <string name="ar_controls_position_desc">Zakres jednostronny prz pierwszym otworzeniu nakładki w AR (1–100 cm).</string>
+    <string name="pos_mid_val">±100 cm</string>
+    <string name="hint_100">100</string>
+    <string name="ar_controls_scale">Zakres skali w AR</string>
+    <string name="default_scale_max">Maksymalna domyślna wartość skali</string>
+    <string name="ar_controls_scale_desc">Maksymalny zakres suwaka skali przy pierwszym otworzeniu nakładki. Pokazana wartość  = postęp ÷ 100. Zakres: 100–10000.</string>
+    <string name="scale_max_val">5.00×</string>
+    <string name="hint_500">500</string>
+
+    <!-- Units -->
+    <string name="ar_controls_unit">JEDNOSTKI</string>
+    <string name="unit_label">Jednostka miarowa</string>
+    <string name="unit_desc">Jednostka użyta to pomiaru dystanu w widoku AR</string>
+    <string-array name="unit_display_names">
+        <item>cm</item>
+        <item>m</item>
+        <item>mm</item>
+    </string-array>
+    <string name="full_unit_m">Metry (m)</string>
+    <string name="full_unit_cm">Centrymetry (cm)</string>
+    <string name="full_unit_mm">Milimetry (mm)</string>
+
+    <!-- Settings language -->
+    <string name="accessibility_rowtitle">DOSTĘPNOŚĆ</string>
+    <string name="language">Język</string>
+    <string name="language_description">Zmień język aplikacji</string>
+    <string name="language_system">Systemowy</string>
+    <string name="language_english">English</string>
+    <string name="language_polish">Polski</string>
+
+
+    <string name="filter_all">Wszystkie</string>
+    <string name="filter_recent">Ostatnie</string>
+    <string name="filter_size">Wielkośc pliku</string>
+    <string name="filter_imported">Import</string>
+    <string name="filter_profile">Profil</string>
+    <string name="filter_alphabetical">A–Z</string>
+    <!-- Item count label -->
+    <string name="library_item_count">%1$d modeli</string>
+
+    <string name="label_created">Utworzono: %1$s</string>
+    <string name="label_imported">Importowano: %1$s</string>
+    <string name="label_modified">Zmodyfikowano: %1$s</string>
+
+
+    <!-- Storage Options -->
+    <string name="storage_title">PAMIĘĆ</string>
+    <string name="manage_storage">Zarządzaj pamięcią aplikacji</string>
+    <string name="clear_cache">Wyczyścić pamięć Cache</string>
+    <string name="cache_cleared">Cache wyczyszczony</string>
+    <string name="clear_cache_desc">Usuwa wszystkie pobrane modele które zalegają w pamięci aplikacji.</string>
+    <string name="remove_all_models_toast">Usunięto importowane modele</string>
+    <string name="clear_storage">Wyczyść pamięć</string>
+    <string name="total_storage_used">Pamieć w użyciu</string>
+    <string name="cached_models">PLIKI W PAMIĘCI</string>
+    <string name="no_cached_models">Nie zaimportowałeś jeszcze żadnego modelu.</string>
+    <string name="storage_empty">Nie zaimportowałeś jeszcze żadnego modelu.</string>
+    <string name="storage_summary_placeholder">Obliczanie…</string>
+
+    <string name="storage_summary_format">%1$s • %2$d modeli</string>
+
+    <string name="model_meta_format">%1$s  ·  %2$s</string>
+
+    <string name="clear_cache_confirm_message">Usunie to wszyskie zaimportowane modele 3D. Będziesz musiał importować je jeszcze raz</string>
+    <string name="delete_model_confirm_message">Usunąć \"%1$s\"? Możesz importować go ponownie później.</string>
+
+    <string name="clear">Wyczyść</string>
+    <string name="just_now">Przed chwilą</string>
+
+    <!-- Plurals – add to res/values/plurals.xml (or inline in strings.xml) -->
+    <plurals name="downloaded_models_count" tools:ignore="MissingQuantity">
+        <item quantity="one">%d pobrany model</item>
+        <item quantity="other">%d pobranych modeli</item>
+    </plurals>
+    <plurals name="days_ago">
+        <item quantity="one">%d dzień temu</item>
+        <item quantity="other">%d dni temu</item>
+    </plurals>
+    <plurals name="hours_ago" tools:ignore="MissingQuantity">
+        <item quantity="one">%d godzinę temu</item>
+        <item quantity="other">%d godzin temu</item>
+    </plurals>
+    <plurals name="minutes_ago" tools:ignore="MissingQuantity">
+        <item quantity="one">%d minutę temu</item>
+        <item quantity="other">%d minut temu</item>
+    </plurals>
+</resources>

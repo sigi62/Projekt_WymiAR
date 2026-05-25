@@ -1,9 +1,78 @@
-<TextView xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/dimensionText"
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/dimensionPanel"
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
-    android:background="#80000000"
-    android:padding="4dp"
-    android:textColor="#FFFFFF"
-    android:textSize="12sp"
-    android:text="0 mm" />
+    android:orientation="vertical"
+    android:background="#CC000000"
+    android:padding="8dp">
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="#FFFF4444"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/dimensionW"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FFFF4444"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="@string/dim_w_placeholder" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="3dp">
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="#FF44FF44"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/dimensionH"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FF44FF44"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="@string/dim_h_placeholder" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="3dp">
+
+        <View
+            android:layout_width="10dp"
+            android:layout_height="10dp"
+            android:background="#FF4488FF"
+            android:layout_marginEnd="6dp" />
+
+        <TextView
+            android:id="@+id/dimensionD"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textColor="#FF4488FF"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:text="@string/dim_d_placeholder" />
+    </LinearLayout>
+
+</LinearLayout>

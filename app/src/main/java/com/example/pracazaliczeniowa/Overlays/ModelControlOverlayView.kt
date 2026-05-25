@@ -1,8 +1,6 @@
 package com.example.pracazaliczeniowa.Overlays
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.AttributeSet
 import android.util.Log
 import android.view.LayoutInflater
@@ -14,8 +12,12 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.SeekBar
 import android.widget.TextView
+import com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+import com.example.pracazaliczeniowa.Objects.AppSettings
 import com.example.pracazaliczeniowa.Nodes.SelectedModelNode
 import com.example.pracazaliczeniowa.R
+import com.example.pracazaliczeniowa.Objects.DistanceUnit
+import dev.romainguy.kotlin.math.Float3
 
 fun log(msg: String) {
     Log.d("AR_CONTROL_DEBUG", msg)
@@ -24,75 +26,28 @@ fun log(msg: String) {
 class ModelControlOverlayView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : LinearLayout(context, attrs) {
-
-    // -------------------------------------------------------------------------
-    // Configuration — fixed constants
-    // -------------------------------------------------------------------------
-
     private companion object {
-        // Rotation is fixed; never adapts.
-        const val ROT_MIN = 0;  const val ROT_MAX = 360;  const val ROT_MID = 180
-
-        // Scale: progress / SCL_MID = displayed value.  SCL_MID is fixed as the
-        // denominator so the mapping stays simple; only the seekbar max grows.
+        const val ROT_MIN = 0;  const val ROT_MAX = 3600;  const val ROT_MID = 1800
         const val SCL_MID = 100
         const val SCL_MIN = 1
-        // Default seekbar max  →  5.00×  (progress 500 / SCL_MID 100)
         const val SCL_MAX_DEFAULT = 500
-        // Hard ceiling: 100.00×  (progress 10000 / SCL_MID 100)
         const val SCL_MAX_HARD    = 10_000
-
-        // Position: progress - posMid = displayed cm value.  posMid grows when
-        // the user types a value outside the current range.
         const val POS_MIN = 0
-        // Default half-range → ±100 cm  (seekbar 0..200, mid=100)
         const val POS_MID_DEFAULT = 100
-        // Hard ceiling: ±1000 cm
-        const val POS_MID_HARD    = 1_000
+        const val POS_MID_HARD    = 10_000
 
         const val MIN_SCALE_VALUE = 0.01f
 
-        /** Delay after the last keystroke before committing an EditText value (ms). */
-        const val EDIT_COMMIT_DELAY_MS = 2000L
     }
-
-    // -------------------------------------------------------------------------
-    // State — dynamic range (mutable; grow on demand, never shrink)
-    // -------------------------------------------------------------------------
 
     private var targetNode: SelectedModelNode? = null
     private var currentMode = "ROTATE"
-
-    /**
-     * Current half-range for position in cm.
-     * Seekbar range is always  0 .. 2*posDynMid,  displayed value = progress - posDynMid.
-     * Grows when the user types a value whose |abs| > current mid; capped at POS_MID_HARD.
-     */
     private var posDynMid: Int = POS_MID_DEFAULT
-
-    /**
-     * Current seekbar max for scale.
-     * Displayed value = progress / SCL_MID.
-     * Grows when the user types a value whose progress equivalent > current max;
-     * capped at SCL_MAX_HARD.
-     */
     private var sclDynMax: Int = SCL_MAX_DEFAULT
-
-    /** Persisted progress values per mode so switching tabs restores sliders. */
     private var positionProgress       = Triple(posDynMid, posDynMid, posDynMid)
     private var scaleProgress          = Triple(SCL_MID,   SCL_MID,   SCL_MID)
     private var rotateProgress         = Triple(ROT_MID,   ROT_MID,   ROT_MID)
     private var universalScaleProgress = SCL_MID
-
-    // -------------------------------------------------------------------------
-    // Sync guard — prevents seekbar ↔ editText feedback loops
-    // -------------------------------------------------------------------------
-
-    /**
-     * When true, programmatic changes to seekbars / editTexts are ignored by
-     * their respective listeners.  Always set via [withSync] to guarantee it
-     * is reset even if an exception is thrown.
-     */
     private var isSyncing = false
 
     private inline fun withSync(block: () -> Unit) {
@@ -100,50 +55,17 @@ class ModelControlOverlayView @JvmOverloads constructor(
         try { block() } finally { isSyncing = false }
     }
 
-    // -------------------------------------------------------------------------
-    // Debounce infrastructure for EditText commit
-    // -------------------------------------------------------------------------
-
-    private val commitHandler = Handler(Looper.getMainLooper())
-
-    /** One pending runnable per EditText; cancelled on each new keystroke. */
-    private val pendingCommit = HashMap<EditText, Runnable>()
-
-    /**
-     * Schedule [action] to run [EDIT_COMMIT_DELAY_MS] ms after the last
-     * keystroke into [editText].  Any previously pending runnable for that
-     * EditText is cancelled first.
-     */
-    private fun scheduleCommit(editText: EditText, action: () -> Unit) {
-        pendingCommit[editText]?.let { commitHandler.removeCallbacks(it) }
-        val runnable = Runnable { action() }
-        pendingCommit[editText] = runnable
-        commitHandler.postDelayed(runnable, EDIT_COMMIT_DELAY_MS)
-    }
-
-    /** Cancel a pending commit for [editText] (e.g. when focus is lost and we commit immediately). */
-    private fun cancelCommit(editText: EditText) {
-        pendingCommit.remove(editText)?.let { commitHandler.removeCallbacks(it) }
-    }
-
-    // -------------------------------------------------------------------------
-    // Callbacks for the host Activity
-    // -------------------------------------------------------------------------
-
     var onSaveRequested:   (() -> Unit)? = null
     var onDeleteRequested: (() -> Unit)? = null
+    var onUnitChanged: ((DistanceUnit) -> Unit)? = null
+    var onRelativeValuesChanged: ((scaleX: Float, scaleY: Float, scaleZ: Float, rotX: Float, rotY: Float, rotZ: Float) -> Unit)? = null
 
-    // -------------------------------------------------------------------------
-    // Views (lateinit — bound after inflation)
-    // -------------------------------------------------------------------------
 
-    private lateinit var s1: SeekBar;   private lateinit var s2: SeekBar;   private lateinit var s3: SeekBar
+    private lateinit var unitToggleBtn: Button
+    private lateinit var s1: RulerSeekBar;   private lateinit var s2: RulerSeekBar;   private lateinit var s3: RulerSeekBar
     private lateinit var i1: EditText;  private lateinit var i2: EditText;  private lateinit var i3: EditText
-    private lateinit var sUni: SeekBar; private lateinit var iUni: EditText
+    private lateinit var sUni: RulerSeekBar; private lateinit var iUni: EditText
 
-    // -------------------------------------------------------------------------
-    // Init
-    // -------------------------------------------------------------------------
 
     init {
         LayoutInflater.from(context).inflate(R.layout.view_model_controls, this, true)
@@ -152,35 +74,151 @@ class ModelControlOverlayView @JvmOverloads constructor(
         isFocusable  = true
     }
 
-    // -------------------------------------------------------------------------
-    // Public API
-    // -------------------------------------------------------------------------
 
     fun bindToNode(node: SelectedModelNode) {
+        if (::i1.isInitialized) { }
         targetNode = node
-        setupUI()
+
+        val wrapped = node.getWrappedNode()
+        if (wrapped != null) {
+            val sx = wrapped.scale.x
+            val sy = wrapped.scale.y
+            val sz = wrapped.scale.z
+            val rx = wrapped.rotation.x
+            val ry = wrapped.rotation.y
+            val rz = wrapped.rotation.z
+
+            val savedMode = currentMode
+
+            currentMode = "SCALE"
+            val psx = valueToProgress(sx); val psy = valueToProgress(sy); val psz = valueToProgress(sz)
+            val pUni = valueToProgress((sx + sy + sz) / 3f).coerceIn(SCL_MIN, sclDynMax)
+            scaleProgress = Triple(psx, psy, psz)
+            universalScaleProgress = pUni
+
+            currentMode = "ROTATE"
+            val prx = valueToProgress(rx); val pry = valueToProgress(ry); val prz = valueToProgress(rz)
+            rotateProgress = Triple(prx, pry, prz)
+
+            currentMode = savedMode
+        }
+
+        positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+
+        if (::s1.isInitialized) {
+            val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
+            val modeLabel      = findViewById<TextView>(R.id.modeLabel)
+            val layoutUni      = findViewById<LinearLayout>(R.id.layoutUniversalScale)
+            if (seekBarsLayout.visibility == View.VISIBLE) {
+                val stringResId = when (currentMode) {
+                    "ROTATE"   -> R.string.label_mode_rotate
+                    "POSITION" -> R.string.label_mode_position
+                    "SCALE"    -> R.string.label_mode_scale
+                    else       -> 0
+                }
+                modeLabel.text       = if (stringResId != 0) context.getString(stringResId) else currentMode
+                layoutUni.visibility = if (currentMode == "SCALE") View.VISIBLE else View.GONE
+            }
+            refreshSlidersForMode()
+        } else {
+            setupUI()
+        }
     }
 
-    /** Called by a pinch gesture; updates the universal-scale progress and applies it. */
+    fun bindToNodeWithRelativeValues(node: SelectedModelNode, relX: Float, relY: Float, relZ: Float, relativeRotation: Float3 = Float3(0f)) {
+        targetNode = node
+
+        val savedMode = currentMode
+
+        currentMode = "SCALE"
+        scaleProgress = Triple(valueToProgress(relX), valueToProgress(relY), valueToProgress(relZ))
+        universalScaleProgress = valueToProgress((relX + relY + relZ) / 3f).coerceIn(SCL_MIN, sclDynMax)
+
+
+        currentMode = "ROTATE"
+        rotateProgress = Triple(
+            valueToProgress(relativeRotation.x),
+            valueToProgress(relativeRotation.y),
+            valueToProgress(relativeRotation.z)
+        )
+
+        currentMode = savedMode   // restore to default mode
+        positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+
+        if (::s1.isInitialized) {
+            refreshSlidersForMode()
+        } else {
+            setupUI()
+        }
+    }
+    fun resetSlidersToNeutral() {
+        scaleProgress          = Triple(SCL_MID, SCL_MID, SCL_MID)
+        universalScaleProgress = SCL_MID
+        rotateProgress         = Triple(ROT_MID, ROT_MID, ROT_MID)
+        positionProgress       = Triple(posDynMid, posDynMid, posDynMid)
+
+        if (::s1.isInitialized) {
+            refreshSlidersForMode()
+        }
+    }
+
+
+    fun applySettings(settings: AppSettings) {
+        val newPosMid = settings.posMidDefault
+        val newSclMax = settings.sclMaxDefault
+
+        if (newPosMid > posDynMid) {
+            posDynMid = newPosMid
+            positionProgress = Triple(posDynMid, posDynMid, posDynMid)
+        }
+        if (newSclMax > sclDynMax) {
+            sclDynMax = newSclMax
+        }
+
+        currentUnitFactor = when (settings.distanceUnit) {
+            DistanceUnit.METERS      -> 1f
+            DistanceUnit.CENTIMETERS -> 100f
+            DistanceUnit.MILLIMETERS -> 1000f
+        }
+
+        updateUnit(settings.distanceUnit)
+
+        if (::s1.isInitialized) {
+            withSync {
+                val dynMax = modeMax()
+                s1.max = dynMax; s2.max = dynMax; s3.max = dynMax
+                sUni.max = sclDynMax
+            }
+            updateRulerVisuals()
+        }
+    }
+
     fun updateScaleFromGesture(factor: Float) {
         val sensitivity = 10f
         val delta = ((factor - 1.0f) * sensitivity).toInt()
         val newProgress = (universalScaleProgress + delta).coerceIn(SCL_MIN, sclDynMax)
         universalScaleProgress = newProgress
 
+        scaleProgress = Triple(newProgress, newProgress, newProgress)
+
         if (currentMode == "SCALE") {
             withSync {
                 sUni.progress = newProgress
                 iUni.setText(formatValue(progressToValue(newProgress)))
+                s1.progress = newProgress
+                s2.progress = newProgress
+                s3.progress = newProgress
+                i1.setText(formatValue(progressToValue(newProgress)))
+                i2.setText(formatValue(progressToValue(newProgress)))
+                i3.setText(formatValue(progressToValue(newProgress)))
             }
         }
         applyToNode()
     }
 
-    /** Called by a drag-handle gesture; overrides only the Y rotation. */
     fun updateRotationFromHandle(yDegrees: Float) {
-        val normalised = ((yDegrees + 180) % 360) - 180
-        val newProgress = (normalised / 1.8f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        val normalised = ((yDegrees + 180f) % 360f) - 180f
+        val newProgress = (normalised * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         rotateProgress = rotateProgress.copy(second = newProgress)
 
         if (currentMode == "ROTATE") {
@@ -191,19 +229,18 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    /** Stub – implement when gesture position tracking is ready. */
     fun updatePositionFromGesture(x: Float, y: Float, z: Float) {
         // TODO
     }
 
-    // -------------------------------------------------------------------------
-    // UI setup (called once after inflation + node binding)
-    // -------------------------------------------------------------------------
 
     private fun setupUI() {
+        val modeLabelRow   = findViewById<View>(R.id.modeLabelRow)
         val modeLabel      = findViewById<TextView>(R.id.modeLabel)
         val seekBarsLayout = findViewById<LinearLayout>(R.id.seekBarsLayout)
         val layoutUni      = findViewById<LinearLayout>(R.id.layoutUniversalScale)
+        unitToggleBtn = findViewById(R.id.btnUnitToggle)
+
 
         s1   = findViewById(R.id.seek1);            s2   = findViewById(R.id.seek2)
         s3   = findViewById(R.id.seek3);            sUni = findViewById(R.id.seekUniversalScale)
@@ -211,29 +248,20 @@ class ModelControlOverlayView @JvmOverloads constructor(
         i3   = findViewById(R.id.input3);           iUni = findViewById(R.id.inputUniScale)
 
         seekBarsLayout.visibility = View.GONE
-        modeLabel.visibility      = View.GONE
-
-        // ------------------------------------------------------------------
-        // SeekBar listener — single shared instance for s1/s2/s3/sUni
-        // ------------------------------------------------------------------
+        modeLabelRow.visibility      = View.GONE
 
         val seekListener = object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
                 if (!fromUser || isSyncing) return
 
                 withSync {
-                    // Universal scale drives X/Y/Z when in Scale mode
                     if (sb?.id == R.id.seekUniversalScale && currentMode == "SCALE") {
                         s1.progress = progress
                         s2.progress = progress
                         s3.progress = progress
                         universalScaleProgress = progress
                     }
-
-                    // Persist progress for the active mode
                     saveCurrentProgress()
-
-                    // Reflect new values in EditTexts
                     refreshEditTexts()
                 }
 
@@ -246,29 +274,47 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         listOf(s1, s2, s3, sUni).forEach { it.setOnSeekBarChangeListener(seekListener) }
 
-        // ------------------------------------------------------------------
-        // EditText listeners — debounced commit + immediate-on-focus-lost
-        // ------------------------------------------------------------------
-
         attachEditTextListeners(i1) { commitEditTexts() }
         attachEditTextListeners(i2) { commitEditTexts() }
         attachEditTextListeners(i3) { commitEditTexts() }
         attachEditTextListeners(iUni) { commitUniScaleEditText() }
 
-        // ------------------------------------------------------------------
-        // Mode buttons
-        // ------------------------------------------------------------------
+
+        unitToggleBtn.setOnClickListener {
+            val newUnit = when (currentUnitFactor) {
+                1f    -> DistanceUnit.CENTIMETERS
+                100f  -> DistanceUnit.MILLIMETERS
+                else  -> DistanceUnit.METERS
+            }
+            updateUnit(newUnit)
+            onUnitChanged?.invoke(newUnit)
+            refreshUnitButton()
+        }
 
         fun toggleMode(mode: String) {
             if (currentMode == mode && seekBarsLayout.visibility == View.VISIBLE) {
                 seekBarsLayout.visibility = View.GONE
-                modeLabel.visibility      = View.GONE
+                modeLabelRow.visibility      = View.GONE
             } else {
                 currentMode = mode
                 seekBarsLayout.visibility = View.VISIBLE
-                modeLabel.visibility      = View.VISIBLE
-                modeLabel.text            = currentMode
+                modeLabelRow.visibility      = View.VISIBLE
+
+                val stringResId = when (mode) {
+                    "ROTATE"   -> R.string.label_mode_rotate
+                    "POSITION" -> R.string.label_mode_position
+                    "SCALE"    -> R.string.label_mode_scale
+                    else       -> 0
+                }
+                if (stringResId != 0) {
+                    modeLabel.text = context.getString(stringResId)
+                } else {
+                    modeLabel.text = mode
+                }
+
                 layoutUni.visibility      = if (mode == "SCALE") View.VISIBLE else View.GONE
+                unitToggleBtn.visibility  = if (mode == "POSITION") View.VISIBLE else View.GONE  // ← add
+
 
                 refreshSlidersForMode()
             }
@@ -280,42 +326,23 @@ class ModelControlOverlayView @JvmOverloads constructor(
 
         findViewById<Button>(R.id.btnModelSaveProfile).setOnClickListener { onSaveRequested?.invoke()  }
         findViewById<Button>(R.id.btnModelDelete).setOnClickListener      { onDeleteRequested?.invoke() }
+
+        refreshUnitButton()
     }
 
-    // -------------------------------------------------------------------------
-    // EditText wiring helper
-    // -------------------------------------------------------------------------
 
-    /**
-     * Attaches a [android.text.TextWatcher] for debounced commits and an
-     * [OnFocusChangeListener] / IME action listener for immediate commit on blur
-     * or "Done" key press.  [onCommit] is called when the value should be
-     * applied; it runs outside [isSyncing] so it can safely update seekbars.
-     */
     private fun attachEditTextListeners(editText: EditText, onCommit: () -> Unit) {
-        // Debounce: schedule a commit 2 s after each keystroke
-        editText.addTextChangedListener(object : android.text.TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {}
-            override fun afterTextChanged(s: android.text.Editable?) {
-                if (isSyncing) return  // programmatic change — ignore
-                scheduleCommit(editText, onCommit)
-            }
-        })
 
-        // Immediate commit when the field loses focus
         editText.setOnFocusChangeListener { _, hasFocus ->
             if (!hasFocus) {
-                cancelCommit(editText)  // cancel the pending debounce
-                onCommit()              // commit right now
+                if (isSyncing) return@setOnFocusChangeListener
+                onCommit()
                 dismissKeyboard(editText)
             }
         }
 
-        // Immediate commit on IME "Done" action
         editText.setOnEditorActionListener { _, actionId, _ ->
             if (actionId == EditorInfo.IME_ACTION_DONE) {
-                cancelCommit(editText)
                 onCommit()
                 editText.clearFocus()
                 dismissKeyboard(editText)
@@ -329,20 +356,12 @@ class ModelControlOverlayView @JvmOverloads constructor(
         imm.hideSoftInputFromWindow(view.windowToken, 0)
     }
 
-    // -------------------------------------------------------------------------
-    // Commit helpers — parse EditTexts, clamp, push to seekbars, apply
-    // -------------------------------------------------------------------------
 
-    /**
-     * Reads i1/i2/i3, expands the dynamic range if any value exceeds the current
-     * bounds (POSITION and SCALE only), repositions all seekbars, then applies.
-     */
     private fun commitEditTexts() {
         val v1 = i1.text.toString().toFloatOrNull() ?: progressToValue(s1.progress)
         val v2 = i2.text.toString().toFloatOrNull() ?: progressToValue(s2.progress)
         val v3 = i3.text.toString().toFloatOrNull() ?: progressToValue(s3.progress)
 
-        // Expand range *before* calling valueToProgress so progress is mapped correctly.
         maybeExpandRange(v1); maybeExpandRange(v2); maybeExpandRange(v3)
 
         val p1 = valueToProgress(v1)
@@ -350,9 +369,9 @@ class ModelControlOverlayView @JvmOverloads constructor(
         val p3 = valueToProgress(v3)
 
         withSync {
-            // Apply updated max first so Android doesn't clamp the new progress.
             val dynMax = modeMax()
             s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
+            updateRulerVisuals()   // redraw ticks if range just expanded
 
             s1.progress = p1;  s2.progress = p2;  s3.progress = p3
             i1.setText(formatValue(progressToValue(p1)))
@@ -368,7 +387,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         applyToNode()
     }
 
-    /** Same for the universal-scale field — expands scale range if needed. */
     private fun commitUniScaleEditText() {
         if (currentMode != "SCALE") return
 
@@ -381,11 +399,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
         withSync {
             sUni.max = sclDynMax
             s1.max   = sclDynMax;  s2.max = sclDynMax;  s3.max = sclDynMax
+            updateRulerVisuals()
 
             sUni.progress = p
             s1.progress   = p;  s2.progress = p;  s3.progress = p
             iUni.setText(formatValue(progressToValue(p)))
             iUni.setSelection(iUni.text.length)
+
             i1.setText(formatValue(progressToValue(p)))
             i2.setText(formatValue(progressToValue(p)))
             i3.setText(formatValue(progressToValue(p)))
@@ -395,11 +415,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         applyToNode()
     }
 
-    // -------------------------------------------------------------------------
-    // Refresh helpers
-    // -------------------------------------------------------------------------
-
-    /** Restores seekbars and EditTexts when switching modes. */
     private fun refreshSlidersForMode() {
         val (p1, p2, p3) = when (currentMode) {
             "ROTATE"   -> rotateProgress
@@ -409,13 +424,13 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
 
         withSync {
-            // Always apply current dynamic max *before* setting progress, otherwise
-            // Android silently clamps progress to the old max.
             val dynMax = modeMax()
-            s1.max   = dynMax;  s2.max   = dynMax;  s3.max   = dynMax
+            s1.max = dynMax;  s2.max = dynMax;  s3.max = dynMax
             sUni.max = sclDynMax
 
-            s1.progress   = p1;  s2.progress   = p2;  s3.progress   = p3
+            updateRulerVisuals()
+
+            s1.progress = p1;  s2.progress = p2;  s3.progress = p3
             sUni.progress = universalScaleProgress
 
             i1.setText(formatValue(progressToValue(p1)))
@@ -427,7 +442,6 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    /** Syncs EditTexts to the current seekbar positions (called from the seek listener). */
     private fun refreshEditTexts() {
         i1.setText(formatValue(progressToValue(s1.progress)))
         i2.setText(formatValue(progressToValue(s2.progress)))
@@ -437,7 +451,15 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    /** Writes the current seekbar positions back into the per-mode state stores. */
+    private fun refreshUnitButton() {
+        if (!::unitToggleBtn.isInitialized) return
+        unitToggleBtn.text = when (currentUnitFactor) {
+            1f    -> "m"
+            100f  -> "cm"
+            else  -> "mm"
+        }
+    }
+
     private fun saveCurrentProgress() {
         when (currentMode) {
             "ROTATE"   -> rotateProgress    = Triple(s1.progress, s2.progress, s3.progress)
@@ -446,128 +468,138 @@ class ModelControlOverlayView @JvmOverloads constructor(
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Apply to the 3-D node
-    // -------------------------------------------------------------------------
-
     private fun applyToNode() {
         val node = targetNode ?: return
         val v1 = progressToValue(s1.progress)
         val v2 = progressToValue(s2.progress)
         val v3 = progressToValue(s3.progress)
 
-
         when (currentMode) {
             "POSITION" -> node.updatePosition(v1 / currentUnitFactor, v2 / currentUnitFactor, v3 / currentUnitFactor)
-            "ROTATE"   -> node.updateRotation(v1, v2, v3)
-            "SCALE"    -> node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
+            "ROTATE"   -> {
+                node.updateRotation(v1, v2, v3)
+                onRelativeValuesChanged?.invoke(
+                    progressToValue(scaleProgress.first),
+                    progressToValue(scaleProgress.second),
+                    progressToValue(scaleProgress.third),
+                    v1, v2, v3
+                )
+            }
+            "SCALE"    -> {
+                node.updateScale(v1, v2, v3, progressToValue(sUni.progress))
+                onRelativeValuesChanged?.invoke(
+                    v1, v2, v3,
+                    progressToValue(rotateProgress.first),
+                    progressToValue(rotateProgress.second),
+                    progressToValue(rotateProgress.third)
+                )
+            }
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Mapping functions  (always use dynamic mid/max, never the default constants)
-    // -------------------------------------------------------------------------
-
-    /**
-     * Converts a seekbar integer progress value to the human-readable float.
-     *
-     * | Mode     | Formula                        | Example (defaults)        |
-     * |----------|--------------------------------|---------------------------|
-     * | POSITION | progress − posDynMid           | 115 → 15.0 cm             |
-     * | ROTATE   | progress − ROT_MID  (fixed)    | 180 → 0.0 °               |
-     * | SCALE    | progress / SCL_MID             | 206 → 2.06 ×              |
-     */
     private fun progressToValue(progress: Int): Float = when (currentMode) {
         "POSITION" -> (progress - posDynMid).toFloat()
-        "ROTATE"   -> (progress - ROT_MID).toFloat()
+        "ROTATE"   -> (progress - ROT_MID).toFloat() / 10f
         "SCALE"    -> (progress / SCL_MID.toFloat()).coerceAtLeast(MIN_SCALE_VALUE)
         else       -> progress.toFloat()
     }
 
-    /**
-     * Inverse of [progressToValue].  Clamps to the *current* dynamic range —
-     * always call [maybeExpandRange] first if you want out-of-range values to
-     * expand the range rather than be clamped.
-     *
-     * | Mode     | Formula                              |
-     * |----------|--------------------------------------|
-     * | POSITION | value + posDynMid  → 0..2*posDynMid |
-     * | ROTATE   | value + ROT_MID    → 0..360 (fixed)  |
-     * | SCALE    | value * SCL_MID    → 1..sclDynMax    |
-     */
     private fun valueToProgress(value: Float): Int = when (currentMode) {
         "POSITION" -> (value + posDynMid).toInt().coerceIn(POS_MIN, 2 * posDynMid)
-        "ROTATE"   -> (value + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
+        "ROTATE"   -> (value * 10f + ROT_MID).toInt().coerceIn(ROT_MIN, ROT_MAX)
         "SCALE"    -> (value * SCL_MID).toInt().coerceIn(SCL_MIN, sclDynMax)
         else       -> value.toInt()
     }
 
-    // -------------------------------------------------------------------------
-    // Dynamic range expansion
-    // -------------------------------------------------------------------------
-
-    /**
-     * Checks whether [value] fits in the current range for the active mode and,
-     * if not, expands [posDynMid] or [sclDynMax] to accommodate it.
-     * Rotation is intentionally excluded — its range is always fixed ±180°.
-     *
-     * Expansion rules:
-     *  • POSITION: new mid = ceil(|value|), capped at POS_MID_HARD (1000 cm).
-     *              The seekbar max becomes  2 * posDynMid.
-     *  • SCALE:    new max = ceil(value * SCL_MID), capped at SCL_MAX_HARD (10 000).
-     *              The seekbar max becomes sclDynMax.
-     *
-     * Values that exceed the hard cap are silently clamped by [valueToProgress].
-     */
-    private fun maybeExpandRange(value: Float) {
+    private fun updateRulerVisuals() {
+        if (!::s1.isInitialized) return
+        val sliders = listOf(s1, s2, s3)
         when (currentMode) {
-            "POSITION" -> {
-                val needed = kotlin.math.abs(value).toInt()  // mid must be >= |value|
-                if (needed > posDynMid) {
-                    posDynMid = needed.coerceAtMost(POS_MID_HARD)
-                    log("Position range expanded → ±$posDynMid cm")
+            "SCALE" -> {
+                val scaleMax = sclDynMax / SCL_MID.toFloat()
+                val minor = if (scaleMax > 20f) 1f else 0.2f
+                sliders.plus(sUni).forEach {
+                    it.updateRange(min = 0f, max = scaleMax, center = 1f, major = 1f, minor = minor)
+                    it.decimalPlaces = 2
                 }
             }
-            "SCALE" -> {
-                val neededMax = (value * SCL_MID).toInt()    // progress equivalent
-                if (neededMax > sclDynMax) {
-                    sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
-                    log("Scale range expanded → max progress $sclDynMax (${sclDynMax / SCL_MID.toFloat()}×)")
+            "POSITION" -> {
+                val posMax = posDynMid.toFloat()
+                val major = (posMax / 2f).coerceAtLeast(1f)
+                val minor = (posMax / 10f).coerceAtLeast(0.1f)
+                sliders.forEach {
+                    it.updateRange(min = -posMax, max = posMax, center = 0f, major = major, minor = minor)
+                    it.setStepsFromRange()
+                    it.decimalPlaces = 1
+                }
+            }
+            "ROTATE" -> {
+                sliders.forEach {
+                    it.updateRange(min = -180f, max = 180f, center = 0f, major = 30f, minor = 10f)
+                    it.decimalPlaces = 1
                 }
             }
         }
     }
 
-    // -------------------------------------------------------------------------
-    // Utility
-    // -------------------------------------------------------------------------
+    private fun maybeExpandRange(value: Float) {
+        var expanded = false
+        when (currentMode) {
+            "POSITION" -> {
+                val valueCm = value / (currentUnitFactor / 100f)
+                val needed = kotlin.math.abs(valueCm).toInt()
+                if (needed > posDynMid) {
+                    posDynMid = needed.coerceAtMost(POS_MID_HARD)
+                    expanded = true
+                }
+            }
+            "SCALE" -> {
+                val neededMax = (value * SCL_MID).toInt()
+                if (neededMax > sclDynMax) {
+                    sclDynMax = neededMax.coerceAtMost(SCL_MAX_HARD)
+                    expanded = true
+                }
+            }
+        }
+        if (expanded) updateRulerVisuals()
+    }
 
-    /** Returns the current seekbar max for the active mode. */
     private fun modeMax() = when (currentMode) {
-        "POSITION" -> 2 * posDynMid   // symmetric around mid
+        "POSITION" -> 2 * posDynMid
         "ROTATE"   -> ROT_MAX
         else       -> sclDynMax
     }
 
-    /** One decimal place is enough for all three modes. */
-    private fun formatValue(value: Float) = String.format("%.1f", value)
-
-    private var currentUnitFactor: Float = 100f //default to CM
+    private fun formatValue(value: Float) = when (currentMode) {
+        "SCALE"    -> "%.2f".format(value)
+        else       -> "%.1f".format(value)
+    }
+    private var currentUnitFactor: Float = 100f
     fun updateUnit(unit: DistanceUnit) {
-        val oldFactor = currentUnitFactor
-        currentUnitFactor = when(unit) {
-            DistanceUnit.METERS -> 1f
+        val oldFactor  = currentUnitFactor
+        currentUnitFactor = when (unit) {
+            DistanceUnit.METERS      -> 1f
             DistanceUnit.CENTIMETERS -> 100f
             DistanceUnit.MILLIMETERS -> 1000f
         }
-        val multiplier = currentUnitFactor / oldFactor
 
+        val oldPosDynMid = posDynMid
+        posDynMid = posDynMid.coerceAtLeast(POS_MID_DEFAULT)
+
+        val unitMultiplier = currentUnitFactor / oldFactor
         positionProgress = Triple(
-            (((positionProgress.first - posDynMid) * multiplier) + posDynMid).toInt(),
-            (((positionProgress.second - posDynMid) * multiplier) + posDynMid).toInt(),
-            (((positionProgress.third - posDynMid) * multiplier) + posDynMid).toInt()
+            (((positionProgress.first  - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid),
+            (((positionProgress.second - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid),
+            (((positionProgress.third  - oldPosDynMid) * unitMultiplier) + posDynMid).toInt()
+                .coerceIn(POS_MIN, 2 * posDynMid)
         )
-        // Refresh the UI so the numbers in EditTexts update immediately
-        refreshSlidersForMode()
+
+        if (::s1.isInitialized) {
+            updateRulerVisuals()
+            refreshSlidersForMode()
+        }
+        refreshUnitButton()
     }
 }

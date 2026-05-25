@@ -1,65 +1,72 @@
 package com.example.pracazaliczeniowa.Nodes
 
-import android.graphics.Bitmap
-import androidx.compose.ui.graphics.Color
-import com.example.pracazaliczeniowa.Overlays.DistanceUnit
-import com.example.pracazaliczeniowa.R
+import android.util.Log
 import com.google.android.filament.Engine
-import com.google.android.filament.Texture
-import com.google.android.filament.TextureSampler
-import com.google.android.filament.gltfio.MaterialProvider
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import dev.romainguy.kotlin.math.Float3
+import dev.romainguy.kotlin.math.Quaternion
 import io.github.sceneview.SceneView
-import io.github.sceneview.createMaterialLoader
-import io.github.sceneview.loaders.MaterialLoader
-import io.github.sceneview.node.CubeNode
+import io.github.sceneview.node.ModelNode
 import io.github.sceneview.node.Node
-import io.github.sceneview.node.PlaneNode
-import io.github.sceneview.node.ViewNode
 import kotlinx.coroutines.CoroutineScope
-import java.nio.ByteBuffer
+import kotlinx.coroutines.launch
 
-/**
- * Selected node with extra overlays: highlight, width-depth plane, and height line.
- * Wraps an existing DefaultModelNode without changing its transform or scale.
- */
 class SelectedModelNode(
     engine: Engine,
     private val scope: CoroutineScope
-) : Node(engine)
-{
+) : Node(engine) {
+
     private var wrappedNode: DefaultModelNode? = null
 
-    private var isDimensionsVisible = false // ✅ State stored here
+    var activeProfileName: String? = null
+
+    private var isDimensionsVisible = false
     private var dimensionOverlay: DimensionOverlayNode? = null
 
-    private var isDragging = false
-
-
     private var initialWorldPos = Float3(0f)
-    private var initialWorldQuat = dev.romainguy.kotlin.math.Quaternion()
+    private var initialWorldQuat = Quaternion()
     private var baseScale = Float3(1f)
+    private var baseRotation = Float3(0f)
+    private var cachedSceneView: SceneView? = null
 
     fun getWrappedNode(): DefaultModelNode? = wrappedNode
-    fun unwrap(): DefaultModelNode? {
+    fun getDimensionOverlay(): DimensionOverlayNode? = dimensionOverlay
+    fun hasAnimations(): Boolean = wrappedNode?.hasAnimations() ?: false
 
+    fun getAnimationCount(): Int =
+        wrappedNode?.modelInstance?.animator?.animationCount ?: 0
+    fun setAnimationPlaying(playing: Boolean) {
+        wrappedNode?.setAnimationPlaying(playing)
+    }
+    fun pauseAnimation() {
+        wrappedNode?.pauseAnimation()
+    }
+    fun resumeAnimation(index: Int) {
+        wrappedNode?.resumeAnimation(index)
+    }
+    fun stopAllAnimations() {
+        wrappedNode?.stopAllAnimations()
+    }
+    fun playAnimation(index: Int) {
+        wrappedNode?.resumeAnimation(index)
+    }
+
+    fun unwrap(): DefaultModelNode? {
         val child = wrappedNode ?: return null
         val currentAnchor = this.parent ?: return null
 
         dimensionOverlay?.let {
             this.removeChildNode(it)
-            it.destroy() // This cleans up the ViewNodes from ViewAttachmentManager
+            it.destroy()
             dimensionOverlay = null
         }
 
-//        child.showSelection(false)
-        // 1. Capture state
+        hideRotationHandle()
+
         val pos = this.worldPosition
         val rot = this.worldQuaternion
         val localScale = child.scale
 
-        // 3. Re-parent
         this.removeChildNode(child)
         currentAnchor.addChildNode(child)
 
@@ -67,16 +74,13 @@ class SelectedModelNode(
         child.worldQuaternion = rot
         child.scale = localScale
 
-
         currentAnchor.removeChildNode(this)
-        this.destroy() // Clean up the wrapper node
+        this.destroy()
         return child
     }
 
     fun attachNode(node: DefaultModelNode) {
         this.wrappedNode = node
-
-        // Capture starting state to use as the "Middle" (progress 100) point
         this.initialWorldPos = this.worldPosition
         this.initialWorldQuat = this.worldQuaternion
         this.baseScale = node.scale
@@ -89,74 +93,70 @@ class SelectedModelNode(
     }
 
     fun showDimensions(node: DefaultModelNode, sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
-        hideDimensions() // Clean up existing first
+        hideDimensions()
         dimensionOverlay = DimensionOverlayNode(
             engine = engine,
-            modelLoader = sceneView.modelLoader,
             materialLoader = sceneView.materialLoader,
-            context = sceneView.context,
-            viewAttachmentManager = viewAttachmentManager,
             targetNode = node
         )
         this.addChildNode(dimensionOverlay!!)
         isDimensionsVisible = true
     }
 
-    // Inside SelectedModelNode class
     private var initialPinchScale = 1.0f
 
     fun startPinching() {
-        // Capture current scale of the wrapped node as the starting point
         initialPinchScale = wrappedNode?.scale?.x ?: 1.0f
     }
 
     fun applyPinchScale(factor: Float) {
-        val newScale = initialPinchScale * factor
-        // Optional: add coerceIn(0.01f, 5.0f) to prevent disappearing or massive models
+        val amplified = 1f + (factor - 1f) * PINCH_SENSITIVITY
+        val newScale = (initialPinchScale * amplified).coerceIn(0.01f, 10f)
         wrappedNode?.scale = Float3(newScale)
         dimensionOverlay?.refresh()
-        updateHandleSize()
+        refreshRingScale()
+    }
+
+    fun syncBaseScale() {
+        baseScale = wrappedNode?.scale ?: Float3(1f)
+    }
+
+    fun syncBaseRotation() {
+        initialWorldQuat = this.worldQuaternion
     }
 
     fun moveTo(pos: Float3) {
-        // We move the SelectedModelNode (the wrapper), which moves everything inside
         this.worldPosition = pos
-        // Update initialWorldPos so slider offsets remain relative to the new drop point
         this.initialWorldPos = pos
     }
-    // Inside SelectedModelNode class
+
     fun updateRotation(xDeg: Float, yDeg: Float, zDeg: Float) {
-        // x, y, z arrive as -180 to 180. We apply this as a relative offset to initial rotation.
-        val extraRot = dev.romainguy.kotlin.math.Quaternion.fromEuler(Float3(xDeg, yDeg, zDeg))
+        val extraRot = Quaternion.fromEuler(Float3(xDeg, yDeg, zDeg))
         this.worldQuaternion = initialWorldQuat * extraRot
     }
 
     fun updatePosition(x: Float, y: Float, z: Float) {
-        // x, y, z arrive as -5.0 to 5.0 meters.
         this.worldPosition = initialWorldPos + Float3(x, y, z)
     }
 
     fun updateScale(xMult: Float, yMult: Float, zMult: Float, uniProgress: Float) {
-        // uniProgress 100 = 1.0x. Scale sliders provide up to 2.5x each.
-        val universalFactor = uniProgress
-
         wrappedNode?.scale = Float3(
-            baseScale.x * xMult * universalFactor,
-            baseScale.y * yMult * universalFactor,
-            baseScale.z * zMult * universalFactor
+            baseScale.x * xMult * uniProgress,
+            baseScale.y * yMult * uniProgress,
+            baseScale.z * zMult * uniProgress
         )
         dimensionOverlay?.refresh()
-        updateHandleSize()
+        refreshRingScale()
     }
 
-    fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager) {
-        val target = wrappedNode ?: return
-
-        if (isDimensionsVisible) {
+    fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager): Boolean {
+        val target = wrappedNode ?: return false
+        return if (isDimensionsVisible) {
             hideDimensions()
+            false
         } else {
             showDimensions(target, sceneView, viewAttachmentManager)
-            isDimensionsVisible = true
+            true
         }
     }
 
@@ -169,64 +169,47 @@ class SelectedModelNode(
         isDimensionsVisible = false
     }
 
-    private var rotationHandle: Node? = null
 
+    private var rotationHandle: ModelNode? = null
     fun showRotationHandle(engine: Engine, sceneView: SceneView) {
         if (rotationHandle != null) return
         val target = wrappedNode ?: return
+        cachedSceneView = sceneView
 
-        val rawHalfExtents = target.boundingBox.halfExtent
-        val currentWorldScale = target.worldScale
-        val maxHorizontalRadius = maxOf(rawHalfExtents[0] * currentWorldScale.x, rawHalfExtents[2] * currentWorldScale.z)
+        scope.launch {
+            val instance = sceneView.modelLoader.loadModelInstance(
+                fileLocation = "RotationHandle.glb"
+            ) ?: run {
+                Log.w("SelectedModelNode", "pointerRing.glb failed to load")
+                return@launch
+            }
 
-        val ringSize = maxHorizontalRadius * 2.5f // Make it slightly larger for easier grabbing
-        // 2. Create a Disc
-        // Using a Cylinder/Sphere flattened on the Y axis makes a perfect circle
-
-        rotationHandle = PlaneNode(
-            engine = engine,
-            size = Float3(ringSize, 0.0f, ringSize),
-            // Use a transparent ring PNG here to make the center "hollow"
-            materialInstance = sceneView.materialLoader.createColorInstance(
-                androidx.compose.ui.graphics.Color.White.copy(alpha = 0.3f)
-                )
+            val handle = ModelNode(
+                modelInstance = instance,
+                autoAnimate   = false,
+                scaleToUnits  = null,
+                centerOrigin  = null
             ).apply {
-            name = "rotation_handle"
-            position = Float3(0f, 0.01f, 0f) // Slightly above floor
-            isEditable = false
+                name       = "rotation_handle"
+                isEditable = false
+            }
+
+            rotationHandle = handle
+            this@SelectedModelNode.addChildNode(handle)
+
+            refreshRingScale()
         }
-
-        this.addChildNode(rotationHandle!!)
-        updateHandleSize()
     }
-
-    fun updateHandleSize() {
+    fun refreshRingScale() {
+        val handle = rotationHandle ?: return
         val target = wrappedNode ?: return
-        val handle = rotationHandle as? PlaneNode ?: return
-        // 1. Get raw dimensions (in model-space meters)
-        val box = target.modelInstance.asset.boundingBox
-        val s = target.scale
 
-        // 2. Calculate current world dimensions in METERS (just like DimensionOverlayNode)
-        // We multiply raw extent by the scale to get actual size
-        val w = box.halfExtent[0] * 10f * s.x
-        val d = box.halfExtent[2] * 10f * s.z
+        val outerR = computeOuterRadius(target)
+        val yOff   = computeYOffset(target)
 
-        // 3. Determine the radius.
-        // We use a multiplier (e.g., 1.5f) to ensure the ring is outside the model
-        val multiplier = 1.5f
-        val ringSize = maxOf(w, d) * multiplier
-
-        // 4. Set the scale.
-        // IMPORTANT: Since PlaneNode's 'size' is often 1m x 1m,
-        // we set the scale to the exact meter size we want.
-        handle.scale = Float3(ringSize, 1.0f, ringSize)
-
-        val scaledCenter = Float3(box.center[0] * s.x, 0.01f, box.center[2] * s.z)
-        handle.position = scaledCenter
+        handle.scale    = Float3(outerR, 1f, outerR)
+        handle.position = Float3(0f, yOff, 0f)
     }
-
-
     fun hideRotationHandle() {
         rotationHandle?.let {
             this.removeChildNode(it)
@@ -235,11 +218,31 @@ class SelectedModelNode(
         }
     }
 
-    //TODO - rotation handle shrinking while
-    //select + change many?
+    private fun computeOuterRadius(target: DefaultModelNode): Float {
+        val box   = target.modelInstance.asset.boundingBox
+        val s     = target.worldScale
+        val halfW = box.halfExtent[0] * s.x
+        val halfD = box.halfExtent[2] * s.z
+        return maxOf(halfW, halfD) * 1.25f
+    }
 
-    //model storage for changing position?? like, zrzucasz na psek kilka kart i możesz wybrać którą otworzyć
+    private fun computeYOffset(target: DefaultModelNode): Float {
+        val box     = target.modelInstance.asset.boundingBox
+        val s       = target.worldScale
+        val bottomY = (box.center[1] - box.halfExtent[1]) * s.y
+        return bottomY + 0.005f
+    }
 
+    fun setBaseScale(base: Float3) {
+        baseScale = base
+    }
 
-
+    fun applyProfileRotation(euler: Float3) {
+        this.worldQuaternion = Quaternion.fromEuler(euler)
+        wrappedNode?.rotation = Float3(0f)
+        initialWorldQuat = this.worldQuaternion
+    }
+    companion object {
+        const val PINCH_SENSITIVITY = 2.0f
+    }
 }

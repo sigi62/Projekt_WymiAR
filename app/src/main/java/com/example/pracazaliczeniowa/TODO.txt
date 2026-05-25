@@ -1,23 +1,16 @@
 
 
-  IMPLEMENTATION:
-
-  Add Library to choose models from
-  Add imports
-
-  Add a toggle effect to MeasureTape
-  Add a toggle effect to wireframe mode too ?? Button type special for selected?
-  Add a label for rotation/position/scale seekbars
-
-  AR wall manget mode - both vertical and horizontal - add a button for change
-  AR collision
-  More UI changes
-  BETTER PLANE DETECTING
-  3D MODE
+Opcja trybu aparatu!!!!!!!!!!!
 
 
-  BUGS / FIXES
+! - ! - napraw filtry bo sie psują?
 
-  1. Dimension overlay measurements not appearing correctly - not changing units - not calculating
-  2. Rotation Handle not a ring
-  3. Deselecting model doesn't work  while tapping on selected???
+
+Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
+
+Wyraźne zaznaczenie POMACHAJ TELEFONEM MAN
+
+Measurements more accurate
+
+Moze foldery?
+
