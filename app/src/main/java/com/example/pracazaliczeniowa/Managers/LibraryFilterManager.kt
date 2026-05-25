@@ -12,7 +12,7 @@ import com.example.pracazaliczeniowa.Objects.ModelItem
 class LibraryFilterManager(
     private val savedProfiles: Set<String>
 ) {
-    enum class Filter { ALL, ALPHABETICAL, RECENT, SIZE, IMPORTED, SAVED }
+    enum class Filter { ALL, ALPHABETICAL, RECENT, SIZE, IMPORTED, PROFILE }
 
     var current: Filter = Filter.RECENT
         private set
@@ -53,7 +53,7 @@ class LibraryFilterManager(
             Filter.ALPHABETICAL -> allModels
             Filter.SIZE         -> allModels
             Filter.IMPORTED     -> allModels.filter { !it.isAsset }
-            Filter.SAVED        -> allModels.filter { it.profileKey in savedProfiles }
+            Filter.PROFILE        -> allModels.filter { it.profileKey in savedProfiles }
         }
 
         return when (current) {

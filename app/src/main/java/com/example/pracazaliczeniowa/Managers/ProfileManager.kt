@@ -47,7 +47,7 @@ data class ModelProfileBundle(
 
 sealed class ProfileSaveResult {
     object Success : ProfileSaveResult()
-    object TooManyProfiles : ProfileSaveResult()   // already at MAX_NAMED, slot is new
+    object TooManyProfiles : ProfileSaveResult()
     data class Error(val cause: Exception) : ProfileSaveResult()
 }
 

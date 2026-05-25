@@ -528,7 +528,7 @@ class LibraryActivity : AppCompatActivity() {
         val simpleChips = mapOf(
             R.id.chipAll      to LibraryFilterManager.Filter.ALL,
             R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
-            R.id.chipSaved    to LibraryFilterManager.Filter.SAVED
+            R.id.chipSaved    to LibraryFilterManager.Filter.PROFILE
         )
 
         fun syncChipIcons() {

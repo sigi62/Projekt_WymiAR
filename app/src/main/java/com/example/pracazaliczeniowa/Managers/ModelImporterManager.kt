@@ -258,6 +258,10 @@ object ModelImportManager {
         val newMeta = File(newFile.parentFile, "${newFile.nameWithoutExtension}.meta")
         if (oldMeta.exists()) oldMeta.renameTo(newMeta)
 
+        val profileDir = File(context.filesDir, "profiles")
+        val oldProfile = File(profileDir, "${oldFile.nameWithoutExtension}.json")
+        val newProfile = File(profileDir, "$sanitised.json")
+        if (oldProfile.exists()) oldProfile.renameTo(newProfile)
 
         return if (oldFile.renameTo(newFile)) {
             log("Rename SUCCESS: '${item.name}' → '$sanitised'")

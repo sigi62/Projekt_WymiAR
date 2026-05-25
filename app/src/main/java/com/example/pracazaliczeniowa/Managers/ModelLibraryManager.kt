@@ -173,9 +173,12 @@ class ModelLibraryManager(
                 }
             }
 
-            addCustomMenuItem(context.getString(R.string.menu_rename)) {
-                onRenameImported(item)
+            if (!item.isAsset) {
+                addCustomMenuItem(context.getString(R.string.menu_rename)) {
+                    onRenameImported(item)
+                }
             }
+
 
             if (item.profileKey in savedProfiles) {
                 addCustomMenuItem(context.getString(R.string.menu_export_profile)) {
@@ -262,6 +265,22 @@ class ModelLibraryManager(
         val bmp    = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
         when {
             bmp != null               -> imageView.setImageBitmap(bmp)
+            item.isAsset -> {
+                val context = imageView.context
+                val assetThumbnailPath = "thumbnails/${item.name}.jpg"
+                try {
+                    context.assets.open(assetThumbnailPath).use { inputStream ->
+                        val assetBmp = BitmapFactory.decodeStream(inputStream)
+                        imageView.setImageBitmap(assetBmp)
+                    }
+                } catch (e: Exception) {
+                    if (item.thumbnailRes != null) {
+                        imageView.setImageResource(item.thumbnailRes)
+                    } else {
+                        imageView.setImageResource(R.drawable.ic_model_placeholder)
+                    }
+                }
+            }
             item.thumbnailRes != null -> imageView.setImageResource(item.thumbnailRes)
             else                      -> imageView.setImageResource(R.drawable.ic_model_placeholder)
         }

@@ -46,8 +46,6 @@ class AppSettings(context: Context) {
             prefs.edit().putString(KEY_THEME, tag).apply()
         }
 
-    /** Convenience read for legacy call-sites that only care about dark vs not-dark. */
-    val isDarkMode: Boolean get() = themeMode == Theme.DARK
 
     /**
      * Applies the stored theme preference to the whole process via

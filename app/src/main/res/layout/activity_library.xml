@@ -58,19 +58,21 @@
 
     <!-- Filter chips -->
     <!-- Filter chips -->
+
+    <!-- Item count label -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:scrollbars="none"
         android:paddingStart="12dp"
         android:paddingEnd="12dp"
-        android:paddingBottom="4dp">
+        android:paddingBottom="4dp"
+        android:scrollbars="none">
 
         <LinearLayout
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical">
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipAll"
@@ -78,9 +80,9 @@
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
+                android:checked="false"
                 android:text="@string/filter_all"
-                android:textSize="12sp"
-                android:checked="false" />
+                android:textSize="12sp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipAlphabetical"
@@ -90,11 +92,11 @@
                 android:layout_marginEnd="6dp"
                 android:text="@string/filter_alphabetical"
                 android:textSize="12sp"
+                app:checkedIconVisible="false"
                 app:chipIcon="@drawable/ic_sort_asc"
-                app:chipIconVisible="true"
                 app:chipIconSize="16dp"
-                app:iconStartPadding="4dp"
-                app:checkedIconVisible="false"/>
+                app:chipIconVisible="true"
+                app:iconStartPadding="4dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipRecent"
@@ -102,14 +104,14 @@
                 android:layout_width="wrap_content"
                 android:layout_height="40dp"
                 android:layout_marginEnd="6dp"
+                android:checked="true"
                 android:text="@string/filter_recent"
                 android:textSize="12sp"
-                android:checked="true"
+                app:checkedIconVisible="false"
                 app:chipIcon="@drawable/ic_sort_desc"
-                app:chipIconVisible="true"
                 app:chipIconSize="16dp"
-                app:iconStartPadding="4dp"
-                app:checkedIconVisible="false" />
+                app:chipIconVisible="true"
+                app:iconStartPadding="4dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipSize"
@@ -119,11 +121,11 @@
                 android:layout_marginEnd="6dp"
                 android:text="@string/filter_size"
                 android:textSize="12sp"
+                app:checkedIconVisible="false"
                 app:chipIcon="@drawable/ic_sort_asc"
-                app:chipIconVisible="true"
                 app:chipIconSize="16dp"
-                app:iconStartPadding="4dp"
-                app:checkedIconVisible="false"/>
+                app:chipIconVisible="true"
+                app:iconStartPadding="4dp" />
 
             <com.google.android.material.chip.Chip
                 android:id="@+id/chipImported"
@@ -145,7 +147,6 @@
         </LinearLayout>
     </HorizontalScrollView>
 
-    <!-- Item count label -->
     <TextView
         android:id="@+id/tvItemCount"
         android:layout_width="match_parent"
