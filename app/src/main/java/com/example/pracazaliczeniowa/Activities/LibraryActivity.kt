@@ -471,62 +471,65 @@ class LibraryActivity : AppCompatActivity() {
         val chipAlphabetical = findViewById<Chip>(R.id.chipAlphabetical)
         val chipRecent       = findViewById<Chip>(R.id.chipRecent)
         val chipSize         = findViewById<Chip>(R.id.chipSize)
+        val chipImported     = findViewById<Chip>(R.id.chipImported)
+        val chipSaved        = findViewById<Chip>(R.id.chipSaved)
 
-        val simpleChips = mapOf(
-            R.id.chipAll      to LibraryFilterManager.Filter.ALL,
-            R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
-            R.id.chipSaved    to LibraryFilterManager.Filter.PROFILE
-        )
+        fun syncChips() {
+            chipAlphabetical.isChecked = filterManager.current == LibraryFilterManager.Filter.ALPHABETICAL
+            chipRecent.isChecked       = filterManager.current == LibraryFilterManager.Filter.RECENT
+            chipSize.isChecked         = filterManager.current == LibraryFilterManager.Filter.SIZE
 
-        fun syncChipIcons() {
             chipAlphabetical.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.ALPHABETICAL && !filterManager.ascending)
-                    R.drawable.ic_sort_asc
-                else
-                    R.drawable.ic_sort_desc
+                    R.drawable.ic_sort_asc else R.drawable.ic_sort_desc
             )
             chipRecent.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.RECENT && filterManager.ascending)
-                    R.drawable.ic_sort_asc
-                else
-                    R.drawable.ic_sort_desc
+                    R.drawable.ic_sort_asc else R.drawable.ic_sort_desc
             )
             chipSize.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.SIZE && filterManager.ascending)
-                    R.drawable.ic_sort_asc
-                else
-                    R.drawable.ic_sort_desc
+                    R.drawable.ic_sort_asc else R.drawable.ic_sort_desc
             )
+
+            chipImported.isChecked = filterManager.activeSubset == LibraryFilterManager.Filter.IMPORTED
+            chipSaved.isChecked    = filterManager.activeSubset == LibraryFilterManager.Filter.PROFILE
         }
 
         fun applyAndRefresh() {
             adapter.updateItems(filterManager.apply(allModels))
             updateCountLabel()
-            syncChipIcons()
+            syncChips()
         }
 
-        chipAlphabetical.setOnClickListener {
-            filterManager.select(LibraryFilterManager.Filter.ALPHABETICAL)
-            applyAndRefresh()
-        }
-
-        chipRecent.setOnClickListener {
-            filterManager.select(LibraryFilterManager.Filter.RECENT)
-            applyAndRefresh()
-        }
-
-        chipSize.setOnClickListener {
-            filterManager.select(LibraryFilterManager.Filter.SIZE)
-            applyAndRefresh()
-        }
-
-        simpleChips.forEach { (id, filter) ->
-            findViewById<Chip>(id).setOnClickListener {
-                filterManager.select(filter)
+        findViewById<Chip>(R.id.chipAll).setOnClickListener {
+            if (filterManager.activeSubset != null) {
+                filterManager.reset()
                 applyAndRefresh()
             }
         }
-        syncChipIcons()
+        chipAlphabetical.setOnClickListener {
+            filterManager.selectSort(LibraryFilterManager.Filter.ALPHABETICAL)
+            applyAndRefresh()
+        }
+        chipRecent.setOnClickListener {
+            filterManager.selectSort(LibraryFilterManager.Filter.RECENT)
+            applyAndRefresh()
+        }
+        chipSize.setOnClickListener {
+            filterManager.selectSort(LibraryFilterManager.Filter.SIZE)
+            applyAndRefresh()
+        }
+        chipImported.setOnClickListener {
+            filterManager.selectSubset(LibraryFilterManager.Filter.IMPORTED)
+            applyAndRefresh()
+        }
+        chipSaved.setOnClickListener {
+            filterManager.selectSubset(LibraryFilterManager.Filter.PROFILE)
+            applyAndRefresh()
+        }
+
+        syncChips()
     }
 
 
