@@ -497,7 +497,9 @@ class LibraryActivity : AppCompatActivity() {
         }
 
         fun applyAndRefresh() {
-            adapter.updateItems(filterManager.apply(allModels))
+            val sorted = filterManager.apply(allModels)
+            sorted.forEach { log("${it.name}: ${it.sizeBytes} bytes") }
+            adapter.updateItems(sorted)
             updateCountLabel()
             syncChips()
         }

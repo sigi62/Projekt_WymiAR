@@ -305,7 +305,17 @@ object ModelImportManager {
 
     fun bundledItem(context: Context, assetPath: String): ModelItem {
         val name = assetPath.substringAfterLast("/").substringBeforeLast(".")
-        val sizeBytes = try { context.assets.openFd(assetPath).use { it.length } } catch (e: Exception) { 0L }
+        val sizeBytes = try {
+            val len = context.assets.openFd(assetPath).use { it.length }
+            if (len > 0L) len
+            else context.assets.open(assetPath).use { stream ->
+                var count = 0L
+                val buf = ByteArray(8192)
+                var read: Int
+                while (stream.read(buf).also { read = it } != -1) count += read
+                count
+            }
+        } catch (e: Exception) { 0L }
         val bounds = ModelFileUtils.readBounds(context, assetPath)
         val fixedUuid = UUID.nameUUIDFromBytes(assetPath.toByteArray(Charsets.UTF_8)).toString()
         return ModelItem(

@@ -99,6 +99,10 @@ class ARActivity : AppCompatActivity() {
     private lateinit var dimD: TextView
 
     private var isMeasureToolActive: Boolean = false
+    private var isCameraModeActive: Boolean = false
+
+    private lateinit var cameraModeButton: ImageButton
+    private lateinit var btnCapturePhoto: ImageButton
 
     // ── Animation state ──────────────────────────────
     private var isAnimationPlaying: Boolean = false
@@ -194,6 +198,12 @@ class ARActivity : AppCompatActivity() {
         }
 
         backButton.setOnClickListener { closeScene() }
+        cameraModeButton  = findViewById(R.id.btnCameraMode)
+        btnCapturePhoto   = findViewById(R.id.btnCapturePhoto)
+
+        cameraModeButton.alpha = 0.5f
+        cameraModeButton.setOnClickListener { toggleCameraMode() }
+        btnCapturePhoto.setOnClickListener { capturePhoto() }
 
         settingsButton.setOnClickListener {
             startActivity(Intent(this, SettingsActivity::class.java))
@@ -305,7 +315,7 @@ class ARActivity : AppCompatActivity() {
             if (count < 2) return@setOnClickListener
             currentAnimationIndex = (currentAnimationIndex + 1) % count
             wrapped.playAnimation(currentAnimationIndex)
-            statusText.text = "Animation ${currentAnimationIndex + 1} / $count"
+            statusText.text = getString(R.string.status_animation_index, currentAnimationIndex + 1, count)
         }
 
         // ── Rotation ring────────────────────────────────────────
@@ -431,11 +441,11 @@ class ARActivity : AppCompatActivity() {
                                 && arSceneView.session?.getAllTrackables(Plane::class.java)
                             ?.any { it.trackingState == TrackingState.TRACKING } == true
                         if (!isReady) {
-                            statusText.text = "Move camera slowly to detect surfaces…"
+                            statusText.text = getString(R.string.status_move_camera_slow)
                             return@onTouchEvent true
                         }
                         if (arHit != null) placeMeasurePoint(arHit)
-                        else statusText.text = "Tap on a detected surface (grid area)" //TODO
+                        else statusText.text = getString(R.string.status_tap_on_surface)
                         return@onTouchEvent true
                     }
 
@@ -522,7 +532,124 @@ class ARActivity : AppCompatActivity() {
                 getString(R.string.measure_tap_first)
             else
                 getString(R.string.measure_tap_second).takeIf { pendingMeasureNode != null }
-                    ?: "Measurements restored · tap to add more" //TODO
+                    ?: getString(R.string.status_measurements_restored)
+        }
+    }
+
+    // ── Camera mode ───────────────────────────────────────────────────────────
+
+    private fun toggleCameraMode() {
+        isCameraModeActive = !isCameraModeActive
+        cameraModeButton.alpha = if (isCameraModeActive) 1.0f else 0.5f
+
+        if (isCameraModeActive) {
+            if (isMeasureToolActive) toggleMeasureTool()
+            if (selectedModel != null) deselectModel()
+            setCameraModeUiVisible(false)
+            btnCapturePhoto.visibility = View.VISIBLE
+        } else {
+            btnCapturePhoto.visibility = View.GONE
+            setCameraModeUiVisible(true)
+        }
+    }
+
+    private fun setCameraModeUiVisible(visible: Boolean) {
+        val vis = if (visible) View.VISIBLE else View.GONE
+
+        btnLibrary.visibility     = vis
+        btnModelColour.visibility = View.GONE
+
+        val rootFrame = window.decorView.findViewById<android.widget.FrameLayout>(android.R.id.content)
+            ?.getChildAt(0) as? android.widget.FrameLayout
+        for (i in 0 until (rootFrame?.childCount ?: 0)) {
+            if (rootFrame?.getChildAt(i) is android.widget.ScrollView) {
+                rootFrame.getChildAt(i).visibility = vis
+                break
+            }
+        }
+
+        settingsButton.visibility = vis
+
+        statusText.visibility   = vis
+        dimensionHud.visibility = View.GONE
+        modelControls.visibility = View.GONE
+
+        btnMeasureDelete.visibility = View.GONE
+        btnMeasureRevert.visibility = View.GONE
+
+        if (!visible) {
+            wireframeModeButton.visibility      = View.GONE
+            rotationRingToggleButton.visibility = View.GONE
+            animationToggleButton.visibility    = View.GONE
+            animationPauseButton.visibility     = View.GONE
+            animationNextButton.visibility      = View.GONE
+            measureOverlay.visibility           = View.INVISIBLE
+        }
+    }
+
+    private fun capturePhoto() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            val bmp = android.graphics.Bitmap.createBitmap(
+                arSceneView.width, arSceneView.height,
+                android.graphics.Bitmap.Config.ARGB_8888
+            )
+            android.view.PixelCopy.request(
+                arSceneView,
+                bmp,
+                { result ->
+                    if (result == android.view.PixelCopy.SUCCESS) {
+                        savePhotoToGallery(bmp)
+                    } else {
+                        runOnUiThread {
+                            statusText.visibility = View.VISIBLE
+                            statusText.text = getString(R.string.camera_capture_failed)
+                        }
+                    }
+                },
+                android.os.Handler(android.os.Looper.getMainLooper())
+            )
+        }
+    }
+
+    private fun savePhotoToGallery(bmp: android.graphics.Bitmap) {
+        val filename = "AR_${System.currentTimeMillis()}.jpg"
+        val values = android.content.ContentValues().apply {
+            put(android.provider.MediaStore.Images.Media.DISPLAY_NAME, filename)
+            put(android.provider.MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+            put(android.provider.MediaStore.Images.Media.RELATIVE_PATH,
+                "${android.os.Environment.DIRECTORY_PICTURES}/ARCaptures")
+            put(android.provider.MediaStore.Images.Media.IS_PENDING, 1)
+        }
+        val uri = contentResolver.insert(
+            android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values
+        )
+        if (uri == null) {
+            runOnUiThread {
+                statusText.visibility = View.VISIBLE
+                statusText.text = getString(R.string.camera_capture_failed)
+            }
+            return
+        }
+        try {
+            contentResolver.openOutputStream(uri)?.use { out ->
+                bmp.compress(android.graphics.Bitmap.CompressFormat.JPEG, 95, out)
+            }
+            values.clear()
+            values.put(android.provider.MediaStore.Images.Media.IS_PENDING, 0)
+            contentResolver.update(uri, values, null, null)
+            runOnUiThread {
+                statusText.visibility = View.VISIBLE
+                statusText.text = getString(R.string.camera_photo_saved)
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    if (isCameraModeActive) statusText.visibility = View.GONE
+                }, 2000)
+            }
+        } catch (e: Exception) {
+            contentResolver.delete(uri, null, null)
+            runOnUiThread {
+                statusText.visibility = View.VISIBLE
+                statusText.text = getString(R.string.camera_capture_failed)
+            }
         }
     }
 
@@ -535,7 +662,7 @@ class ARActivity : AppCompatActivity() {
 
         if (pending == null) {
             if (measureLines.size >= MAX_MEASURE_LINES) {
-                statusText.text = "Maximum of $MAX_MEASURE_LINES measurements reached. Delete one to continue." //TODO
+                statusText.text = getString(R.string.status_max_measurements, MAX_MEASURE_LINES)
                 return
             }
 
@@ -582,7 +709,7 @@ class ARActivity : AppCompatActivity() {
             statusText.text = if (linesCount == 0)
                 getString(R.string.measure_tap_first)
             else
-                "Point removed · $linesCount line${if (linesCount != 1) "s" else ""} remaining" //TODO
+                getString(R.string.status_point_removed, linesCount, if (linesCount != 1) "s" else "")
         } else if (measureLines.isNotEmpty()) {
             val lastLine = measureLines.removeAt(measureLines.size - 1)
             val (nodeA, nodeB) = lastLine

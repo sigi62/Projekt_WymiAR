@@ -34,6 +34,18 @@
             android:scaleType="centerInside"
             android:contentDescription="@string/back"/>
 
+        <ImageButton
+            android:id="@+id/btnCameraMode"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_camera"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="Toggle camera mode"/>
+
         <FrameLayout
             android:id="@+id/btnModelColour"
             android:layout_width="48dp"
@@ -261,5 +273,19 @@
             android:background="@color/AR_layout_background"/>
 
     </LinearLayout>
+
+    <!-- Camera mode shutter button -->
+    <ImageButton
+        android:id="@+id/btnCapturePhoto"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="100dp"
+        android:src="@drawable/ic_shutter"
+        android:background="@drawable/bg_shutter_button"
+        android:scaleType="centerInside"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:contentDescription="Take photo"/>
 
 </FrameLayout>

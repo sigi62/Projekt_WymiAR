@@ -1,8 +1,1 @@
-
-
-Opcja trybu aparatu!!!!!!!!!!!
-
-
-Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
-
-Wyraźne zaznaczenie POMACHAJ TELEFONEM MAN
+Dodać foldery do biblioteki modeli?

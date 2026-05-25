@@ -1073,6 +1073,13 @@ class ModelPreviewActivity : AppCompatActivity() {
         try {
             val file = File(filesDir, "thumbnails/$modelId.jpg").apply { parentFile?.mkdirs() }
             FileOutputStream(file).use { bitmap.compress(Bitmap.CompressFormat.JPEG, THUMB_QUALITY, it) }
+            runOnUiThread {
+                android.widget.Toast.makeText(
+                    this,
+                    getString(R.string.thumbnail_set),
+                    android.widget.Toast.LENGTH_SHORT
+                ).show()
+            }
         } catch (e: Exception) {}
     }
 
