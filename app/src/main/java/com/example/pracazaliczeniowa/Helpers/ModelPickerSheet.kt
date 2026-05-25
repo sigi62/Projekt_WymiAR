@@ -11,7 +11,6 @@ import android.widget.PopupWindow
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
-import com.example.pracazaliczeniowa.Activities.LibraryActivity
 import com.example.pracazaliczeniowa.Managers.ModelImportManager
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
@@ -22,9 +21,6 @@ class ModelPickerPopup(private val context: Context) {
     var onModelPicked: ((ModelItem) -> Unit)? = null
     private var popupWindow: PopupWindow? = null
 
-    /**
-     * Internal helper to build the full list of available models.
-     */
     private fun getAllAvailableModels(): List<ModelItem> {
         val bundled = try {
             (context.assets.list("models") ?: emptyArray())
@@ -52,11 +48,9 @@ class ModelPickerPopup(private val context: Context) {
         val container = contentView.findViewById<LinearLayout>(R.id.pickerContainer)
         val scrollView = contentView.findViewById<ScrollView>(R.id.pickerScroll)
 
-        // Set max height for the scrollable area (40% of screen)
         val screenHeight = context.resources.displayMetrics.heightPixels
         val maxHeightPx = (screenHeight * 0.40).toInt()
 
-        // Ensure the container doesn't grow indefinitely
         scrollView.post {
             if (scrollView.height > maxHeightPx) {
                 val params = scrollView.layoutParams
@@ -71,13 +65,11 @@ class ModelPickerPopup(private val context: Context) {
             val thumb = row.findViewById<ImageView>(R.id.pickerThumb)
             val label = row.findViewById<TextView>(R.id.pickerLabel)
 
-            // Highlighting logic for the active model
             if (item.modelPath == activePath) {
                 row.setBackgroundColor(ContextCompat.getColor(context, R.color.highlight))
             }
 
-            // Thumbnail loading logic
-            val cached = File(context.filesDir, "thumbnails/${item.profileKey}.jpg")
+            val cached = File(context.filesDir, "thumbnails/${item.modelId}.jpg")
             val bmp = if (cached.exists()) BitmapFactory.decodeFile(cached.absolutePath) else null
 
             when {

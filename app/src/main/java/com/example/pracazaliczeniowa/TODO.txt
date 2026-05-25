@@ -2,13 +2,15 @@
 
 Opcja trybu aparatu!!!!!!!!!!!
 
+
 ! - ! - napraw filtry bo sie psują?
 
-model losing profiles + thumbnail after name change
 
 Wyrazniejsze zaznazcanie że jest sie w trybie pomiarowym
 
 Wyraźne zaznaczenie POMACHAJ TELEFONEM MAN
 
 Measurements more accurate
+
+Moze foldery?
 

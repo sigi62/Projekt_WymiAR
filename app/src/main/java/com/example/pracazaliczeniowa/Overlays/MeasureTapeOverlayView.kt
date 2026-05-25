@@ -18,33 +18,20 @@ import io.github.sceneview.ar.node.AnchorNode
 import kotlin.math.abs
 import kotlin.math.sqrt
 
-/**
- * Transparent overlay that draws measuring-tape lines between committed pairs of
- * world-space anchor nodes, plus an optional pending (first-tap) point that has
- * no partner yet.  Supports up to MAX_LINES (5) complete line segments.
- */
 class MeasureTapeOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
 ) : View(context, attrs) {
 
 
-
     private var sceneView: ARSceneView? = null
 
-    /**
-     * Each entry is a committed pair (A, B) representing one finished measurement.
-     */
     private val measureLines = mutableListOf<Pair<AnchorNode, AnchorNode>>()
 
-    /**
-     * The first tap of an in-progress line – drawn as a lone point with no label.
-     */
     private var pendingAnchor: AnchorNode? = null
 
     private var unit: DistanceUnit = DistanceUnit.METERS
 
-    // ── Paints ────────────────────────────────────────────────────────────
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         color = Color.WHITE
@@ -77,13 +64,9 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         style = Paint.Style.STROKE
     }
 
-    // ── Projection matrices ───────────────────────────────────────────────
-
     private val proj = FloatArray(16)
     private val view = FloatArray(16)
     private val vp   = FloatArray(16)
-
-    // ── Choreographer (per-frame redraw) ──────────────────────────────────
 
     private val frameCallback: Choreographer.FrameCallback = Choreographer.FrameCallback {
         invalidate()
@@ -100,17 +83,10 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         super.onDetachedFromWindow()
     }
 
-    // ── Public API ────────────────────────────────────────────────────────
-
     fun attach(sv: ARSceneView) {
         sceneView = sv
     }
 
-    /**
-     * Replace the full list of committed line segments and the current pending
-     * (single-tap, no partner yet) anchor.  Call this whenever ARActivity's
-     * measure state changes.
-     */
     fun setMeasureData(
         lines: List<Pair<AnchorNode, AnchorNode>>,
         pending: AnchorNode?,
@@ -124,13 +100,11 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         unit = u
     }
 
-    /** Convenience – wipe everything (called by clearMeasurements). */
     fun clear() {
         measureLines.clear()
         pendingAnchor = null
     }
 
-    // ── Drawing ───────────────────────────────────────────────────────────
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
@@ -147,7 +121,6 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         val sw = width.toFloat()
         val sh = height.toFloat()
 
-        // Draw every committed line
         for ((nodeA, nodeB) in measureLines) {
             val a = nodeA.worldPosition.let { Float3(it.x, it.y, it.z) }
             val b = nodeB.worldPosition.let { Float3(it.x, it.y, it.z) }
@@ -165,7 +138,6 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
             drawLabel(canvas, String.format("%.1f %s", value, suffix), mid)
         }
 
-        // Draw the pending (orphan) point if present
         pendingAnchor?.let { node ->
             val p = node.worldPosition.let { Float3(it.x, it.y, it.z) }
             val sp = project(p, sw, sh) ?: return@let
@@ -180,7 +152,6 @@ class MeasureTapeOverlayView @JvmOverloads constructor(
         return sqrt(dx * dx + dy * dy + dz * dz)
     }
 
-    /** Column-major VP multiply then perspective divide → screen pixels. */
     private fun project(world: Float3, sw: Float, sh: Float): FloatArray? {
         val x = vp[0]*world.x + vp[4]*world.y + vp[8]*world.z  + vp[12]
         val y = vp[1]*world.x + vp[5]*world.y + vp[9]*world.z  + vp[13]

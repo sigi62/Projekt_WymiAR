@@ -7,7 +7,6 @@
     android:orientation="vertical"
     android:background="@color/screen_background">
 
-    <!-- Header row -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -56,10 +55,6 @@
 
     </LinearLayout>
 
-    <!-- Filter chips -->
-    <!-- Filter chips -->
-
-    <!-- Item count label -->
     <HorizontalScrollView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -160,7 +155,6 @@
         android:letterSpacing="0.06"
         android:textColor="@color/text_secondary" />
 
-    <!-- Grid of model cards -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/rvModelLibrary"
         android:layout_width="match_parent"

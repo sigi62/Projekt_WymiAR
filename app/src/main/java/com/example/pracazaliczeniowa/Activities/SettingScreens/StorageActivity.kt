@@ -14,17 +14,8 @@ import com.example.pracazaliczeniowa.Helpers.RulerSeekBar
 import com.example.pracazaliczeniowa.R
 import java.io.File
 
-/**
- * Displays total storage consumed by cached 3-D model files,
- * lets the user delete individual models, or wipe everything at once.
- *
- * Models are stored under:  context.filesDir/models/
- * Each model is a single directory named after the model (e.g. "Cat/").
- * Adjust MODEL_DIR if your project uses a different path.
- */
 class StorageActivity : AppCompatActivity() {
 
-    // ── where model folders live ──────────────────────────────────────────
     private val modelDir: File by lazy { File(filesDir, "models") }
 
     // ── view refs ────────────────────────────────────────────────────────
@@ -33,13 +24,7 @@ class StorageActivity : AppCompatActivity() {
     private lateinit var progressStorage: ProgressBar
     private lateinit var containerModels: LinearLayout
     private lateinit var sliderQuota: RulerSeekBar
-
-    // Quota range: 10 MB … 200 MB.
-    // RulerSeekBar works in display units (MB), so we map directly.
-    // Steps snap at: 10, 25, 50, 75, 100, 125, 150, 175, 200
-    // Major ticks at 10, 100, 200  |  minor ticks at 50, 150
     private val QUOTA_MIN_MB  = 10f
-    private val QUOTA_MAX_MB  = 200f
     private val QUOTA_DEF_MB  = 100f
 
     private var quotaBytes: Long = QUOTA_DEF_MB.toLong() * 1024 * 1024
@@ -55,25 +40,16 @@ class StorageActivity : AppCompatActivity() {
         sliderQuota     = findViewById(R.id.sliderQuota)
         sliderQuota.vertical = true
 
-        // Configure the ruler using 0-based origin so tick multiples align cleanly.
-        // min=0 means: major=100 hits 0,100,200 (boundary+center+boundary style in RulerSeekBar)
-        //              minor=50  hits 50, 150
-        // The displayed label is offset by +10 via the minValue field so the user sees 10–210,
-        // but we correct that by keeping minValue=10 and maxValue=210 while setting
-        // centerValue=110 — all shifted by 10 so every multiple of 50/100 aligns.
-        // Simplest correct approach: shift the whole range so multiples land right.
         sliderQuota.updateRange(
             min    = 0f,
             max    = 200f,
             center = 100f,
-            major  = 100f,  // hits 0, 100, 200 → boundary/center/boundary in RulerSeekBar
-            minor  = 50f    // hits 50, 150
+            major  = 100f,
+            minor  = 50f
         )
         sliderQuota.decimalPlaces = 0
-        // max = 200 - 0 = 200; 1 step = 1 unit. We'll offset display labels in the listener.
         sliderQuota.setStepsFromRange()
-        // Default = 100 MB → progress = 100 (since min=0, value 100 = progress 100)
-        sliderQuota.progress = QUOTA_DEF_MB.toInt()   // 100
+        sliderQuota.progress = QUOTA_DEF_MB.toInt()
 
         sliderQuota.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: android.widget.SeekBar, progress: Int, fromUser: Boolean) {
@@ -111,15 +87,10 @@ class StorageActivity : AppCompatActivity() {
         refresh()
     }
 
-    // ── Snap to allowed MB steps ─────────────────────────────────────────
-    // Valid values: 10, 25, 50, 75, 100, 125, 150, 175, 200
-
     private val QUOTA_STEPS_MB = listOf(10f, 50f, 100f, 150f, 200f)
 
     private fun snapToStep(mb: Float): Float =
         QUOTA_STEPS_MB.minByOrNull { kotlin.math.abs(it - mb) } ?: mb
-
-    // ── Refresh the whole UI ─────────────────────────────────────────────
 
     private fun refresh() {
         val models = loadModelEntries()
@@ -167,8 +138,6 @@ class StorageActivity : AppCompatActivity() {
             }
         }
     }
-
-    // ── Update only the ring ─────────────────────────────────────────────
 
     private fun updateProgressRing(totalBytes: Long = loadModelEntries().sumOf { it.sizeBytes }) {
         progressStorage.progress =

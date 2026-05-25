@@ -1,9 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- res/drawable/bg_colour_swatch.xml
-     Used for both the preset swatch buttons and the current-colour preview.
-     The tint / backgroundTint is set in code. -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"
     android:shape="rectangle">
     <corners android:radius="12dp"/>
-    <solid android:color="#FFFFFF"/>   <!-- overridden in code via backgroundTint -->
+    <solid android:color="#FFFFFF"/>
 </shape>

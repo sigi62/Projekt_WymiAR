@@ -11,7 +11,6 @@ class HsvColorPicker @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // Hue, Saturation, Value
     private val hsv = floatArrayOf(0f, 1f, 1f)
     var onColorChanged: ((Int) -> Unit)? = null
 
@@ -30,34 +29,28 @@ class HsvColorPicker @JvmOverloads constructor(
         val padding = 20f
         val hueHeight = 40f
         val gap = 30f
-        // Main Saturation/Value rectangle at the top
         satValRect.set(padding, padding, w.toFloat() - padding, h - hueHeight - gap - padding)
-        // Hue slider at the bottom
         hueRect.set(padding, h - hueHeight - padding, w.toFloat() - padding, h - padding)
     }
 
     override fun onDraw(canvas: Canvas) {
-        // 1. Draw Saturation/Value Gradient Rectangle
-        // Vertical: White to Black (Value)
-        val valShader = LinearGradient(0f, satValRect.top, 0f, satValRect.bottom, Color.WHITE, Color.BLACK, Shader.TileMode.CLAMP)
-        // Horizontal: White to Current Hue (Saturation)
-        val satShader = LinearGradient(satValRect.left, 0f, satValRect.right, 0f, Color.WHITE, Color.HSVToColor(floatArrayOf(hsv[0], 1f, 1f)), Shader.TileMode.CLAMP)
+        val valShader = LinearGradient(0f, satValRect.top, 0f, satValRect.bottom,
+            Color.WHITE, Color.BLACK, Shader.TileMode.CLAMP)
+        val satShader = LinearGradient(satValRect.left, 0f, satValRect.right, 0f,
+            Color.WHITE, Color.HSVToColor(floatArrayOf(hsv[0], 1f, 1f)), Shader.TileMode.CLAMP)
 
         satValPaint.shader = ComposeShader(valShader, satShader, PorterDuff.Mode.MULTIPLY)
         canvas.drawRoundRect(satValRect, 12f, 12f, satValPaint)
 
-        // 2. Draw Hue Slider (Rainbow)
         val hueColors = IntArray(361) { i -> Color.HSVToColor(floatArrayOf(i.toFloat(), 1f, 1f)) }
-        huePaint.shader = LinearGradient(hueRect.left, hueRect.centerY(), hueRect.right, hueRect.centerY(), hueColors, null, Shader.TileMode.CLAMP)
+        huePaint.shader = LinearGradient(hueRect.left, hueRect.centerY(), hueRect.right, hueRect.centerY(),
+            hueColors, null, Shader.TileMode.CLAMP)
         canvas.drawRoundRect(hueRect, 10f, 10f, huePaint)
 
-        // 3. Draw Selectors
-        // Sat/Val selector circle
         val selX = satValRect.left + hsv[1] * satValRect.width()
         val selY = satValRect.top + (1f - hsv[2]) * satValRect.height()
         canvas.drawCircle(selX, selY, 20f, selectorPaint)
 
-        // Hue selector circle
         val hueX = hueRect.left + (hsv[0] / 360f) * hueRect.width()
         canvas.drawCircle(hueX, hueRect.centerY(), 20f, selectorPaint)
     }
@@ -66,11 +59,9 @@ class HsvColorPicker @JvmOverloads constructor(
         when (event.action) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_MOVE -> {
                 if (event.y < hueRect.top - 10f) {
-                    // Update Saturation and Value
                     hsv[1] = ((event.x - satValRect.left) / satValRect.width()).coerceIn(0f, 1f)
                     hsv[2] = (1f - (event.y - satValRect.top) / satValRect.height()).coerceIn(0f, 1f)
                 } else {
-                    // Update Hue
                     hsv[0] = ((event.x - hueRect.left) / hueRect.width() * 360f).coerceIn(0f, 360f)
                 }
                 onColorChanged?.invoke(Color.HSVToColor(hsv))

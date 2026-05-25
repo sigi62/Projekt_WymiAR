@@ -7,21 +7,12 @@ import java.io.File
 
 object ModelFileUtils {
 
-    /**
-     * Reads the POSITION accessor bounding box from a GLB file on disk.
-     * Returns W × H × D in metres, or null if the file can't be parsed.
-     */
     fun readBounds(file: File): Triple<Float, Float, Float>? {
         return readBoundsFromBytes(
             runCatching { file.readBytes() }.getOrNull() ?: return null,
             file.name
         )
     }
-
-    /**
-     * Reads the POSITION accessor bounding box from a bundled asset.
-     * Returns W × H × D in metres, or null if the asset can't be parsed.
-     */
     fun readBounds(context: Context, assetPath: String): Triple<Float, Float, Float>? {
         return readBoundsFromBytes(
             runCatching { context.assets.open(assetPath).use { it.readBytes() } }
@@ -30,12 +21,6 @@ object ModelFileUtils {
         )
     }
 
-    // GLB/glTF spec mandates metres as the unit for all geometry.
-    // Our converter (glb_converter.cpp) applies aiProcess_GlobalScale for every
-    // format that needs rescaling (STL, FBX, DAE, 3DS). Direct GLB/GLTF/OBJ/PLY
-    // files are already in metres by spec or by convention. No heuristic needed.
-
-    // ── Shared implementation ─────────────────────────────────────────────────
 
     private fun readBoundsFromBytes(
         bytes: ByteArray,
@@ -50,10 +35,8 @@ object ModelFileUtils {
             val nodes     = json.optJSONArray("nodes")     ?: return null
             val meshes    = json.optJSONArray("meshes")    ?: return null
 
-            // ── Build parent→children map and node→mesh map ───────────────────
-            // We need to walk from root down to accumulate scale transforms.
-            val children  = mutableMapOf<Int, List<Int>>()   // nodeIdx → child indices
-            val nodeMesh  = mutableMapOf<Int, Int>()          // nodeIdx → meshIdx
+            val children  = mutableMapOf<Int, List<Int>>()
+            val nodeMesh  = mutableMapOf<Int, Int>()
 
             for (ni in 0 until nodes.length()) {
                 val node = nodes.getJSONObject(ni)
@@ -64,14 +47,8 @@ object ModelFileUtils {
                 if (node.has("mesh")) nodeMesh[ni] = node.getInt("mesh")
             }
 
-            // ── Find root nodes (not referenced as anyone's child) ────────────
             val allChildren = children.values.flatten().toSet()
             val roots = (0 until nodes.length()).filter { it !in allChildren }
-
-            // ── Collect (meshIdx → globalScale) by DFS ────────────────────────
-            // Scale accumulates multiplicatively down the hierarchy.
-            // We only need uniform scale for extent calculation, so we take the
-            // per-axis scale array and keep all three components.
             data class Vec3(val x: Float, val y: Float, val z: Float)
 
             val meshGlobalScale = mutableMapOf<Int, Vec3>()
@@ -88,7 +65,6 @@ object ModelFileUtils {
                 } else parentScale
 
                 nodeMesh[nodeIdx]?.let { meshIdx ->
-                    // If multiple nodes reference the same mesh, take the first
                     meshGlobalScale.getOrPut(meshIdx) { localScale }
                 }
 
@@ -97,7 +73,6 @@ object ModelFileUtils {
 
             roots.forEach { dfs(it, Vec3(1f, 1f, 1f)) }
 
-            // ── Accumulate AABB across all POSITION accessors, scaled ─────────
             var minX = Float.MAX_VALUE;  var minY = Float.MAX_VALUE;  var minZ = Float.MAX_VALUE
             var maxX = -Float.MAX_VALUE; var maxY = -Float.MAX_VALUE; var maxZ = -Float.MAX_VALUE
             var found = false
@@ -117,7 +92,6 @@ object ModelFileUtils {
                     val maxArr = acc.optJSONArray("max") ?: continue
                     if (minArr.length() < 3 || maxArr.length() < 3) continue
 
-                    // Apply node scale to each bound component
                     minX = minOf(minX, minArr.getDouble(0).toFloat() * scale.x)
                     minY = minOf(minY, minArr.getDouble(1).toFloat() * scale.y)
                     minZ = minOf(minZ, minArr.getDouble(2).toFloat() * scale.z)

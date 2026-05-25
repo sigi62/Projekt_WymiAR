@@ -1,12 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    activity_ar.xml
-    ───────────────
-    Added dimensionHud (include of view_model_dimension_label) in the
-    bottom-start corner, above the model-controls strip.
-    Added measure-mode action buttons (delete / revert) at bottom-end,
-    shown only while measure mode is active.
--->
+
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
@@ -16,7 +9,6 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <!-- ── Settings button – top-start ─────────────────────────────────── -->
     <com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
         android:id="@+id/measureOverlay"
         android:layout_width="match_parent"
@@ -42,14 +34,6 @@
             android:scaleType="centerInside"
             android:contentDescription="@string/back"/>
 
-        <!--
-            Model colour button — shown only when a texture-less model is selected
-            (STL / PLY / 3DS that received the grey default PBR material from the
-            native converter). Hidden by default; ARActivity toggles visibility
-            inside selectModel() / deselectModel().
-            The outer FrameLayout layers a solid bg_rect behind a smaller
-            patch_rect swatch so the user sees the currently applied colour.
-        -->
         <FrameLayout
             android:id="@+id/btnModelColour"
             android:layout_width="48dp"
@@ -62,7 +46,6 @@
             android:clickable="true"
             android:focusable="true">
 
-            <!-- Background rect (shows through as a contrast border/shadow) -->
             <View
                 android:id="@+id/modelColourBgRect"
                 android:layout_width="26dp"
@@ -70,7 +53,6 @@
                 android:layout_gravity="center"
                 android:background="@drawable/bg_color_patch_rect" />
 
-            <!-- Foreground colour patch — this is what gets tinted with the model colour -->
             <View
                 android:id="@+id/modelColourPatchRect"
                 android:layout_width="22dp"
@@ -94,7 +76,6 @@
             android:contentDescription="@string/library_tittle"/>
     </LinearLayout>
 
-    <!-- ── Unit toggle – top-end ────────────────────────────────────────── -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -116,13 +97,6 @@
 
     </LinearLayout>
 
-    <!-- ── Measure tape / wireframe / animation toggles – top-end ───────── -->
-    <!--
-        Wrapped in a ScrollView so buttons don't overflow off-screen in
-        landscape mode when multiple animation buttons are visible at once.
-        layout_height="0dp" + weight trick doesn't work in FrameLayout, so we
-        use match_parent and let fitsSystemWindows + the margins bound the size.
-    -->
     <ScrollView
         android:layout_width="wrap_content"
         android:layout_height="match_parent"
@@ -153,10 +127,6 @@
                 android:layout_marginBottom="10dp"
                 android:contentDescription="@string/measure_tap_first"/>
 
-            <!--
-                Wall-magnet mode toggle — ic_stack (flat = horizontal planes),
-                rotated -90° (counter-clockwise) when in vertical/wall mode.
-            -->
             <ImageButton
                 android:id="@+id/btnWallMagnet"
                 android:layout_width="48dp"
@@ -178,10 +148,6 @@
                 android:layout_marginBottom="10dp"
                 android:visibility="gone"/>
 
-            <!--
-                Rotation ring toggle — shown when a model is selected.
-                Full alpha = ring visible; dimmed = ring hidden.
-            -->
             <ImageButton
                 android:id="@+id/btnRotationRingToggle"
                 android:layout_width="48dp"
@@ -193,11 +159,6 @@
                 android:layout_marginBottom="10dp"
                 android:visibility="gone"/>
 
-            <!--
-                Animation toggle — only shown when a model with animations is
-                selected. Hidden by default; ARActivity shows/hides it
-                inside selectModel() / deselectModel().
-            -->
             <ImageButton
                 android:id="@+id/btnAnimationToggle"
                 android:layout_width="48dp"
@@ -209,10 +170,6 @@
                 android:layout_marginBottom="10dp"
                 android:visibility="gone"/>
 
-            <!--
-                Stop button — stops animation and resets to frame 0.
-                Only shown while animation is playing.
-            -->
             <ImageButton
                 android:id="@+id/btnAnimationPause"
                 android:layout_width="48dp"
@@ -224,11 +181,6 @@
                 android:layout_marginBottom="10dp"
                 android:visibility="gone"/>
 
-            <!--
-                Next-animation button — cycles to the next animation track.
-                Only shown when the selected model has more than one animation
-                and animation is playing.
-            -->
             <ImageButton
                 android:id="@+id/btnAnimationNext"
                 android:layout_width="48dp"
@@ -243,14 +195,7 @@
         </LinearLayout>
     </ScrollView>
 
-    <!-- ── Measure-mode action buttons ─────────────────────────────────── -->
-    <!--
-        Shown only while measure mode is active (visibility toggled in code).
-        Delete  → bottom-start – clears all measure points.
-        Revert  → bottom-end   – undoes the last placed point (or last line).
-    -->
 
-    <!-- Delete – bottom-start -->
     <ImageButton
         android:id="@+id/btnMeasureDelete"
         android:layout_width="52dp"
@@ -265,7 +210,6 @@
         android:visibility="gone"
         android:contentDescription="Clear all measure points"/>
 
-    <!-- Revert – bottom-end -->
     <ImageButton
         android:id="@+id/btnMeasureRevert"
         android:layout_width="52dp"
@@ -280,7 +224,6 @@
         android:visibility="gone"
         android:contentDescription="Undo last measure point"/>
 
-    <!-- ── Status text + model controls + dimension HUD – bottom ────────── -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -300,7 +243,6 @@
             android:padding="8dp"
             android:textSize="14sp" />
 
-        <!-- Dimension HUD anchored to start, sits above the controls bar -->
         <include
             android:id="@+id/dimensionHud"
             layout="@layout/view_model_dimension_label"

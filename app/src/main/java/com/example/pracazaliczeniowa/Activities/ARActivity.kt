@@ -40,8 +40,8 @@ import com.google.ar.core.Pose
 import com.google.ar.core.TrackingState
 import kotlin.math.atan2
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
-import io.github.sceneview.node.Node
 import java.io.File
+import java.util.UUID
 
 
 fun log(msg: String) {
@@ -84,7 +84,6 @@ class ARActivity : AppCompatActivity() {
     private var isClosing: Boolean = false
 
     // ── Model colour override ─────────────────────────────────────────────────
-    /** Currently applied override colour on the selected model; null = no override. */
     @androidx.annotation.ColorInt private var currentModelColour: Int? = null
 
     private lateinit var btnModelColour: FrameLayout
@@ -102,25 +101,16 @@ class ARActivity : AppCompatActivity() {
     private var isMeasureToolActive: Boolean = false
 
     // ── Animation state ──────────────────────────────
-    private var isAnimationPlaying: Boolean = false  // true = not paused
-    private var isAnimationStarted: Boolean = false  // true = play was hit (not stopped)
+    private var isAnimationPlaying: Boolean = false
+    private var isAnimationStarted: Boolean = false
 
     // ── Measure state ────────────────────────────────────────────────────────
-    /**
-     * Committed line segments – each is a pair of AnchorNodes that are fully
-     * anchored to the scene and owned by [placedMeasureNodes].
-     * Hard-limited to MAX_MEASURE_LINES (5) entries.
-     */
+
     private val measureLines = mutableListOf<Pair<AnchorNode, AnchorNode>>()
 
-    /**
-     * The node placed on the first tap of a new line, waiting for a second tap.
-     * Null when no line is in progress.
-     */
     private var pendingMeasureNode: AnchorNode? = null
 
     companion object {
-        /** Maximum number of simultaneous measurement lines. */
         const val MAX_MEASURE_LINES = 5
     }
 
@@ -140,14 +130,9 @@ class ARActivity : AppCompatActivity() {
     private val MOVE_THRESHOLD          = 20f
     private var initialModelRotationY   = 0f
 
-    /**
-     * Path of the active model.
-     * May be an asset-relative path ("models/cat.glb") or an absolute path
-     * ("/data/.../models/cat.glb") depending on [activeModelIsAsset].
-     */
     private var activeModelPath: String    = "models/cat.glb"
+    private lateinit var activeModelId: String
     private var activeModelIsAsset: Boolean = true
-    /** Source format recorded at import time; null for assets and direct GLB imports. */
     private var activeModelSourceFormat: String? = null
     private val modelSourceFormats = mutableMapOf<String, String?>()
 
@@ -156,6 +141,8 @@ class ARActivity : AppCompatActivity() {
         setContentView(R.layout.activity_ar)
 
         activeModelPath    = intent.getStringExtra(LibraryActivity.Companion.EXTRA_MODEL_PATH)    ?: "models/cat.glb"
+        activeModelId    = intent.getStringExtra(LibraryActivity.Companion.EXTRA_MODEL_ID)
+            ?: UUID.nameUUIDFromBytes(activeModelPath.toByteArray()).toString()
         activeModelIsAsset = intent.getBooleanExtra(LibraryActivity.Companion.EXTRA_MODEL_IS_ASSET, true)
         activeModelSourceFormat = intent.getStringExtra(LibraryActivity.Companion.EXTRA_SOURCE_FORMAT)
 
@@ -270,7 +257,7 @@ class ARActivity : AppCompatActivity() {
         measureModeButton.alpha = 0.5f
         measureModeButton.setOnClickListener { toggleMeasureTool() }
 
-        // ── Wall-magnet toggle click ───────────────────────────────────────────
+        // ── Wall-magnet ───────────────────────────────────────────
         wallMagnetButton.setOnClickListener {
             if (wallMagnetMenuPopup.isShowing()) {
                 wallMagnetMenuPopup.dismiss()
@@ -280,19 +267,15 @@ class ARActivity : AppCompatActivity() {
             }
         }
 
-
-        // ── Animation toggle click ────────────────────────────────────────────
-        // ── Play / Stop ───────────────────────────────────────────────────────
+        // ── Animation ────────────────────────────────────────────
         animationToggleButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
             if (isAnimationStarted) {
-                // STOP — reset everything
                 wrapped.stopAllAnimations()
                 isAnimationStarted = false
                 isAnimationPlaying = false
                 currentAnimationIndex = 0
             } else {
-                // PLAY — start from frame 0
                 isAnimationStarted = true
                 isAnimationPlaying = true
                 wrapped.resumeAnimation(currentAnimationIndex)
@@ -302,7 +285,6 @@ class ARActivity : AppCompatActivity() {
             else getString(R.string.animation_toggle_off)
         }
 
-        // ── Pause / Resume ────────────────────────────────────────────────────
         animationPauseButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
             if (isAnimationPlaying) {
@@ -317,7 +299,6 @@ class ARActivity : AppCompatActivity() {
             else getString(R.string.animation_toggle_off)
         }
 
-        // ── Next animation ────────────────────────────────────────────────────
         animationNextButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
             val count = wrapped.getAnimationCount()
@@ -327,7 +308,7 @@ class ARActivity : AppCompatActivity() {
             statusText.text = "Animation ${currentAnimationIndex + 1} / $count"
         }
 
-        // ── Rotation ring toggle click ────────────────────────────────────────
+        // ── Rotation ring────────────────────────────────────────
         rotationRingToggleButton.setOnClickListener {
             val wrapped = selectedModel ?: return@setOnClickListener
             isRotationRingVisible = !isRotationRingVisible
@@ -454,7 +435,7 @@ class ARActivity : AppCompatActivity() {
                             return@onTouchEvent true
                         }
                         if (arHit != null) placeMeasurePoint(arHit)
-                        else statusText.text = "Tap on a detected surface (grid area)"
+                        else statusText.text = "Tap on a detected surface (grid area)" //TODO
                         return@onTouchEvent true
                     }
 
@@ -495,13 +476,10 @@ class ARActivity : AppCompatActivity() {
     private fun refreshAnimationUI() {
         val hasAnim   = selectedModel?.hasAnimations() == true
         val multiAnim = (selectedModel?.getAnimationCount() ?: 0) > 1
-        // Play/Stop — always visible when model has animations; bright when started
         animationToggleButton.visibility = if (hasAnim) View.VISIBLE else View.GONE
         animationToggleButton.alpha      = if (isAnimationStarted) 1.0f else 0.5f
-        // Pause/Resume — visible once started, until stopped; icon reflects paused state
         animationPauseButton.visibility  = if (hasAnim && isAnimationStarted) View.VISIBLE else View.GONE
         animationPauseButton.alpha       = if (isAnimationPlaying) 1.0f else 0.5f
-        // Next — visible once started, until stopped, only when >1 track
         animationNextButton.visibility   = if (hasAnim && isAnimationStarted && multiAnim) View.VISIBLE else View.GONE
     }
 
@@ -526,9 +504,8 @@ class ARActivity : AppCompatActivity() {
         measureModeButton.alpha = if (isMeasureToolActive) 1.0f else 0.5f
 
         if (!isMeasureToolActive) {
-            // ── Hide nodes and overlay, but keep all state intact ──────────────
             setMeasureNodesVisible(false)
-            measureOverlay.visibility = View.INVISIBLE   // hides lines but preserves state
+            measureOverlay.visibility = View.INVISIBLE
             btnMeasureDelete.visibility = View.GONE
             btnMeasureRevert.visibility = View.GONE
             statusText.text = getString(
@@ -536,17 +513,16 @@ class ARActivity : AppCompatActivity() {
                 activeModelPath.substringAfterLast('/').substringBeforeLast('.'))
         } else {
             deselectModel()
-            // ── Restore nodes and overlay ──────────────────────────────────────
             setMeasureNodesVisible(true)
             measureOverlay.visibility = View.VISIBLE
-            pushOverlayState()   // re-sync overlay with existing measureLines
+            pushOverlayState()
             btnMeasureDelete.visibility = View.VISIBLE
             btnMeasureRevert.visibility = View.VISIBLE
             statusText.text = if (measureLines.isEmpty() && pendingMeasureNode == null)
                 getString(R.string.measure_tap_first)
             else
                 getString(R.string.measure_tap_second).takeIf { pendingMeasureNode != null }
-                    ?: "Measurements restored · tap to add more"
+                    ?: "Measurements restored · tap to add more" //TODO
         }
     }
 
@@ -554,19 +530,15 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.forEach { it.isVisible = visible }
     }
 
-    // ── Measure point placement ───────────────────────────────────────────────
-
     private fun placeMeasurePoint(hitResult: HitResult) {
         val pending = pendingMeasureNode
 
         if (pending == null) {
-            // ── First tap: enforce line limit ─────────────────────────────────
             if (measureLines.size >= MAX_MEASURE_LINES) {
-                statusText.text = "Maximum of $MAX_MEASURE_LINES measurements reached. Delete one to continue."
+                statusText.text = "Maximum of $MAX_MEASURE_LINES measurements reached. Delete one to continue." //TODO
                 return
             }
 
-            // Create the first anchor of a new line
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
             arSceneView.addChildNode(anchorNode)
             placedMeasureNodes.add(anchorNode)
@@ -576,7 +548,6 @@ class ARActivity : AppCompatActivity() {
             statusText.text = getString(R.string.measure_tap_second)
 
         } else {
-            // ── Second tap: commit the line ───────────────────────────────────
             val anchorNode = AnchorNode(arSceneView.engine, hitResult.createAnchor())
             arSceneView.addChildNode(anchorNode)
             placedMeasureNodes.add(anchorNode)
@@ -585,7 +556,6 @@ class ARActivity : AppCompatActivity() {
             pendingMeasureNode = null
             pushOverlayState()
 
-            // Report distance for the just-committed line
             val a = pending.worldPosition.let { Float3(it.x, it.y, it.z) }
             val b = anchorNode.worldPosition.let { Float3(it.x, it.y, it.z) }
             val dist = distanceMeters(a, b)
@@ -593,23 +563,15 @@ class ARActivity : AppCompatActivity() {
 
             val linesLeft = MAX_MEASURE_LINES - measureLines.size
             statusText.text = if (linesLeft > 0)
-                getString(R.string.measure_distance, value, suffix) + " · tap to add another"
+                getString(R.string.measure_distance, value, suffix) + getString(R.string.measure_add_point)
             else
-                getString(R.string.measure_distance, value, suffix) + " · limit reached"
+                getString(R.string.measure_distance, value, suffix) +  getString(R.string.measure_point_limit)
         }
     }
 
-    /**
-     * Undo the last placed point:
-     * - If there is a pending (orphan) first-tap node, remove it.
-     * - Otherwise remove the second point of the last committed line (which
-     *   turns it back into a pending node — the first point stays anchored and
-     *   the user can tap a new second point to replace it).
-     */
     private fun revertLastMeasurePoint() {
         val pending = pendingMeasureNode
         if (pending != null) {
-            // Remove the pending first-tap node
             pending.anchor?.detach()
             pending.parent = null
             placedMeasureNodes.remove(pending)
@@ -620,23 +582,20 @@ class ARActivity : AppCompatActivity() {
             statusText.text = if (linesCount == 0)
                 getString(R.string.measure_tap_first)
             else
-                "Point removed · $linesCount line${if (linesCount != 1) "s" else ""} remaining"
+                "Point removed · $linesCount line${if (linesCount != 1) "s" else ""} remaining" //TODO
         } else if (measureLines.isNotEmpty()) {
-            // Pop the last committed line's second point; turn it back to pending
             val lastLine = measureLines.removeAt(measureLines.size - 1)
             val (nodeA, nodeB) = lastLine
 
-            // Detach and remove nodeB from the scene
             nodeB.anchor?.detach()
             nodeB.parent = null
             placedMeasureNodes.remove(nodeB)
 
-            // nodeA becomes the pending node again
             pendingMeasureNode = nodeA
             pushOverlayState()
             statusText.text = getString(R.string.measure_tap_second)
         } else {
-            statusText.text = "Nothing to undo."
+            statusText.text = getString(R.string.measure_no_point)
         }
     }
 
@@ -661,7 +620,6 @@ class ARActivity : AppCompatActivity() {
         }
     }
 
-    /** Push the current measure state to the overlay so it redraws correctly. */
     private fun pushOverlayState() {
         measureOverlay.setMeasureData(measureLines.toList(), pendingMeasureNode)
     }
@@ -674,10 +632,8 @@ class ARActivity : AppCompatActivity() {
         arSceneView.configureSession { _, config ->
             config.planeFindingMode = Config.PlaneFindingMode.HORIZONTAL_AND_VERTICAL
         }
-
         planeGridRenderer.update(planeMode)
 
-        // Icon rotation and status text per mode
         when (mode) {
             PlaneMode.HORIZONTAL -> {
                 wallMagnetButton.rotation = 0f
@@ -692,12 +648,12 @@ class ARActivity : AppCompatActivity() {
             PlaneMode.BOTH -> {
                 wallMagnetButton.rotation = -45f
                 wallMagnetButton.alpha    = 1.0f
-                statusText.text = getString(R.string.status_all_surfaces)  // add this string
+                statusText.text = getString(R.string.status_all_surfaces)
             }
             PlaneMode.OFF -> {
                 wallMagnetButton.rotation = 0f
                 wallMagnetButton.alpha    = 0.35f
-                statusText.text = getString(R.string.status_planes_hidden) // add this string
+                statusText.text = getString(R.string.status_planes_hidden)
             }
         }
     }
@@ -728,11 +684,11 @@ class ARActivity : AppCompatActivity() {
             }
 
             val node = DefaultModelNode(
+                modelId               = activeModelId,
                 modelPath             = activeModelPath,
                 modelInstance         = modelInstance,
                 scope                 = lifecycleScope,
-                sceneView             = arSceneView,
-                viewAttachmentManager = viewAttachmentManager
+                sceneView             = arSceneView
             )
 
             val hitPose = hitResult.hitPose
@@ -761,18 +717,11 @@ class ARActivity : AppCompatActivity() {
             modelSourceFormats[node.getModeleName()] = activeModelSourceFormat
             node.setAnimationPlaying(false)
 
-            // Apply the default profile scale before wrapping so the model
-            // is the right size from the first frame. Rotation is applied
-            // after wrapping via applyProfileRotation in selectModel so the
-            // ring is correctly positioned from the start.
             val profile = profileManager.loadDefault(node.getModeleName())
             if (profile != null) {
                 node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             }
 
-            // Load any saved colour override. We need to apply it directly to
-            // the node here (before selectModel wraps it) because applyModelColour
-            // operates on selectedModel which isn't set yet.
             val savedColour = profileManager.loadColorOverride(node.getModeleName())
             if (savedColour != null &&
                 modelSourceFormats[node.getModeleName()] in setOf("stl", "obj", "ply", "3ds")) {
@@ -792,16 +741,11 @@ class ARActivity : AppCompatActivity() {
                         }
                     }
                 }
-                // Seed currentModelColour so the picker opens pre-filled and
-                // selectModel shows the right swatch colour immediately.
                 currentModelColour = savedColour
             } else {
                 currentModelColour = null
             }
-
             selectModel(node)
-
-
         }
     }
 
@@ -829,12 +773,6 @@ class ARActivity : AppCompatActivity() {
 
         dimensionHud.visibility = View.GONE
         models.remove(defaultNode)
-
-        // ── Model colour button visibility ────────────────────────────────────
-        // Show only for texture-less formats (STL / PLY / 3DS) that received
-        // Assimp's grey default PBR material; hidden for everything else.
-        // Use the source format recorded at import time rather than the
-        // file path, which is always .glb at this point.
         val needsColour = modelSourceFormats[defaultNode.getModeleName()] in setOf("stl", "obj", "ply", "3ds")
         btnModelColour.visibility = if (needsColour) View.VISIBLE else View.GONE
         if (needsColour) {
@@ -847,34 +785,21 @@ class ARActivity : AppCompatActivity() {
         animationToggleButton.alpha = 0.5f
 
         if (wrapped != null) {
-            // The base is always the default profile (or raw 1.0 if none).
-            // Sliders are always multipliers ON TOP of this base.
             val profile = profileManager.loadDefault(defaultNode.getModeleName())
             val profileScale = if (profile != null)
                 Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             else
                 Float3(1f)
 
-
-
-            // First-time placement: the pre-wrap node.rotation set in placeModel
-            // is already transferred to the wrapper by wrapAsSelected via worldQuaternion.
-            // Only the scale needs re-applying here; mark as applied.
             if (!defaultNode.profileApplied && profile != null) {
                 defaultNode.scale = profileScale
-                // Rotation was already baked into the wrapper's worldQuaternion by
-                // wrapAsSelected; apply it properly through the wrapper so the ring follows.
                 wrapped.applyProfileRotation(Float3(profile.rotationX, profile.rotationY, profile.rotationZ))
                 defaultNode.profileApplied = true
             }
 
-            // Always lock baseScale to the profile, never to the live scale.
-            // This means slider 1.0 always = profile scale, slider 1.6 = 1.6× the profile.
             wrapped.setBaseScale(profileScale)
             wrapped.refreshRingScale()
 
-            // Now seed sliders: current scale divided by baseScale = the relative multiplier
-            // the sliders should show.
             val currentScale = wrapped.getWrappedNode()?.scale ?: profileScale
             val relX = currentScale.x / profileScale.x
             val relY = currentScale.y / profileScale.y
@@ -882,7 +807,6 @@ class ARActivity : AppCompatActivity() {
             val relRot = defaultNode.currentRelativeRotation
 
             modelControls.bindToNodeWithRelativeValues(wrapped, relX, relY, relZ, relRot)
-            // No resetSlidersToNeutral — sliders now correctly show the relative value
             modelControls.visibility      = View.VISIBLE
             wireframeModeButton.visibility = View.VISIBLE
             wireframeModeButton.alpha      = 0.5f
@@ -930,8 +854,6 @@ class ARActivity : AppCompatActivity() {
         wireframeModeButton.visibility      = View.GONE
         wireframeModeButton.alpha      = 0.5f
         btnModelColour.visibility           = View.GONE
-        // Clear colour override state when deselecting so a freshly placed
-        // instance of the same model starts with no override applied.
         clearModelColourOverride()
         isAnimationPlaying = false
         isAnimationStarted = false
@@ -961,9 +883,7 @@ class ARActivity : AppCompatActivity() {
         val wrapped   = selected.getWrappedNode() ?: return
         val modelName = wrapped.getModeleName()
 
-        val dialog = ProfilePickerDialog.newInstance(modelName)
-        // Tell the dialog which profile slot is currently loaded so it can
-        // show the "active" indicator on the right row.
+        val dialog = ProfilePickerDialog.newInstance(wrapped.modelId, modelName)
         dialog.activeProfileName = selectedModel?.activeProfileName
 
         dialog.getCurrentProfile = {
@@ -1037,7 +957,7 @@ class ARActivity : AppCompatActivity() {
         modelPickerPopup.onModelPicked = { picked ->
             activeModelPath = picked.modelPath
             activeModelIsAsset = picked.isAsset
-            activeModelSourceFormat = picked.sourceFormat  // ← ADD THIS
+            activeModelSourceFormat = picked.sourceFormat
 
             val label = picked.modelPath.substringAfterLast('/').substringBeforeLast('.')
             statusText.text = getString(R.string.model_picker_prompt, label)
@@ -1047,7 +967,6 @@ class ARActivity : AppCompatActivity() {
 
     // ── Model colour helpers ──────────────────────────────────────────────────
 
-    /** Repaints both swatch views on the colour button to reflect [color]. */
     private fun updateModelColourSwatch(@androidx.annotation.ColorInt color: Int) {
         (modelColourBgRect.background as? android.graphics.drawable.GradientDrawable)
             ?.setColor(color) ?: modelColourBgRect.setBackgroundColor(color)
@@ -1055,12 +974,7 @@ class ARActivity : AppCompatActivity() {
             ?.setColor(color) ?: modelColourPatchRect.setBackgroundColor(color)
     }
 
-    /**
-     * Applies [color] to every primitive of the currently selected model by
-     * mutating the existing MaterialInstance parameters in place, then persists
-     * it via [ProfileManager] so ModelPreviewActivity loads it on next open.
-     * Never creates or destroys MaterialInstances — safe to call at any time.
-     */
+
     private fun applyModelColour(@androidx.annotation.ColorInt color: Int) {
         val node = selectedModel?.getWrappedNode() ?: return
         val rm = arSceneView.engine.renderableManager
@@ -1084,7 +998,6 @@ class ARActivity : AppCompatActivity() {
         currentModelColour = color
         updateModelColourSwatch(color)
 
-        // Persist so ModelPreviewActivity and future AR placements load the same colour.
         val modelName = selectedModel?.getWrappedNode()?.getModeleName() ?: return
         profileManager.saveColorOverride(modelName, color)
     }
@@ -1095,8 +1008,6 @@ class ARActivity : AppCompatActivity() {
         else Math.pow((c + 0.055) / 1.055, 2.4).toFloat()
     }
 
-    /** Resets the model colour back to Assimp's default grey by mutating parameters in place,
-     *  then clears the persisted override so ModelPreviewActivity also returns to grey. */
     private fun restoreModelMaterials() {
         val grey = android.graphics.Color.parseColor("#B2B2B2")
         val node = selectedModel?.getWrappedNode() ?: return
@@ -1120,22 +1031,14 @@ class ARActivity : AppCompatActivity() {
 
         currentModelColour = null
         updateModelColourSwatch(grey)
-
-        // Clear the persisted override so ModelPreviewActivity and future AR
-        // placements both start with the default grey.
         val modelName = node.getModeleName()
         profileManager.clearColorOverride(modelName)
     }
 
-    /** Resets colour override tracking state — no Filament resources to destroy. */
     private fun clearModelColourOverride() {
         currentModelColour = null
     }
 
-    /**
-     * Shows a bottom-sheet colour picker for the selected model's surface colour.
-     * Only reachable when [btnModelColour] is visible (texture-less models).
-     */
     private fun showModelColourPicker() {
         val initial = currentModelColour ?: android.graphics.Color.parseColor("#B2B2B2")
         val inner = android.app.Dialog(this)
@@ -1149,15 +1052,13 @@ class ARActivity : AppCompatActivity() {
                 cornerRadii = floatArrayOf(20 * dp, 20 * dp, 20 * dp, 20 * dp, 0f, 0f, 0f, 0f)
             }
         }
-        // Drag handle
-        root.addView(android.view.View(this).apply {
+        root.addView(View(this).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 (40 * dp).toInt(), (4 * dp).toInt()
             ).also { it.gravity = android.view.Gravity.CENTER_HORIZONTAL; it.bottomMargin = (16 * dp).toInt() }
             setBackgroundColor(getColor(R.color.background_tint))
         })
-        // Title
-        root.addView(android.widget.TextView(this).apply {
+        root.addView(TextView(this).apply {
             text = getString(R.string.model_colour_picker_title)
             textSize = 15f
             setTextColor(getColor(R.color.text_primary))
@@ -1167,8 +1068,7 @@ class ARActivity : AppCompatActivity() {
                 android.widget.LinearLayout.LayoutParams.WRAP_CONTENT
             ).also { it.bottomMargin = (12 * dp).toInt() }
         })
-        // Live preview dot
-        val previewDot = android.view.View(this).apply {
+        val previewDot = View(this).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 (40 * dp).toInt(), (40 * dp).toInt()
             ).also { it.marginEnd = (12 * dp).toInt() }
@@ -1190,7 +1090,6 @@ class ARActivity : AppCompatActivity() {
                 setTextColor(getColor(R.color.text_secondary))
             })
         })
-        // Colour picker wheel
         val picker = com.example.pracazaliczeniowa.Helpers.HsvColorPicker(this).apply {
             layoutParams = android.widget.LinearLayout.LayoutParams(
                 android.widget.LinearLayout.LayoutParams.MATCH_PARENT, (200 * dp).toInt()
@@ -1205,7 +1104,6 @@ class ARActivity : AppCompatActivity() {
             (previewDot.background as? android.graphics.drawable.GradientDrawable)?.setColor(color)
         }
 
-        // Restore | Confirm button row
         root.addView(android.widget.LinearLayout(this).apply {
             orientation = android.widget.LinearLayout.HORIZONTAL
             layoutParams = android.widget.LinearLayout.LayoutParams(
@@ -1247,8 +1145,6 @@ class ARActivity : AppCompatActivity() {
             attributes = attributes.also { it.windowAnimations = android.R.style.Animation_InputMethod }
         }
     }
-
-    // ── Delete model from scene ───────────────────────────────────────────────
 
     private fun deleteSelectedModel() {
         val selected   = selectedModel ?: return
@@ -1300,14 +1196,6 @@ class ARActivity : AppCompatActivity() {
         } catch (e: IllegalArgumentException) { 10f }
     }
 
-    private fun calculateAngle(touchX: Float, touchY: Float, node: Node): Float {
-        val worldPos  = node.worldPosition
-        val screenPos = arSceneView.cameraNode.worldToView(worldPos)
-        val dx = touchX - screenPos.x
-        val dy = touchY - screenPos.y
-        return Math.toDegrees(Math.atan2((-dy).toDouble(), dx.toDouble())).toFloat()
-    }
-
     override fun onSupportNavigateUp(): Boolean {
         closeScene()
         return true
@@ -1316,18 +1204,10 @@ class ARActivity : AppCompatActivity() {
     private fun closeScene() {
         if (isClosing) return
         isClosing = true
-
-        // ── 1. Kill all callbacks and pause the AR session immediately ────────
-        // This must happen BEFORE any node teardown so that no session-update
-        // or touch callback can fire against a partially-destroyed scene graph,
-        // and so ARCore stops trying to acquire camera frames.
         arSceneView.onSessionUpdated = null
         arSceneView.onTouchEvent = null
         arSceneView.session?.pause()
 
-        // Unbind the SceneView from the Activity lifecycle so its internal
-        // lifecycle observer doesn't call pause()/destroy() a second time
-        // and trigger a double-free in the native layer.
         arSceneView.lifecycle = null
 
         if (isAnimationPlaying) {
@@ -1336,11 +1216,9 @@ class ARActivity : AppCompatActivity() {
             isAnimationStarted = false
         }
 
-        // ── 2. Deselect cleanly (destroys rotation ring, overlays, etc.) ──────
         selectedModel?.let { deselectModel() }
         selectedModel = null
 
-        // ── 3. Remove all model nodes from the scene graph ────────────────────
         placedModelNodes.forEach { anchorNode ->
             anchorNode.childNodes.toList().forEach { child ->
                 (child as? DefaultModelNode)?.destroy()
@@ -1352,7 +1230,6 @@ class ARActivity : AppCompatActivity() {
         placedModelNodes.clear()
         models.clear()
 
-        // ── 4. Remove all measure nodes ───────────────────────────────────────
         placedMeasureNodes.forEach { anchorNode ->
             anchorNode.childNodes.toList().forEach { it.parent = null }
             anchorNode.parent = null
@@ -1360,7 +1237,6 @@ class ARActivity : AppCompatActivity() {
         }
         placedMeasureNodes.clear()
 
-        // ── 5. Flush GPU work and tear down the engine ────────────────────────
         try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
 
         planeGridRenderer.destroy()
@@ -1378,7 +1254,6 @@ class ARActivity : AppCompatActivity() {
 
     override fun onDestroy() {
         if (!isClosing) {
-            // Same order as closeScene(): stop the session before touching nodes.
             arSceneView.onSessionUpdated = null
             arSceneView.onTouchEvent = null
             arSceneView.session?.pause()
@@ -1417,8 +1292,6 @@ class ARActivity : AppCompatActivity() {
 
     override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
         super.onConfigurationChanged(newConfig)
-        // ARSceneView's Surface resizes automatically via its SurfaceHolder.
-        // We just need to re-push any overlay state that depends on screen dimensions.
         if (isMeasureToolActive) pushOverlayState()
     }
 }

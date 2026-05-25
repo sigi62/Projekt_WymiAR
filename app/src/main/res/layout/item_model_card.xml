@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    Single card in the model library grid.
-    Place this file at: res/layout/item_model_card.xml
--->
 <androidx.cardview.widget.CardView
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -18,7 +14,6 @@
         android:layout_height="wrap_content"
         android:orientation="vertical">
 
-        <!-- Thumbnail with size badge overlay -->
         <FrameLayout
             android:id="@+id/thumbnailFrame"
             android:layout_width="match_parent"
@@ -35,7 +30,6 @@
                 android:scaleType="centerCrop"
                 android:contentDescription="@string/model_thumbnail" />
 
-            <!-- File size overlay badge -->
             <TextView
                 android:id="@+id/tvFileSize"
                 android:layout_width="wrap_content"
@@ -52,7 +46,6 @@
 
         </FrameLayout>
 
-        <!-- Card body -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -62,7 +55,6 @@
             android:paddingTop="9dp"
             android:paddingBottom="10dp">
 
-            <!-- Model name -->
             <TextView
                 android:id="@+id/tvModelName"
                 android:layout_width="match_parent"
@@ -74,7 +66,6 @@
                 android:ellipsize="end"
                 android:letterSpacing="-0.01" />
 
-            <!-- Dimensions -->
             <TextView
                 android:id="@+id/tvDimensions"
                 android:layout_width="match_parent"
@@ -83,7 +74,6 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"/>
 
-            <!-- Edit date -->
             <TextView
                 android:id="@+id/tvEditDate"
                 android:layout_width="wrap_content"
@@ -91,7 +81,6 @@
                 android:textColor="@color/text_secondary"
                 android:textSize="11sp"/>
 
-            <!-- Badge row -->
             <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
@@ -99,7 +88,6 @@
                 android:layout_marginTop="7dp"
                 android:gravity="center_vertical">
 
-                <!-- "✓ Saved" profile badge -->
                 <TextView
                     android:id="@+id/tvProfileBadge"
                     android:layout_width="wrap_content"
@@ -119,7 +107,6 @@
                     android:layout_width="5dp"
                     android:layout_height="1dp" />
 
-                <!-- "Imported" badge -->
                 <TextView
                     android:id="@+id/tvImportedBadge"
                     android:layout_width="wrap_content"
@@ -141,7 +128,6 @@
 
     </LinearLayout>
 
-    <!-- Three-dots overflow — anchored to top-end corner -->
     <ImageButton
         android:id="@+id/btnModelOptions"
         android:layout_width="32dp"

@@ -13,17 +13,6 @@ import com.example.pracazaliczeniowa.Managers.ModelProfile
 import com.example.pracazaliczeniowa.Managers.ProfileManager
 import com.example.pracazaliczeniowa.R
 
-/**
- * Pick-only profile dialog for the "Export with profile" flow.
- *
- * Shows all saved profiles (default first, then named) as a list of rows.
- * Tapping a row fires [onProfileSelected] and dismisses the dialog.
- *
- * Usage:
- *   ExportProfilePickerDialog.newInstance(modelName, item.name).apply {
- *       onProfileSelected = { label, profile -> … }
- *   }.show(supportFragmentManager, "export_profile")
- */
 class ExportProfilePickerDialog : DialogFragment() {
 
     companion object {
@@ -39,7 +28,6 @@ class ExportProfilePickerDialog : DialogFragment() {
             }
     }
 
-    /** Called with the chosen profile label and profile when the user picks one. */
     var onProfileSelected: ((label: String, profile: ModelProfile) -> Unit)? = null
 
     private lateinit var modelName:      String
@@ -82,7 +70,6 @@ class ExportProfilePickerDialog : DialogFragment() {
 
             row.findViewById<TextView>(R.id.tvSlotName).text = label
 
-            // Only the Export button is relevant here — hide the others
             row.findViewById<Button>(R.id.btnSlotOverwrite).visibility = View.GONE
             row.findViewById<ImageButton>(R.id.btnSlotDelete).visibility = View.GONE
 
@@ -96,7 +83,6 @@ class ExportProfilePickerDialog : DialogFragment() {
 
             container.addView(row)
 
-            // Divider between rows
             val divider = View(requireContext()).apply {
                 layoutParams = LinearLayout.LayoutParams(
                     LinearLayout.LayoutParams.MATCH_PARENT, 1

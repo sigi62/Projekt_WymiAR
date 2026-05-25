@@ -7,7 +7,6 @@
     android:orientation="vertical"
     android:background="@color/screen_background">
 
-    <!-- Header -->
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -37,7 +36,6 @@
             android:textStyle="bold"
             android:textColor="@color/text_primary" />
 
-        <!-- "Delete all" icon button in top-right -->
         <ImageButton
             android:id="@+id/btnDeleteAll"
             android:layout_width="48dp"
@@ -60,7 +58,6 @@
             android:orientation="vertical"
             android:padding="20dp">
 
-            <!-- ── Storage summary card ─────────────────────────────── -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -70,7 +67,6 @@
                 android:layout_marginBottom="16dp"
                 android:background="@color/layout_background">
 
-                <!-- Left: label + size + model count -->
                 <LinearLayout
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
@@ -105,7 +101,6 @@
 
                 </LinearLayout>
 
-                <!-- Right: progress ring + RulerSeekBar quota slider -->
                 <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
@@ -123,14 +118,6 @@
                         android:progressDrawable="@drawable/circular_progress"
                         android:rotation="-90" />
 
-                    <!--
-                        RulerSeekBar is horizontal by nature.
-                        Rotating 270° makes it vertical. Because Android reserves
-                        layout space from declared dimensions (before rotation),
-                        width = desired visual HEIGHT and height = desired visual WIDTH.
-                        160dp height → the ruler's own onMeasure minimum (it needs ~160px
-                        for label + ticks + thumb to fit without clipping).
-                    -->
                     <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
                         android:id="@+id/sliderQuota"
                         android:layout_width="60dp"
@@ -140,7 +127,6 @@
 
             </LinearLayout>
 
-            <!-- ── Clear Storage button ──────────────────────────────── -->
             <Button
                 android:id="@+id/btnClearStorage"
                 android:layout_width="match_parent"
@@ -151,7 +137,6 @@
                 android:backgroundTint="@color/danger_surface"
                 android:layout_marginBottom="24dp"/>
 
-            <!-- ── Cached models list label ──────────────────────────── -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -161,7 +146,6 @@
                 android:letterSpacing="0.08"
                 android:layout_marginBottom="8dp"/>
 
-            <!-- Dynamic model list injected here by StorageActivity -->
             <LinearLayout
                 android:id="@+id/containerModels"
                 android:layout_width="match_parent"

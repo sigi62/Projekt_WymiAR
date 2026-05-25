@@ -52,7 +52,9 @@
     <string name="measure_distance">Odległość: %1$.1f %2$s </string>
     <string name="measure_tap_first">Kliknij aby postawić pierwszy punkt pomiarowy</string>
     <string name="measure_tap_second">Kliknij aby postawić drugi punkt</string>
-
+    <string name="measure_no_point">Nie ma już żadnych punktów...</string>
+    <string name="measure_add_point"> · Kilknij aby dodać kolejny punkt</string>
+    <string name="measure_point_limit"> · limit osiągnięty</string>
 
     <!-- Converter -->
     <string name="toast_converter_ready">Konwerter gotowy!</string>

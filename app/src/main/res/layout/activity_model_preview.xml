@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#DCDCDC"
@@ -13,7 +12,6 @@
         android:layout_height="match_parent"
         android:background="@android:color/transparent" />
 
-    <!-- Top-start column: back button + model colour button -->
     <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -31,11 +29,6 @@
             android:contentDescription="@string/back"
             android:src="@drawable/ic_arrow_back_white"/>
 
-        <!--
-            Model colour button — shown only when the loaded model has no real
-            textures (STL / PLY / 3DS with the injected grey PBR default).
-            Hidden by default; revealed in loadModel() after detection.
-        -->
         <FrameLayout
             android:id="@+id/btnModelColour"
             android:layout_width="48dp"
@@ -48,7 +41,6 @@
             android:clickable="true"
             android:focusable="true">
 
-            <!-- Background rect (shows through as a contrast border/shadow) -->
             <View
                 android:id="@+id/modelColourBgRect"
                 android:layout_width="26dp"
@@ -56,7 +48,6 @@
                 android:layout_gravity="center"
                 android:background="@drawable/bg_color_patch_rect" />
 
-            <!-- Foreground colour patch — this is what gets tinted with the model colour -->
             <View
                 android:id="@+id/modelColourPatchRect"
                 android:layout_width="22dp"
@@ -68,9 +59,6 @@
 
     </LinearLayout>
 
-    <!-- Background picker button (top-right) — always visible, hides during crop -->
-
-
     <ImageButton
         android:id="@+id/btnBackground"
         android:layout_width="48dp"
@@ -81,11 +69,6 @@
         android:contentDescription="@string/change_background"
         android:src="@drawable/ic_color_palette"/>
 
-    <!--
-        Animation toggle — floats top-end below the background button.
-        Shown only when the loaded model has animation tracks.
-        Hidden by default; ModelPreviewActivity reveals it after loadModel().
-    -->
     <ImageButton
         android:id="@+id/btnAnimationToggle"
         android:layout_width="48dp"
@@ -97,7 +80,6 @@
         android:src="@drawable/ic_animation"
         android:visibility="gone" />
 
-    <!-- Pause / Resume — shown only while animation is started -->
     <ImageButton
         android:id="@+id/btnAnimationPause"
         android:layout_width="48dp"
@@ -109,7 +91,6 @@
         android:src="@drawable/ic_play_pause"
         android:visibility="gone" />
 
-    <!-- Next track — shown only when started and model has >1 track -->
     <ImageButton
         android:id="@+id/btnAnimationNext"
         android:layout_width="48dp"
@@ -121,16 +102,12 @@
         android:src="@drawable/ic_skip_next"
         android:visibility="gone" />
 
-    <!-- ── Crop overlay (hidden until user taps Set Thumbnail) ────────────
-         Sits above the SceneView. The darkened surround is drawn by
-         CropOverlayView; this container just holds the confirm/cancel row. -->
     <com.example.pracazaliczeniowa.Overlays.CropOverlayView
         android:id="@+id/cropOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:visibility="gone" />
 
-    <!-- Confirm / Cancel row — shown together with the crop overlay -->
     <LinearLayout
         android:id="@+id/cropConfirmBar"
         android:layout_width="match_parent"
@@ -161,8 +138,6 @@
 
     </LinearLayout>
 
-
-    <!-- Bottom button row (hidden while crop overlay is active) -->
 
     <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
         android:id="@+id/rotationSlider"

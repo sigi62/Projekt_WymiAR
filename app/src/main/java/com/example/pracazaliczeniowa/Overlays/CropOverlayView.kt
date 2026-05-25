@@ -10,51 +10,29 @@ import android.graphics.RectF
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
-import kotlin.math.abs
-import kotlin.math.max
 import kotlin.math.min
 import kotlin.math.sqrt
 
-/**
- * Full-screen overlay that draws:
- *  - a semi-transparent dark scrim over the whole screen
- *  - a transparent "punch-out" square showing exactly what will be captured
- *  - a white border around that square
- *  - drag handles (corner dots) so the user can reposition/resize the frame
- *
- * Gestures:
- *  - 1-finger drag anywhere inside the rect  → move
- *  - 2-finger pinch anywhere on the view     → resize (keeping the centre fixed)
- *
- * [getCropRect] returns the current rectangle in view coordinates.
- * ModelPreviewActivity converts these to bitmap pixels after PixelCopy.
- */
+
 class CropOverlayView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyleAttr: Int = 0
 ) : View(context, attrs, defStyleAttr) {
 
-    // ── Crop rect in view pixels ──────────────────────────────────────────
     private val cropRect = RectF()
-
-    // ── Drag state (1-finger) ─────────────────────────────────────────────
     private var dragOffsetX = 0f
     private var dragOffsetY = 0f
     private var isDragging  = false
-
-    // ── Pinch-resize state (2-finger) ─────────────────────────────────────
     private var isPinching        = false
-    private var pinchStartDist    = 0f   // finger spacing when pinch began
-    private var pinchStartWidth   = 0f   // cropRect width  when pinch began
-    private var pinchStartHeight  = 0f   // cropRect height when pinch began
-    private var pinchCenterX      = 0f   // midpoint between fingers (view px)
+    private var pinchStartDist    = 0f
+    private var pinchStartWidth   = 0f
+    private var pinchStartHeight  = 0f
+    private var pinchCenterX      = 0f
     private var pinchCenterY      = 0f
 
-    /** Minimum side length in px — prevents collapsing the rect to nothing. */
     private val minSizePx = 80f * resources.displayMetrics.density
 
-    // ── Paints ────────────────────────────────────────────────────────────
     private val scrimPaint = Paint().apply {
         color = Color.argb(160, 0, 0, 0)
     }
@@ -82,8 +60,6 @@ class CropOverlayView @JvmOverloads constructor(
         setLayerType(LAYER_TYPE_HARDWARE, null)
     }
 
-    // ── Layout ────────────────────────────────────────────────────────────
-
     override fun onSizeChanged(w: Int, h: Int, oldW: Int, oldH: Int) {
         super.onSizeChanged(w, h, oldW, oldH)
         if (w == 0 || h == 0) return
@@ -99,8 +75,6 @@ class CropOverlayView @JvmOverloads constructor(
         )
     }
 
-    // ── Drawing ───────────────────────────────────────────────────────────
-
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
@@ -115,12 +89,10 @@ class CropOverlayView @JvmOverloads constructor(
         canvas.drawCircle(cropRect.right, cropRect.bottom, r, cornerPaint)
     }
 
-    // ── Touch ─────────────────────────────────────────────────────────────
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.actionMasked) {
 
-            // ── First finger down → start potential drag ──────────────────
             MotionEvent.ACTION_DOWN -> {
                 val margin = 48f * resources.displayMetrics.density
                 val expanded = RectF(
@@ -134,13 +106,12 @@ class CropOverlayView @JvmOverloads constructor(
                     dragOffsetX = event.x - cropRect.centerX()
                     dragOffsetY = event.y - cropRect.centerY()
                 }
-                return true          // always consume so ACTION_MOVE fires
+                return true
             }
 
-            // ── Second finger down → switch to pinch-resize ───────────────
             MotionEvent.ACTION_POINTER_DOWN -> {
                 if (event.pointerCount == 2) {
-                    isDragging       = false  // pause drag while pinching
+                    isDragging       = false
                     isPinching       = true
                     pinchStartDist   = fingerSpacing(event)
                     pinchStartWidth  = cropRect.width()
@@ -151,14 +122,11 @@ class CropOverlayView @JvmOverloads constructor(
                 return true
             }
 
-            // ── Move → either drag or pinch ───────────────────────────────
             MotionEvent.ACTION_MOVE -> {
                 if (isPinching && event.pointerCount >= 2) {
                     val dist  = fingerSpacing(event)
                     if (pinchStartDist > 0f) {
                         val scale   = dist / pinchStartDist
-                        // Use a single side length (square) derived from the
-                        // smaller start dimension so it can never go non-square.
                         val newSide = (min(pinchStartWidth, pinchStartHeight) * scale)
                             .coerceAtLeast(minSizePx)
                         resizeCropAroundCenter(
@@ -174,11 +142,9 @@ class CropOverlayView @JvmOverloads constructor(
                 return true
             }
 
-            // ── A finger lifted ───────────────────────────────────────────
             MotionEvent.ACTION_POINTER_UP -> {
                 if (isPinching) {
                     isPinching  = false
-                    // Resume drag from whichever finger remains
                     val remaining = if (event.actionIndex == 0) 1 else 0
                     isDragging  = true
                     dragOffsetX = event.getX(remaining) - cropRect.centerX()
@@ -195,10 +161,6 @@ class CropOverlayView @JvmOverloads constructor(
         }
         return super.onTouchEvent(event)
     }
-
-    // ── Geometry helpers ──────────────────────────────────────────────────
-
-    /** Move the crop rect so its centre lands at (centerX, centerY), clamped to the view. */
     private fun moveCropTo(centerX: Float, centerY: Float) {
         val halfW = cropRect.width()  / 2f
         val halfH = cropRect.height() / 2f
@@ -208,16 +170,7 @@ class CropOverlayView @JvmOverloads constructor(
         invalidate()
     }
 
-    /**
-     * Resize the crop rect to [newWidth] × [newHeight], keeping it centred on
-     * ([cx], [cy]), then clamp the whole rect to stay inside the view.
-     *
-     * The rect is always kept square: the smaller of width/height is used as
-     * the side length, then further clamped so the square fits inside the view.
-     */
     private fun resizeCropAroundCenter(cx: Float, cy: Float, newWidth: Float, newHeight: Float) {
-        // Enforce square: use the smaller dimension, then cap at the smaller
-        // view side so the square can never exceed the screen in either axis.
         val maxSide = min(width.toFloat(), height.toFloat())
         val side    = min(min(newWidth, newHeight), maxSide).coerceAtLeast(minSizePx)
         val half    = side / 2f
@@ -227,7 +180,6 @@ class CropOverlayView @JvmOverloads constructor(
         var right  = cx + half
         var bottom = cy + half
 
-        // Slide to stay inside the screen
         if (left   < 0f)     { right  -= left;            left   = 0f           }
         if (top    < 0f)     { bottom -= top;             top    = 0f           }
         if (right  > width)  { left   -= right  - width;  right  = width.toFloat()  }
@@ -243,6 +195,5 @@ class CropOverlayView @JvmOverloads constructor(
         return sqrt(dx * dx + dy * dy)
     }
 
-    /** Returns the current crop rectangle in this view's coordinate space. */
     fun getCropRect(): RectF = RectF(cropRect)
 }

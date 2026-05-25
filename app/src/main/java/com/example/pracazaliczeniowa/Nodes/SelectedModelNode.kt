@@ -1,9 +1,6 @@
 package com.example.pracazaliczeniowa.Nodes
 
 import android.util.Log
-import androidx.compose.ui.graphics.Color
-import com.example.pracazaliczeniowa.Nodes.DefaultModelNode
-import com.example.pracazaliczeniowa.Nodes.DimensionOverlayNode
 import com.google.android.filament.Engine
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import dev.romainguy.kotlin.math.Float3
@@ -21,13 +18,6 @@ class SelectedModelNode(
 
     private var wrappedNode: DefaultModelNode? = null
 
-    /**
-     * The name of the profile slot currently applied to this model.
-     * [ProfilePickerDialog.SLOT_DEFAULT] for the default slot, a user-chosen
-     * name for named slots, null if no profile has been loaded/saved yet.
-     * Kept here (on the wrapper) so it survives dialog open/close cycles
-     * without touching [DefaultModelNode].
-     */
     var activeProfileName: String? = null
 
     private var isDimensionsVisible = false
@@ -40,51 +30,26 @@ class SelectedModelNode(
     private var cachedSceneView: SceneView? = null
 
     fun getWrappedNode(): DefaultModelNode? = wrappedNode
-
-    /** Exposes the overlay so the Activity can read dimensions for the HUD. */
     fun getDimensionOverlay(): DimensionOverlayNode? = dimensionOverlay
-
-    // ── Animation delegation ──────────────────────────────────────────────────
-
-    /** Delegates to the wrapped node — true if the model has animation tracks. */
     fun hasAnimations(): Boolean = wrappedNode?.hasAnimations() ?: false
 
-    /** Returns the number of animation tracks on the wrapped model (0 if none). */
     fun getAnimationCount(): Int =
         wrappedNode?.modelInstance?.animator?.animationCount ?: 0
-
-    /**
-     * Delegates play/stop to the wrapped [DefaultModelNode].
-     * Safe to call when no node is attached or the model has no animations.
-     */
     fun setAnimationPlaying(playing: Boolean) {
         wrappedNode?.setAnimationPlaying(playing)
     }
-
-    /** Pause the active animation track, freezing the model at its current pose. */
     fun pauseAnimation() {
         wrappedNode?.pauseAnimation()
     }
-
-    /** Resume (or start) the animation track at [index] from its last paused position. */
     fun resumeAnimation(index: Int) {
         wrappedNode?.resumeAnimation(index)
     }
-
-    /** Stop all tracks and clear pause state — call on deselect / delete. */
     fun stopAllAnimations() {
         wrappedNode?.stopAllAnimations()
     }
-
-    /**
-     * Plays a specific animation track by index.
-     * Stops any currently playing track first so tracks don't overlap.
-     */
     fun playAnimation(index: Int) {
         wrappedNode?.resumeAnimation(index)
     }
-
-    // ── Wrap / unwrap ─────────────────────────────────────────────────────────
 
     fun unwrap(): DefaultModelNode? {
         val child = wrappedNode ?: return null
@@ -152,20 +117,10 @@ class SelectedModelNode(
         refreshRingScale()
     }
 
-    /**
-     * Re-anchors [baseScale] to the node's current physical scale.
-     * Call after saving/loading a profile so subsequent slider movement is
-     * relative to the committed scale, not the original.
-     */
     fun syncBaseScale() {
         baseScale = wrappedNode?.scale ?: Float3(1f)
     }
 
-    /**
-     * Re-anchors [initialWorldQuat] to the wrapper's current world quaternion
-     * so that [updateRotation] computes slider deltas from the right base.
-     * Always call after [applyProfileRotation] or any direct rotation change.
-     */
     fun syncBaseRotation() {
         initialWorldQuat = this.worldQuaternion
     }
@@ -194,10 +149,6 @@ class SelectedModelNode(
         refreshRingScale()
     }
 
-    /**
-     * Toggles the dimension wireframe overlay on/off.
-     * Returns true if the overlay is now visible, false if it was just hidden.
-     */
     fun toggleDimensions(sceneView: SceneView, viewAttachmentManager: ViewAttachmentManager): Boolean {
         val target = wrappedNode ?: return false
         return if (isDimensionsVisible) {
@@ -218,30 +169,14 @@ class SelectedModelNode(
         isDimensionsVisible = false
     }
 
-    // ---------------------------------------------------------------
-    // Rotation handle – pointerRing.glb (flat ring with forward triangle)
-    //
-    // The .glb is authored at radius = 1.0 unit, flat on the XZ plane,
-    // with the triangle pointer aimed toward +Z (glTF forward).
-    // We scale it the same way the old CylinderNode was scaled:
-    //   handle.scale = Float3(outerR, 1f, outerR)
-    // so no changes to the sizing math are needed.
-    // ---------------------------------------------------------------
 
     private var rotationHandle: ModelNode? = null
-
-    /**
-     * Loads pointerRing.glb from assets and attaches it as the rotation handle.
-     * The load is async; [refreshRingScale] is called once the model is ready
-     * so the ring immediately fits the wrapped node.
-     */
     fun showRotationHandle(engine: Engine, sceneView: SceneView) {
         if (rotationHandle != null) return
         val target = wrappedNode ?: return
         cachedSceneView = sceneView
 
         scope.launch {
-            // loadModelGlb returns a ModelInstance (nullable on failure).
             val instance = sceneView.modelLoader.loadModelInstance(
                 fileLocation = "RotationHandle.glb"
             ) ?: run {
@@ -252,8 +187,8 @@ class SelectedModelNode(
             val handle = ModelNode(
                 modelInstance = instance,
                 autoAnimate   = false,
-                scaleToUnits  = null,   // we scale manually in refreshRingScale
-                centerOrigin  = null    // keep the model's own pivot
+                scaleToUnits  = null,
+                centerOrigin  = null
             ).apply {
                 name       = "rotation_handle"
                 isEditable = false
@@ -262,7 +197,6 @@ class SelectedModelNode(
             rotationHandle = handle
             this@SelectedModelNode.addChildNode(handle)
 
-            // Size it immediately once geometry is available.
             refreshRingScale()
         }
     }
@@ -273,15 +207,9 @@ class SelectedModelNode(
         val outerR = computeOuterRadius(target)
         val yOff   = computeYOffset(target)
 
-        // Same math as the old CylinderNode (radius = 1 unit in the .glb):
-        // X and Z scale the ring outward; Y stays 1 so the flat geometry
-        // isn't squashed.
         handle.scale    = Float3(outerR, 1f, outerR)
         handle.position = Float3(0f, yOff, 0f)
     }
-
-    fun updateHandleSize() = refreshRingScale()
-
     fun hideRotationHandle() {
         rotationHandle?.let {
             this.removeChildNode(it)
@@ -289,10 +217,6 @@ class SelectedModelNode(
             rotationHandle = null
         }
     }
-
-    // ---------------------------------------------------------------
-    // Sizing helpers
-    // ---------------------------------------------------------------
 
     private fun computeOuterRadius(target: DefaultModelNode): Float {
         val box   = target.modelInstance.asset.boundingBox
@@ -312,32 +236,10 @@ class SelectedModelNode(
     fun setBaseScale(base: Float3) {
         baseScale = base
     }
-    fun setBaseRotation(euler: Float3) {
-        baseRotation = euler
-        initialWorldQuat = Quaternion.fromEuler(euler)  // slider delta is relative to this
-    }
 
-    /**
-     * Applies a saved profile rotation to this wrapper node so that the
-     * rotation handle ring always stays correctly positioned beneath the model.
-     *
-     * Rotation must live on the **wrapper** (this node), NOT on the wrapped
-     * child. When rotation is set on the child directly the ring — which is a
-     * sibling child of the wrapper — stays flat and disconnected from the
-     * tilted model.  By rotating the wrapper the ring, the model, and all
-     * other children move together as one rigid body.
-     *
-     * After calling this, [syncBaseRotation] re-anchors [initialWorldQuat] so
-     * that slider deltas start from the new orientation, and the wrapped
-     * child's local rotation is reset to zero (it was only ever used as a
-     * temporary staging value during pre-wrap placement).
-     */
     fun applyProfileRotation(euler: Float3) {
-        // Rotate the wrapper in world space (same convention as updateRotation).
         this.worldQuaternion = Quaternion.fromEuler(euler)
-        // Clear any residual local rotation on the child — the wrapper owns it now.
         wrappedNode?.rotation = Float3(0f)
-        // Re-anchor so slider deltas are relative to this orientation.
         initialWorldQuat = this.worldQuaternion
     }
     companion object {

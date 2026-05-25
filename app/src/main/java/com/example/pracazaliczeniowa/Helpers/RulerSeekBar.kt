@@ -14,8 +14,6 @@ class RulerSeekBar @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null
 ) : AppCompatSeekBar(context, attrs) {
 
-    // --- Dynamic Properties — each setter triggers a redraw ---
-
     var minValue: Float = -180f
     var maxValue: Float = 180f
     var centerValue: Float = 0f
@@ -37,11 +35,6 @@ class RulerSeekBar @JvmOverloads constructor(
         invalidate()
     }
 
-    /**
-     * Call after updateRange() for POSITION mode only.
-     * Sets seekBar.max = (maxValue - minValue) so 1 progress step = 1 display unit.
-     * Do NOT call for ROTATE or SCALE — they manage their own max.
-     */
     fun setStepsFromRange() {
         val steps = (maxValue - minValue).toInt().coerceAtLeast(1)
         this.max = steps
@@ -51,8 +44,6 @@ class RulerSeekBar @JvmOverloads constructor(
     var decimalPlaces: Int = 1
         set(value) { field = value; invalidate() }
 
-    // true  → draws vertically (track top→bottom, ticks protrude right, label on right)
-    // false → draws horizontally (original behaviour)
     var vertical: Boolean = false
         set(value) { field = value; invalidate() }
 
@@ -73,8 +64,6 @@ class RulerSeekBar @JvmOverloads constructor(
         if (vertical) drawVertical(canvas) else drawHorizontal(canvas)
     }
 
-    // ── Horizontal (original) ────────────────────────────────────────────
-
     private fun drawHorizontal(canvas: Canvas) {
         val width = width.toFloat()
         val height = height.toFloat()
@@ -89,7 +78,6 @@ class RulerSeekBar @JvmOverloads constructor(
         paint.isAntiAlias = true
         paint.textAlign = Paint.Align.CENTER
 
-        // 1. Ticks
         if (minorTickInterval <= 0f) return
         var currentVal = minValue
         while (currentVal <= maxValue + 0.001f) {
@@ -97,9 +85,9 @@ class RulerSeekBar @JvmOverloads constructor(
             val x = paddingLeft + relPos * usableWidth
 
             val isBoundary = currentVal <= minValue + 0.001f || currentVal >= maxValue - 0.001f
-            val isCenter   = Math.abs(currentVal - centerValue) < 0.001f
-            val isMajor    = currentVal.isNearMultipleOf(majorTickInterval)
-            val isMinor    = currentVal.isNearMultipleOf(minorTickInterval)
+            val isCenter = Math.abs(currentVal - centerValue) < 0.001f
+            val isMajor = currentVal.isNearMultipleOf(majorTickInterval)
+            val isMinor = currentVal.isNearMultipleOf(minorTickInterval)
 
             when {
                 isBoundary -> {
@@ -108,20 +96,25 @@ class RulerSeekBar @JvmOverloads constructor(
                     canvas.drawLine(x, centerY - tickH / 2, x, centerY + tickH / 2, paint)
                     paint.textSize = 32f
                     paint.isFakeBoldText = true
-                    val label = if (maxValue <= 10f) "%.1f".format(currentVal) else currentVal.toInt().toString()
+                    val label =
+                        if (maxValue <= 10f) "%.1f".format(currentVal) else currentVal.toInt()
+                            .toString()
                     canvas.drawText(label, x, centerY - tickH / 2 - 20f, paint)
                     paint.isFakeBoldText = false
                 }
+
                 isCenter -> {
                     paint.strokeWidth = 6f
                     val tickH = 50f
                     canvas.drawLine(x, centerY - tickH / 2, x, centerY + tickH / 2, paint)
                 }
+
                 isMajor -> {
                     paint.strokeWidth = 4f
                     val tickH = 30f
                     canvas.drawLine(x, centerY - tickH / 2, x, centerY + tickH / 2, paint)
                 }
+
                 isMinor -> {
                     paint.strokeWidth = 2f
                     val tickH = 15f
@@ -131,7 +124,6 @@ class RulerSeekBar @JvmOverloads constructor(
             currentVal += minorTickInterval
         }
 
-        // 2. Thumb
         val progressPercent = if (max > 0) progress.toFloat() / max else 0f
         val thumbX = paddingLeft + progressPercent * usableWidth
         paint.color = Color.BLACK; paint.strokeWidth = 7f
@@ -139,28 +131,11 @@ class RulerSeekBar @JvmOverloads constructor(
         paint.color = Color.WHITE; paint.strokeWidth = 3f
         canvas.drawLine(thumbX, centerY - 38f, thumbX, centerY + 38f, paint)
 
-        // 3. Value label
         paint.color = rulerColor; paint.textSize = 40f; paint.isFakeBoldText = true
         val realValue = minValue + progressPercent * totalRange
         canvas.drawText("%.${decimalPlaces}f".format(realValue), thumbX, centerY + 70f, paint)
         paint.isFakeBoldText = false
     }
-
-    // ── Vertical (native, no rotation needed) ───────────────────────────
-    //
-    // Geometry constants (all in pixels, scaled at draw time):
-    //
-    //   |<-- TRACK_X -->|<-- ticks grow left from here
-    //   |               |--- boundary/center tick: TICK_MAJOR_LEN
-    //   |               |--  major tick:           TICK_MAJOR_LEN * 0.66
-    //   |               |-   minor tick:           TICK_MINOR_LEN
-    //   |
-    //   MARGIN_TOP  ← top of usable track
-    //   ...
-    //   MARGIN_BOTTOM ← bottom of usable track
-    //
-    //   Value label sits to the RIGHT of the track at LABEL_X.
-    //   Tick labels (boundary values) also sit at LABEL_X.
 
     private fun drawVertical(canvas: Canvas) {
         val w = width.toFloat()
@@ -170,29 +145,26 @@ class RulerSeekBar @JvmOverloads constructor(
 
         val rulerColor = ContextCompat.getColor(context, R.color.icon_tint)
 
-        // ── Geometry ─────────────────────────────────────────────────────
-        val marginTop    = 16f                  // px above top tick
-        val marginBottom = 16f                  // px below bottom tick
-        val trackX       = w * 0.40f            // vertical track line X
-        val tickMajorLen = 20f                  // boundary / center ticks
-        val tickMidLen   = 13f                  // major interval ticks
-        val tickMinorLen = 7f                   // minor interval ticks
-        val thumbHalfW   = tickMajorLen + 4f    // thumb extends slightly past longest tick
+        val marginTop    = 16f
+        val marginBottom = 16f
+        val trackX       = w * 0.40f
+        val tickMajorLen = 20f
+        val tickMidLen   = 13f
+        val tickMinorLen = 7f
+        val thumbHalfW   = tickMajorLen + 4f
         val labelX       = trackX - tickMajorLen - 10f
         val valueLabelX  = trackX + 15f
-        val textSizeTick = 24f                  // tick label text size (px)
-        val textSizeVal  = 34f                  // value label text size (px)
+        val textSizeTick = 24f
+        val textSizeVal  = 34f
 
 
         val usableH = h - marginTop - marginBottom
 
-        // ── Helper: value → Y (max at top, min at bottom) ────────────────
         fun valueToY(v: Float): Float {
             val rel = (v - minValue) / totalRange
             return marginTop + (1f - rel) * usableH
         }
 
-        // ── 1. Ticks ──────────────────────────────────────────────────────
         paint.isAntiAlias = true
         paint.textAlign   = Paint.Align.RIGHT
 
@@ -210,7 +182,6 @@ class RulerSeekBar @JvmOverloads constructor(
                 isBoundary -> {
                     paint.color = rulerColor; paint.strokeWidth = 5f
                     canvas.drawLine(trackX - tickMajorLen, y, trackX, y, paint)
-                    // Boundary label to the right
                     paint.textSize = textSizeTick; paint.isFakeBoldText = true
                     val label = if (maxValue <= 10f) "%.1f".format(currentVal)
                     else currentVal.toInt().toString()
@@ -233,7 +204,6 @@ class RulerSeekBar @JvmOverloads constructor(
             currentVal += minorTickInterval
         }
 
-        // ── 2. Thumb ──────────────────────────────────────────────────────
         val progressPercent = if (max > 0) progress.toFloat() / max else 0f
         val thumbY = valueToY(minValue + progressPercent * totalRange)
 
@@ -242,7 +212,6 @@ class RulerSeekBar @JvmOverloads constructor(
         paint.strokeWidth = 2f; paint.color = Color.WHITE
         canvas.drawLine(trackX - thumbHalfW + 2f, thumbY, trackX + 2f, thumbY, paint)
 
-        // ── 3. Value label — right of thumb, vertically centred on it ────
         val realValue = minValue + progressPercent * totalRange
         paint.color = rulerColor
         paint.textSize = textSizeVal
@@ -259,14 +228,8 @@ class RulerSeekBar @JvmOverloads constructor(
         return remainder < 0.001f || (interval - remainder) < 0.001f
     }
 
-    // ── Vertical touch handling ──────────────────────────────────────────
-    // When vertical=true the parent SeekBar tracks finger X, which is useless.
-    // We intercept all touch events and map finger Y → progress instead.
-    // marginTop/Bottom must match drawVertical exactly so the thumb follows the finger.
-
     private var verticalListener: OnSeekBarChangeListener? = null
 
-    // Override setOnSeekBarChangeListener so we hold our own ref for vertical mode
     override fun setOnSeekBarChangeListener(l: OnSeekBarChangeListener?) {
         verticalListener = l
         if (!vertical) super.setOnSeekBarChangeListener(l)
@@ -303,7 +266,7 @@ class RulerSeekBar @JvmOverloads constructor(
 
     private fun updateProgressFromY(y: Float, usableH: Float, marginTop: Float) {
         val clampedY  = y.coerceIn(marginTop, marginTop + usableH)
-        val fraction  = 1f - (clampedY - marginTop) / usableH   // invert: top = max
+        val fraction  = 1f - (clampedY - marginTop) / usableH
         val newProgress = (fraction * max).toInt().coerceIn(0, max)
         if (newProgress != progress) {
             progress = newProgress

@@ -44,42 +44,29 @@ class SettingsActivity : AppCompatActivity() {
             setDisplayHomeAsUpEnabled(true)
         }
 
-        // ── Back button ──────────────────────────────────────────────────
         findViewById<ImageButton>(R.id.btnBack).setOnClickListener { finish() }
-
-        // ── Appearance row → Theme popup ─────────────────────────────────
         findViewById<LinearLayout>(R.id.rowAppAppearance).setOnClickListener {
             showThemeDialog()
         }
-
-        // ── AR Options rows → AROptionsActivity ──────────────────────────
         findViewById<LinearLayout>(R.id.rowControlsRange).setOnClickListener {
             startActivity(Intent(this, AROptionsActivity::class.java))
         }
-
-        // ── Measurement Unit row → Unit popup ────────────────────────────
         findViewById<LinearLayout>(R.id.rowARMeasurementUnit).setOnClickListener {
             showUnitDialog()
         }
-
-        // ── Storage rows ─────────────────────────────────────────────────
         updateStorageSummary()
 
         findViewById<LinearLayout>(R.id.rowManageStorage).setOnClickListener {
-            storageLauncher.launch(Intent(this, StorageActivity::class.java))  // CHANGED from startActivity(...)
+            storageLauncher.launch(Intent(this, StorageActivity::class.java))
         }
-
         findViewById<LinearLayout>(R.id.rowClearCache).setOnClickListener {
             confirmClearAll()
         }
-
-        // ── Language row → Language popup ────────────────────────────────
         findViewById<LinearLayout>(R.id.rowAccesibility).setOnClickListener {
             showLanguageDialog()
         }
     }
 
-    // ── Called when returning from any sub-screen ─────────────────────────
     override fun onResume() {
         super.onResume()
         updateStorageSummary()
@@ -90,7 +77,6 @@ class SettingsActivity : AppCompatActivity() {
 
     // ── Popup dialogs ─────────────────────────────────────────────────────
 
-    /** Radio popup: Dark / Light / System */
     private fun showThemeDialog() {
         val options = listOf(
             getString(R.string.theme_dark),
@@ -116,8 +102,6 @@ class SettingsActivity : AppCompatActivity() {
             updateAppearanceSummary()
         }
     }
-
-    /** Radio popup: Centimeters / Meters / Millimeters */
     private fun showUnitDialog() {
         val options = listOf(
             getString(R.string.full_unit_mm),
@@ -142,8 +126,6 @@ class SettingsActivity : AppCompatActivity() {
             updateAROptionsSummary()
         }
     }
-
-    /** Radio popup: System default / English / Polish */
     private fun showLanguageDialog() {
         val options = listOf(
             getString(R.string.language_system),
@@ -171,14 +153,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Generic single-choice radio dialog.
-     *
-     * @param title    Dialog title.
-     * @param options  List of labels for radio buttons.
-     * @param selected Index of the currently active option.
-     * @param onPick   Called with the chosen index when the user taps an option.
-     */
     private fun showRadioDialog(
         title: String,
         options: List<String>,
@@ -205,8 +179,8 @@ class SettingsActivity : AppCompatActivity() {
                         intArrayOf()
                     ),
                     intArrayOf(
-                        getColor(R.color.color_secondary),  // checked color
-                        getColor(R.color.text_secondary)  // unchecked color
+                        getColor(R.color.color_secondary),
+                        getColor(R.color.text_secondary)
                     )
                 )
                 setPadding(paddingLeft, vertPx, paddingRight, vertPx)
@@ -231,9 +205,8 @@ class SettingsActivity : AppCompatActivity() {
 
         dialog.show()
     }
-    // ── Summary helpers ───────────────────────────────────────────────────
 
-    /** "Dark" / "Light" / "System" under the Appearance row. */
+    // ── Summary helpers ───────────────────────────────────────────────────
     private fun updateAppearanceSummary() {
         val tv = findViewById<TextView>(R.id.tvAppearanceSummary) ?: return
         tv.text = when (settings.themeMode) {
@@ -243,10 +216,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * "±100 cm  ·  5.00×" under the Controls Range row, and
-     * "Centimeters (cm)" under the Measurement Unit row.
-     */
     private fun updateAROptionsSummary() {
         val unitSuffix = when (settings.distanceUnit) {
             DistanceUnit.METERS      -> "m"
@@ -260,11 +229,9 @@ class SettingsActivity : AppCompatActivity() {
             "±%.0f %s".format(posValue, unitSuffix)
         val sclText = "%.2f×".format(settings.sclMaxDefault / 100f)
 
-        // Controls Range row summary
         findViewById<TextView>(R.id.tvControlsRangeSummary)?.text =
             "$posText  ·  $sclText"
 
-        // Measurement Unit row summary
         val unitLabel = when (settings.distanceUnit) {
             DistanceUnit.CENTIMETERS -> getString(R.string.full_unit_cm)
             DistanceUnit.METERS      -> getString(R.string.full_unit_m)
@@ -273,7 +240,6 @@ class SettingsActivity : AppCompatActivity() {
         findViewById<TextView>(R.id.tvMeasurementUnitSummary)?.text = unitLabel
     }
 
-    /** Current language name under the Accessibility row. */
     private fun updateAccessibilitySummary() {
         val tv = findViewById<TextView>(R.id.tvAccessibilitySummary) ?: return
         tv.text = when (settings.languageOverride) {
@@ -283,7 +249,6 @@ class SettingsActivity : AppCompatActivity() {
         }
     }
 
-    /** Live size + model count under "Manage Storage". */
     private fun updateStorageSummary() {
         val summaryView = findViewById<TextView>(R.id.tvStorageSummary) ?: return
         if (!modelDir.exists()) {
@@ -299,7 +264,6 @@ class SettingsActivity : AppCompatActivity() {
         }
         summaryView.text = getString(R.string.storage_summary_format, sizeFmt, modelCount)
     }
-    // New helper in SettingsActivity:
     private fun confirmClearAll() {
         val view = layoutInflater.inflate(R.layout.dialog_confirm, null)
         view.findViewById<TextView>(R.id.tvDialogTitle).text = getString(R.string.clear_cache)

@@ -52,7 +52,9 @@
     <string name="measure_distance">Distance: %1$.1f %2$s </string>
     <string name="measure_tap_first">Tap to place first measure point</string>
     <string name="measure_tap_second">Tap the second point</string>
-
+    <string name="measure_no_point">Nothing to undo...</string>
+    <string name="measure_add_point"> · tap to add another</string>
+    <string name="measure_point_limit"> · limit reached</string>
 
     <!-- Converter -->
     <string name="toast_converter_ready">Converter ready!</string>

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:background="@color/card_background">
@@ -14,7 +13,6 @@
         android:paddingTop="16dp"
         android:paddingBottom="32dp">
 
-        <!-- Drag handle -->
         <View
             android:layout_width="40dp"
             android:layout_height="4dp"
@@ -31,7 +29,6 @@
             android:textColor="@color/text_primary"
             android:layout_marginBottom="16dp" />
 
-        <!-- Mode selector -->
         <RadioGroup
             android:id="@+id/rgBackgroundMode"
             android:layout_width="match_parent"
@@ -67,10 +64,6 @@
                 android:textColor="@color/text_primary" />
         </RadioGroup>
 
-        <!-- ══════════════════════════════════════════════════════
-             STUDIO MODE: per-surface colour controls
-             Shown only when Studio is selected
-             ══════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/layoutStudioColors"
             android:layout_width="match_parent"
@@ -86,7 +79,6 @@
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="14dp" />
 
-            <!-- Floor row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -124,7 +116,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Back Wall row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -162,7 +153,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Side Wall row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -200,7 +190,6 @@
                 </LinearLayout>
             </LinearLayout>
 
-            <!-- Void row -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -240,10 +229,6 @@
 
         </LinearLayout>
 
-        <!-- ══════════════════════════════════════════════════════
-             SOLID (VOID) MODE: full colour picker
-             Shown only when Solid is selected
-             ══════════════════════════════════════════════════════ -->
         <LinearLayout
             android:id="@+id/layoutColourPicker"
             android:layout_width="match_parent"

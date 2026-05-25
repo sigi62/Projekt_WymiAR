@@ -4,31 +4,22 @@ import com.google.android.filament.Engine
 import dev.romainguy.kotlin.math.Float3
 import dev.romainguy.kotlin.math.Float4
 import io.github.sceneview.loaders.MaterialLoader
-import io.github.sceneview.loaders.ModelLoader
 import io.github.sceneview.node.CubeNode
 import io.github.sceneview.node.Node
 
-/**
- * Draws a colour-coded wireframe bounding box around [targetNode].
- *
- * Dimension labels are intentionally NOT rendered in AR space.
- * Instead, call [getDimensions] and show the result in the 2-D HUD
- * (view_model_dimension_label included in activity_ar.xml).
- */
+
 class DimensionOverlayNode(
     engine: Engine,
     private val materialLoader: MaterialLoader,
     private val targetNode: DefaultModelNode
 ) : Node(engine) {
 
-    private val lineThickness = 0.002f // 2 mm
+    private val lineThickness = 0.002f
 
-    // 4 edges per axis – created once, updated on every refresh()
     private val widthLines  = List(4) { CubeNode(engine, size = Float3(1f)).also { addChildNode(it) } }
     private val heightLines = List(4) { CubeNode(engine, size = Float3(1f)).also { addChildNode(it) } }
     private val depthLines  = List(4) { CubeNode(engine, size = Float3(1f)).also { addChildNode(it) } }
 
-    // X = Red, Y = Green, Z = Blue  (matches the HUD colour dots)
     private val colorX = Float4(1f, 0f, 0f, 1f)
     private val colorY = Float4(0f, 1f, 0f, 1f)
     private val colorZ = Float4(0f, 0f, 1f, 1f)
@@ -37,11 +28,6 @@ class DimensionOverlayNode(
         refresh()
     }
 
-    // ---------------------------------------------------------------
-    // Public API
-    // ---------------------------------------------------------------
-
-    /** Call this whenever the model scale changes so the cage stays accurate. */
     fun refresh() {
         val box = targetNode.modelInstance.asset.boundingBox
         val s   = targetNode.scale
@@ -61,10 +47,6 @@ class DimensionOverlayNode(
         updateAxisLines(depthLines,  Float3(lineThickness, lineThickness, d), center, w, h, colorZ, "Z")
     }
 
-    /**
-     * Returns the current world-space dimensions in metres as a [Triple]
-     * (width, height, depth).  Multiply by 100 for centimetres, 1000 for mm.
-     */
     fun getDimensions(): Triple<Float, Float, Float> {
         val box = targetNode.modelInstance.asset.boundingBox
         val s   = targetNode.scale
@@ -74,10 +56,6 @@ class DimensionOverlayNode(
             box.halfExtent[2] * 2f * s.z
         )
     }
-
-    // ---------------------------------------------------------------
-    // Internal helpers
-    // ---------------------------------------------------------------
 
     private fun updateAxisLines(
         lines: List<CubeNode>,

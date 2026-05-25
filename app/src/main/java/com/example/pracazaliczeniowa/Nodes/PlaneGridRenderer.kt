@@ -14,17 +14,7 @@ import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.material.setTexture
 import java.nio.ByteBuffer
 
-/**
- * PlaneGridRenderer
- * ─────────────────
- * Swaps the built-in PlaneRenderer dot texture for a grid bitmap.
- *
- * Plane visibility is filtered according to [PlaneMode]:
- *   HORIZONTAL → show HORIZONTAL planes only
- *   VERTICAL   → show VERTICAL planes only
- *   BOTH       → show all tracked planes
- *   OFF        → hide all plane overlays
- */
+
 class PlaneGridRenderer(private val sceneView: ARSceneView) {
 
     private val TEX_SIZE = 256
@@ -37,7 +27,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
     private var setVisibleMethod: java.lang.reflect.Method? = null
     private var reflectionReady = false
 
-    // ── Public API ────────────────────────────────────────────────────────────
 
     fun init() {
         sceneView.planeRenderer.isEnabled = true
@@ -49,10 +38,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         Log.d("PlaneGrid", "init() — texture built, reflection ready=$reflectionReady")
     }
 
-    /**
-     * Call every frame from onSessionUpdated.
-     * [mode] controls which planes are shown and accepted for hit-testing.
-     */
     fun update(mode: PlaneMode) {
         frameCount++
         if (!injected && frameCount > 2) injectTexture()
@@ -64,8 +49,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         gridTexture = null
         injected = false
     }
-
-    // ── Reflection setup ──────────────────────────────────────────────────────
 
     private fun prepareReflection() {
         try {
@@ -107,7 +90,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         }
     }
 
-    // ── Per-plane visibility filter ───────────────────────────────────────────
 
     @Suppress("UNCHECKED_CAST")
     private fun filterPlaneVisibility(mode: PlaneMode) {
@@ -153,7 +135,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         }
     }
 
-    // ── Texture injection ─────────────────────────────────────────────────────
 
     private fun injectTexture() {
         val tex = gridTexture ?: return
@@ -176,7 +157,6 @@ class PlaneGridRenderer(private val sceneView: ARSceneView) {
         }
     }
 
-    // ── Texture building ──────────────────────────────────────────────────────
 
     private fun buildGridTexture(): Texture {
         val bmp    = Bitmap.createBitmap(TEX_SIZE, TEX_SIZE, Bitmap.Config.ARGB_8888)

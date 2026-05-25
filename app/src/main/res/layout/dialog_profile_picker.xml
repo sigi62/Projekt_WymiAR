@@ -1,8 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!--
-    res/layout/dialog_profile_picker.xml
-    Root layout for ProfilePickerDialog.
--->
 <LinearLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
@@ -11,7 +7,6 @@
     android:background="@color/card_background"
     android:padding="16dp">
 
-    <!-- Title -->
     <TextView
         android:id="@+id/tvProfileDialogTitle"
         android:layout_width="match_parent"
@@ -22,14 +17,12 @@
         android:textStyle="bold"
         android:paddingBottom="12dp"/>
 
-    <!-- Dynamic list of profile slot rows (built in code) -->
     <LinearLayout
         android:id="@+id/profileListContainer"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"/>
 
-    <!-- "Add named profile" button -->
     <Button
         android:id="@+id/btnAddNamedProfile"
         android:layout_width="match_parent"

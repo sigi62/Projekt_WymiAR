@@ -41,6 +41,7 @@ class LibraryActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_MODEL_PATH     = "extra_model_path"
+        const val EXTRA_MODEL_ID    = "extra_model_id"
         const val EXTRA_MODEL_IS_ASSET = "extra_model_is_asset"
         const val EXTRA_SOURCE_FORMAT  = "extra_source_format"
     }
@@ -48,15 +49,15 @@ class LibraryActivity : AppCompatActivity() {
 
     val modelMimeTypes = arrayOf(
         "model/obj",
-        "model/stl",                  // STL — may not be recognised by all pickers
-        "application/sla",            // STL alternative MIME (most common on Android)
-        "application/vnd.ms-pki.stl", // STL second alternative used by some OEM pickers
-        "model/gltf-binary",          // GLB
-        "model/gltf+json",            // GLTF text
-        "model/fbx",                  // FBX — not formally registered; may not be honoured by all pickers
-        "model/vnd.collada+xml",      // DAE (Collada)
-        "image/x-3ds",                // 3DS — non-standard but used by some file managers
-        "application/octet-stream"    // catch-all for binary formats (.fbx, .ply, .3ds, .stl, etc.)
+        "model/stl",
+        "application/sla",
+        "application/vnd.ms-pki.stl",
+        "model/gltf-binary",
+        "model/gltf+json",
+        "model/fbx",
+        "model/vnd.collada+xml",
+        "image/x-3ds",
+        "application/octet-stream"
     )
 
     // ── Result launchers ──────────────────────────────────────────────────────
@@ -74,11 +75,9 @@ class LibraryActivity : AppCompatActivity() {
     private val previewLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) {
-        // Refresh items so lastModified reflects any profile save that just happened
         refreshAllModels()
         adapter.notifyDataSetChanged()
     }
-    // File picker — opened only after converter is confirmed installed (if needed)
     private val importLauncher = registerForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { result ->
@@ -108,10 +107,6 @@ class LibraryActivity : AppCompatActivity() {
 
     private lateinit var filterManager: LibraryFilterManager
     private val allModels = mutableListOf<ModelItem>()
-
-
-    // SplitInstall listener — kept as a field so we can unregister it
-
 
     private val splitInstallListener = SplitInstallStateUpdatedListener { state ->
         when (state.status()) {
@@ -143,11 +138,10 @@ class LibraryActivity : AppCompatActivity() {
                 ).show()
             }
 
-            else -> { /* PENDING, REQUIRES_USER_CONFIRMATION, etc. — ignore */
+            else -> {
             }
         }
     }
-
 
     private val bundledModels: List<ModelItem> by lazy {
         (this.assets.list("models") ?: emptyArray())
@@ -155,8 +149,8 @@ class LibraryActivity : AppCompatActivity() {
             .map { ModelImportManager.bundledItem(this, "models/$it") }
     }
 
-    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
+    // ── Lifecycle ─────────────────────────────────────────────────────────────
 
     private lateinit var profileManager: ProfileManager
 
@@ -171,13 +165,11 @@ class LibraryActivity : AppCompatActivity() {
             settingsLauncher.launch(Intent(this, SettingsActivity::class.java))
         }
 
-        // Import button — always opens picker; converter is installed on-demand
-        // only if the picked file actually needs conversion (see importLauncher above
-        // and ensureConverterThenPick below).
+
         findViewById<ImageButton>(R.id.btnImportModel).setOnClickListener {
             val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
                 addCategory(Intent.CATEGORY_OPENABLE)
-                type = "*/*"                         // required — some pickers ignore it without this
+                type = "*/*"
                 putExtra(Intent.EXTRA_MIME_TYPES, modelMimeTypes)
             }
             importLauncher.launch(intent)
@@ -191,12 +183,12 @@ class LibraryActivity : AppCompatActivity() {
         })
 
         profileManager = ProfileManager(this)
-        val savedProfiles = allModels
-            .filter { profileManager.hasAnyProfile(it.profileKey) }
-            .map    { it.profileKey }
+        val profileSaved = allModels
+            .filter { profileManager.hasAnyProfile(it.modelId) }
+            .map    { it.modelId }
             .toSet()
 
-        filterManager = LibraryFilterManager(savedProfiles)
+        filterManager = LibraryFilterManager(profileSaved)
         wireFilterChips()
 
         recyclerView = findViewById(R.id.rvModelLibrary)
@@ -205,14 +197,15 @@ class LibraryActivity : AppCompatActivity() {
 
         adapter = ModelLibraryManager(
             items = allModels.toList(),
-            savedProfiles = savedProfiles,
-            selectedKey = selectedModelKey,
+            savedProfiles = profileSaved,
+            selectedModelId = selectedModelKey,
             onItemClick = { selectedModel ->
-                selectedModelKey = selectedModel.profileKey
+                selectedModelKey = selectedModel.modelId
                 adapter.updateSelection(selectedModelKey)
                 arLauncher.launch(
                     Intent(this, ARActivity::class.java).apply {
                         putExtra(EXTRA_MODEL_PATH, selectedModel.modelPath)
+                        putExtra(EXTRA_MODEL_ID, selectedModel.modelId)
                         putExtra(EXTRA_MODEL_IS_ASSET, selectedModel.isAsset)
                         putExtra(EXTRA_SOURCE_FORMAT, selectedModel.sourceFormat)
                     }
@@ -230,8 +223,8 @@ class LibraryActivity : AppCompatActivity() {
                             selectedModel.isAsset
                         )
                         putExtra(
-                            ModelPreviewActivity.Companion.EXTRA_PROFILE_KEY,
-                            selectedModel.profileKey
+                            ModelPreviewActivity.Companion.EXTRA_MODEL_ID,
+                            selectedModel.modelId
                         )
                         putExtra(
                             ModelPreviewActivity.Companion.EXTRA_SOURCE_FORMAT,
@@ -253,38 +246,21 @@ class LibraryActivity : AppCompatActivity() {
 
     // ── Import flow ───────────────────────────────────────────────────────────
 
-    /**
-     * Called after the user picks a file.
-     *
-     * • GLB  → import directly (no converter needed).
-     * • OBJ/STL → if converter module is installed, convert on a background
-     *             thread; otherwise download the module first, then re-open
-     *             the picker so the user can pick the same file again.
-     */
     private fun processImport(uri: Uri) {
         val fileName = ModelImportManager.resolveFileName(this, uri) ?: ""
         val ext      = fileName.substringAfterLast('.', "").lowercase()
 
-        // Any format other than .glb needs the native converter module.
         val needsConvert = ext != "glb"
 
         if (!needsConvert) {
-            // GLB — direct copy, no converter module required.
             runImportAsync(uri)
             return
         }
 
-        // All other formats (.obj, .stl, .fbx, .dae, .gltf, .3ds, .ply) —
-        // make sure the converter module is present first.
         val manager = SplitInstallManagerFactory.create(this)
         if (manager.installedModules.contains("converter")) {
             runImportAsync(uri)
         } else {
-            // Module not installed — download it.
-            // The SplitInstallStateUpdatedListener registered in onCreate will
-            // open the picker again once INSTALLED fires. We can't reuse the
-            // current URI across the module install because the content
-            // resolver grant may expire, so we ask the user to pick again.
             Toast.makeText(this, getString(R.string.toast_converter_downloading), Toast.LENGTH_SHORT).show()
             val request = SplitInstallRequest.newBuilder()
                 .addModule("converter")
@@ -296,10 +272,6 @@ class LibraryActivity : AppCompatActivity() {
         }
     }
 
-    /**
-     * Runs [ModelImportManager.importFromUri] on an IO thread so the main
-     * thread is never blocked during file copy or native conversion.
-     */
     private fun runImportAsync(uri: Uri) {
         Toast.makeText(this, getString(R.string.toast_importing), Toast.LENGTH_SHORT).show()
 
@@ -307,8 +279,6 @@ class LibraryActivity : AppCompatActivity() {
             val imported = withContext(Dispatchers.IO) {
                 ModelImportManager.importFromUri(this@LibraryActivity, uri)
             }
-
-            // Back on main thread:
             if (imported == null) {
                 Toast.makeText(this@LibraryActivity,
                     getString(R.string.toast_import_failed), Toast.LENGTH_LONG).show()
@@ -322,7 +292,7 @@ class LibraryActivity : AppCompatActivity() {
                 return@launch
             }
 
-            if (allModels.none { it.profileKey == imported.profileKey }) {
+            if (allModels.none { it.modelId == imported.modelId }) {
                 allModels.add(imported)
                 adapter.updateItems(allModels.toList())
             }
@@ -368,34 +338,26 @@ class LibraryActivity : AppCompatActivity() {
 // ── Export flow ───────────────────────────────────────────────────────────
 
     private fun startExportFlow(item: ModelItem) {
-        val profiles = profileManager.listExportableProfiles(item.profileKey)
+        val profiles = profileManager.listExportableProfiles(item.modelId)
 
         if (profiles.isEmpty()) {
-            // Shouldn't normally be reachable since the menu item is hidden,
-            // but guard just in case.
             Toast.makeText(this, getString(R.string.toast_no_profile_to_export), Toast.LENGTH_SHORT).show()
             return
         }
 
-        ExportProfilePickerDialog.Companion.newInstance(item.profileKey, item.name).apply {
+        ExportProfilePickerDialog.Companion.newInstance(item.modelId, item.name).apply {
             onProfileSelected = { _, profile ->
                 launchExportWithProfile(item, profile)
             }
         }.show(supportFragmentManager, "export_profile")
     }
 
-    /**
-     * Applies [profile] to the GLB on a background thread, then opens the
-     * system file picker so the user can choose where to save the result.
-     * Pass null to export the file unchanged.
-     */
     private fun launchExportWithProfile(item: ModelItem, profile: ModelProfile?) {
         pendingExportItem = item
 
         lifecycleScope.launch {
             val bytes = withContext(Dispatchers.IO) {
                 if (profile == null) {
-                    // No transform — just read the raw bytes
                     if (item.isAsset) {
                         runCatching {
                             assets.open(item.modelPath).use { it.readBytes() }
@@ -423,7 +385,6 @@ class LibraryActivity : AppCompatActivity() {
                 pendingExportItem = null
                 return@launch
             }
-
             pendingExportBytes = bytes
             exportFileLauncher.launch("${item.name}.glb")
         }
@@ -431,11 +392,6 @@ class LibraryActivity : AppCompatActivity() {
 
     // ── Rename flow ───────────────────────────────────────────────────────────
 
-    /**
-     * Shows an [androidx.appcompat.app.AlertDialog] with an [android.widget.EditText] pre-filled with the current
-     * model name. On confirmation, renames the file on a background thread
-     * and refreshes the grid on success.
-     */
     private fun showRenameDialog(item: ModelItem) {
         val view = LayoutInflater.from(this).inflate(R.layout.dialog_input, null)
         val input = view.findViewById<EditText>(R.id.etRenameInput).apply {
@@ -471,11 +427,6 @@ class LibraryActivity : AppCompatActivity() {
             imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
         }
     }
-
-    /**
-     * Calls [ModelImportManager.renameModel] on an IO thread, then updates
-     * [allModels] and the adapter on the main thread.
-     */
     private fun renameModelAsync(item: ModelItem, newName: String) {
         lifecycleScope.launch {
             val renamed = withContext(Dispatchers.IO) {
@@ -492,16 +443,14 @@ class LibraryActivity : AppCompatActivity() {
                 return@launch
             }
 
-            // Replace the old item in allModels with the renamed one
-            val idx = allModels.indexOfFirst { it.profileKey == item.profileKey }
+            val idx = allModels.indexOfFirst { it.modelId == item.modelId }
             if (idx != -1) {
                 allModels[idx] = renamed
                 adapter.updateItems(allModels.toList())
             }
 
-            // Keep selection in sync if the renamed model was selected
-            if (selectedModelKey == item.profileKey) {
-                selectedModelKey = renamed.profileKey
+            if (selectedModelKey == item.modelId) {
+                selectedModelKey = renamed.modelId
                 adapter.updateSelection(selectedModelKey)
             }
 
@@ -511,7 +460,7 @@ class LibraryActivity : AppCompatActivity() {
     }
     private fun refreshAllModels() {
         allModels.replaceAll { item ->
-            val profileTimestamp = profileManager.getLastSavedTime(item.profileKey) // you may need to add this to ProfileManager
+            val profileTimestamp = profileManager.getLastSavedTime(item.modelId)
             if (profileTimestamp > 0L) item.copy(lastModified = profileTimestamp)
             else item
         }
@@ -519,12 +468,10 @@ class LibraryActivity : AppCompatActivity() {
     }
 
     private fun wireFilterChips() {
-        // Chips that carry a direction icon (togglable)
         val chipAlphabetical = findViewById<Chip>(R.id.chipAlphabetical)
         val chipRecent       = findViewById<Chip>(R.id.chipRecent)
         val chipSize         = findViewById<Chip>(R.id.chipSize)
 
-        // Simple chips — no direction icon
         val simpleChips = mapOf(
             R.id.chipAll      to LibraryFilterManager.Filter.ALL,
             R.id.chipImported to LibraryFilterManager.Filter.IMPORTED,
@@ -532,21 +479,18 @@ class LibraryActivity : AppCompatActivity() {
         )
 
         fun syncChipIcons() {
-            // Alphabetical: show A→Z (ascending) or Z→A (descending)
             chipAlphabetical.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.ALPHABETICAL && !filterManager.ascending)
                     R.drawable.ic_sort_asc
                 else
                     R.drawable.ic_sort_desc
             )
-            // Recent: show arrow-down (newest first / descending) or arrow-up (oldest first)
             chipRecent.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.RECENT && filterManager.ascending)
                     R.drawable.ic_sort_asc
                 else
                     R.drawable.ic_sort_desc
             )
-            // Size: show arrow-up (smallest first / ascending) or arrow-down (largest first / default)
             chipSize.chipIcon = getDrawable(
                 if (filterManager.current == LibraryFilterManager.Filter.SIZE && filterManager.ascending)
                     R.drawable.ic_sort_asc
@@ -582,10 +526,9 @@ class LibraryActivity : AppCompatActivity() {
                 applyAndRefresh()
             }
         }
-
-        // Initialise icons to match the default state (RECENT descending)
         syncChipIcons()
     }
+
 
     private fun updateCountLabel() {
         val count = filterManager.apply(allModels).size
@@ -611,9 +554,6 @@ class LibraryActivity : AppCompatActivity() {
         }
         return result
     }
-
-
-    // ── Delete helper ─────────────────────────────────────────────────────────
 
     private fun deleteImportedModel(item: ModelItem) {
         if (ModelImportManager.deleteImported(this, item)) {

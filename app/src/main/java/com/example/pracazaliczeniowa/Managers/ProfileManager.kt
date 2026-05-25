@@ -4,14 +4,8 @@ import android.content.Context
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-
 import java.io.File
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Data classes
-// ─────────────────────────────────────────────────────────────────────────────
-
-/** Scale + rotation snapshot of a placed model. */
 @Serializable
 data class ModelProfile(
     val scaleX: Float,
@@ -22,18 +16,7 @@ data class ModelProfile(
     val rotationZ: Float
 )
 
-/**
- * Everything stored for one model in a single JSON file.
- *
- * @param default       The profile that is applied automatically when the model
- *                      is placed.  Null until the user saves one.
- * @param named         Up to [ProfileManager.MAX_NAMED] user-named profiles,
- *                      keyed by the name the user typed.
- * @param colorOverride The last colour chosen in ModelPreviewActivity for
- *                      texture-less models (STL/OBJ/PLY/3DS).  Stored as a
- *                      packed ARGB integer (same as [android.graphics.Color]).
- *                      Null means "no override — use Assimp's default grey".
- */
+
 @Serializable
 data class ModelProfileBundle(
     val default: ModelProfile? = null,
@@ -41,9 +24,6 @@ data class ModelProfileBundle(
     val colorOverride: Int? = null
 )
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Sealed result type so callers can show meaningful errors
-// ─────────────────────────────────────────────────────────────────────────────
 
 sealed class ProfileSaveResult {
     object Success : ProfileSaveResult()
@@ -51,21 +31,8 @@ sealed class ProfileSaveResult {
     data class Error(val cause: Exception) : ProfileSaveResult()
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ProfileManager
-// ─────────────────────────────────────────────────────────────────────────────
 
-/**
- * Persists model profiles to [Context.filesDir]/profiles/<modelName>.json.
- *
- * Storage lives in the app's private internal storage, so it is never
- * cleared by the OS unless the user explicitly clears app data.
- * The files survive app restarts and updates.
- *
- * Each model gets ONE file that contains:
- *  • a "default" profile (auto-applied on placement, overwritable)
- *  • up to [MAX_NAMED] named profiles chosen by the user
- */
+
 class ProfileManager(context: Context) {
 
     companion object {
@@ -81,7 +48,7 @@ class ProfileManager(context: Context) {
 
     // ── Private helpers ──────────────────────────────────────────────────────
 
-    private fun fileFor(modelName: String) = File(folder, "$modelName.json")
+    private fun fileFor(modelUuid: String) = File(folder, "$modelUuid.json")
 
     private fun loadBundle(modelName: String): ModelProfileBundle {
         val file = fileFor(modelName)
@@ -89,60 +56,42 @@ class ProfileManager(context: Context) {
         return try {
             json.decodeFromString<ModelProfileBundle>(file.readText())
         } catch (e: Exception) {
-            ModelProfileBundle()   // corrupt file → start fresh
+            ModelProfileBundle()
         }
     }
 
-    private fun saveBundle(modelName: String, bundle: ModelProfileBundle) {
-        fileFor(modelName).writeText(json.encodeToString(bundle))
+    private fun saveBundle(modelId: String, bundle: ModelProfileBundle) {
+        fileFor(modelId).writeText(json.encodeToString(bundle))
     }
 
+    fun loadDefault(modelId: String): ModelProfile? =
+        loadBundle(modelId).default
 
-
-    // ── Default profile ──────────────────────────────────────────────────────
-
-    /** Returns the default profile, or null if none has been saved yet. */
-    fun loadDefault(modelName: String): ModelProfile? =
-        loadBundle(modelName).default
-
-    /**
-     * Overwrites the default profile.
-     * This is what gets applied automatically when the model is placed.
-     */
-    fun saveDefault(modelName: String, profile: ModelProfile) {
-        val bundle = loadBundle(modelName)
-        saveBundle(modelName, bundle.copy(default = profile))
+    fun saveDefault(modelId: String, profile: ModelProfile) {
+        val bundle = loadBundle(modelId)
+        saveBundle(modelId, bundle.copy(default = profile))
     }
 
-    // ── Named profiles ───────────────────────────────────────────────────────
+    fun listNamedProfiles(modelId: String): List<String> =
+        loadBundle(modelId).named.keys.toList()
 
-    /** Returns names of all saved named profiles for this model, in insertion order. */
-    fun listNamedProfiles(modelName: String): List<String> =
-        loadBundle(modelName).named.keys.toList()
+    fun loadNamed(modelId: String, slotName: String): ModelProfile? =
+        loadBundle(modelId).named[slotName]
 
-    /** Returns a named profile, or null if it doesn't exist. */
-    fun loadNamed(modelName: String, slotName: String): ModelProfile? =
-        loadBundle(modelName).named[slotName]
-
-    fun listExportableProfiles(modelName: String): List<Pair<String, ModelProfile>> {
-        val bundle = loadBundle(modelName)
+    fun listExportableProfiles(modelId: String): List<Pair<String, ModelProfile>> {
+        val bundle = loadBundle(modelId)
         val result = mutableListOf<Pair<String, ModelProfile>>()
         bundle.default?.let { result.add("Default" to it) }
         bundle.named.forEach { (name, profile) -> result.add(name to profile) }
         return result
     }
-    /**
-     * Saves (or overwrites) a named profile.
-     * Fails with [ProfileSaveResult.TooManyProfiles] if the slot name is new
-     * and the model already has [MAX_NAMED] named profiles.
-     */
     fun saveNamed(
-        modelName: String,
+        modelId: String,
         slotName: String,
         profile: ModelProfile
     ): ProfileSaveResult {
         return try {
-            val bundle   = loadBundle(modelName)
+            val bundle   = loadBundle(modelId)
             val isNewSlot = slotName !in bundle.named
 
             if (isNewSlot && bundle.named.size >= MAX_NAMED) {
@@ -151,66 +100,42 @@ class ProfileManager(context: Context) {
 
             val updatedNamed = bundle.named.toMutableMap()
             updatedNamed[slotName] = profile
-            saveBundle(modelName, bundle.copy(named = updatedNamed))
+            saveBundle(modelId, bundle.copy(named = updatedNamed))
             ProfileSaveResult.Success
         } catch (e: Exception) {
             ProfileSaveResult.Error(e)
         }
     }
 
-    /** Deletes a named profile slot entirely. Does nothing if it doesn't exist. */
-    fun deleteNamed(modelName: String, slotName: String) {
-        val bundle       = loadBundle(modelName)
+    fun deleteNamed(modelId: String, slotName: String) {
+        val bundle       = loadBundle(modelId)
         val updatedNamed = bundle.named.toMutableMap()
         updatedNamed.remove(slotName)
-        saveBundle(modelName, bundle.copy(named = updatedNamed))
+        saveBundle(modelId, bundle.copy(named = updatedNamed))
     }
 
     // ── Colour override ──────────────────────────────────────────────────────
 
-    /**
-     * Returns the saved colour override for [modelName], or null if none has
-     * been set (meaning Assimp's default grey should be used).
-     */
-    fun loadColorOverride(modelName: String): Int? =
-        loadBundle(modelName).colorOverride
+    fun loadColorOverride(modelId: String): Int? =
+        loadBundle(modelId).colorOverride
 
-    /**
-     * Persists [color] (packed ARGB) as the colour override for [modelName].
-     * Called by ModelPreviewActivity when the user leaves the screen.
-     */
-    fun saveColorOverride(modelName: String, color: Int) {
-        val bundle = loadBundle(modelName)
-        saveBundle(modelName, bundle.copy(colorOverride = color))
+    fun saveColorOverride(modelId: String, color: Int) {
+        val bundle = loadBundle(modelId)
+        saveBundle(modelId, bundle.copy(colorOverride = color))
     }
 
-    /**
-     * Removes the colour override for [modelName], returning the model to
-     * Assimp's default grey on next placement.
-     * Called by ModelPreviewActivity when the user taps "Restore original".
-     */
-    fun clearColorOverride(modelName: String) {
-        val bundle = loadBundle(modelName)
-        saveBundle(modelName, bundle.copy(colorOverride = null))
+    fun clearColorOverride(modelId: String) {
+        val bundle = loadBundle(modelId)
+        saveBundle(modelId, bundle.copy(colorOverride = null))
     }
 
-    /** Clears the default profile. The model reverts to its raw scale/rotation on next placement. */
-    fun resetDefault(modelName: String) {
-        val bundle = loadBundle(modelName)
-        saveBundle(modelName, bundle.copy(default = null))
-    }
-
-    /**
-     * True if any profile data (default or named) exists for this model.
-     * Used by LibraryActivity to show the "✓ Saved" badge.
-     */
-    fun hasAnyProfile(modelName: String): Boolean {
-        val bundle = loadBundle(modelName)
+    fun hasAnyProfile(modelId: String): Boolean {
+        val bundle = loadBundle(modelId)
         return bundle.default != null || bundle.named.isNotEmpty()
     }
 
-    fun getLastSavedTime(modelName: String): Long {
-        val file = fileFor(modelName)
+    fun getLastSavedTime(modelId: String): Long {
+        val file = fileFor(modelId)
         return if (file.exists()) file.lastModified() else 0L
     }
 }
