@@ -309,7 +309,7 @@
             <ImageView
                 android:id="@+id/scanPhoneIcon"
                 android:layout_width="80dp"
-                android:layout_height="120dp"
+                android:layout_height="160dp"
                 android:src="@drawable/ic_phone_screen" />
 
             <TextView

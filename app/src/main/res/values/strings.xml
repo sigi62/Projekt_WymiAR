@@ -105,6 +105,7 @@
     <string name="dialog_rename_title">Rename model</string>
     <string name="dialog_rename_hint">Model name</string>
     <string name="btn_rename">Rename</string>
+    <string name="card_dimensions_label">Dimensions: %1$s</string>
     <string name="toast_rename_success">\'%1$s\' renamed to \'%2$s\'</string>
     <string name="toast_rename_failed">Rename failed. %1$s</string>
     <string name="error_name_blank">Name cannot be blank.</string>

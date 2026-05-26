@@ -62,8 +62,8 @@
     <string name="status_point_removed">Punkt usunięty · zostało %1$d lini</string>
 
     <!-- Plane detection -->
-    <string name="plane_detect_move">Poruszaj kamerą aby znaleźć powieszchnię camera\nto detect surfaces</string>
-    <string name="plane_detect_pan">Powoli poruszaj przy ścianach lub podłogach</string>
+    <string name="plane_detect_move">Poruszaj kamerą aby znaleźć płaszczyzny</string>
+    <string name="plane_detect_pan">Powoli szukaj płaszczyzn przy ścianach lub na podłodze</string>
 
 
     <!-- Capture Mode -->
@@ -103,6 +103,7 @@
     <string name="dialog_rename_title">Zmień nazwę</string>
     <string name="dialog_rename_hint">Nazwa modelu</string>
     <string name="btn_rename">Zmień</string>
+    <string name="card_dimensions_label">Wymiary: %1$s</string>
     <string name="toast_rename_success">\'%1$s\' zmieniono na \'%2$s\'</string>
     <string name="toast_rename_failed">Zmiana nieudana. %1$s</string>
     <string name="error_name_blank">Nazwa nie może być pusta.</string>
