@@ -13,21 +13,25 @@ android {
         applicationId = "com.example.WymiAR"
         minSdk = 25
         targetSdk = 35
+        
         versionCode = 1
         versionName = "1.0"
+        ndk {
+            abiFilters.add("arm64-v8a")
+        }
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+
     buildTypes {
-        release {
+        getByName("release") {
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+
         }
     }
+
     dynamicFeatures += setOf(":converter")
 
     compileOptions {

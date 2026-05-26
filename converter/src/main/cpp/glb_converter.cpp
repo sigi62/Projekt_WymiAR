@@ -13,6 +13,27 @@
 #define LOGI(...) __android_log_print(ANDROID_LOG_INFO,  LOG_TAG, __VA_ARGS__)
 #define LOGE(...) __android_log_print(ANDROID_LOG_ERROR, LOG_TAG, __VA_ARGS__)
 
+struct JStringGuard {
+    JNIEnv*     env;
+    jstring     jstr;
+    const char* cstr;
+
+    JStringGuard(JNIEnv* e, jstring j)
+            : env(e), jstr(j), cstr(e->GetStringUTFChars(j, nullptr)) {}
+
+    ~JStringGuard() {
+        if (cstr) env->ReleaseStringUTFChars(jstr, cstr);
+    }
+
+    operator const char*() const { return cstr; }
+
+    JStringGuard(const JStringGuard&)            = delete;
+    JStringGuard& operator=(const JStringGuard&) = delete;
+};
+
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
 static std::string getExtension(const std::string& path) {
     const size_t dot = path.rfind('.');
     if (dot == std::string::npos) return "";
@@ -22,15 +43,7 @@ static std::string getExtension(const std::string& path) {
 }
 
 enum class InputFormat {
-    STL,
-    FBX,
-    OBJ,
-    DAE,
-    GLTF,
-    THRDS,
-    PLY,
-    OTHER,
-    UNSUPPORTED
+    STL, FBX, OBJ, DAE, GLTF, THRDS, PLY, OTHER, UNSUPPORTED
 };
 
 static InputFormat detectFormat(const std::string& path) {
@@ -64,7 +77,12 @@ static void injectDefaultPbrMaterial(aiScene* scene) {
     mat->AddProperty(&metallic,  1, AI_MATKEY_METALLIC_FACTOR);
     mat->AddProperty(&roughness, 1, AI_MATKEY_ROUGHNESS_FACTOR);
 
+    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
+        delete scene->mMaterials[i];
+        scene->mMaterials[i] = nullptr;
+    }
     delete[] scene->mMaterials;
+
     scene->mMaterials    = new aiMaterial*[1]{ mat };
     scene->mNumMaterials = 1;
 
@@ -104,8 +122,9 @@ static void centreMeshes(aiScene* scene) {
     }
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-
+// ---------------------------------------------------------------------------
+// JNI entry point
+// ---------------------------------------------------------------------------
 extern "C" JNIEXPORT jboolean JNICALL
 Java_com_example_WymiAR_converter_GlbConverter_nativeConvert(
         JNIEnv* env,
@@ -113,73 +132,69 @@ Java_com_example_WymiAR_converter_GlbConverter_nativeConvert(
         jstring inputPathJ,
         jstring outputPathJ) {
 
-    const char* inputPath  = env->GetStringUTFChars(inputPathJ,  nullptr);
-    const char* outputPath = env->GetStringUTFChars(outputPathJ, nullptr);
+    JStringGuard inputPath (env, inputPathJ);
+    JStringGuard outputPath(env, outputPathJ);
 
-    LOGI("Converting: %s → %s", inputPath, outputPath);
+    if (!inputPath.cstr || !outputPath.cstr) {
+        LOGE("GetStringUTFChars returned nullptr — out of memory");
+        return JNI_FALSE;
+    }
 
-    const InputFormat fmt = detectFormat(std::string(inputPath));
+    LOGI("Converting: %s -> %s", inputPath.cstr, outputPath.cstr);
+
+    const InputFormat fmt = detectFormat(std::string(inputPath.cstr));
 
     if (fmt == InputFormat::UNSUPPORTED) {
-        const std::string ext = getExtension(std::string(inputPath));
+        const std::string ext = getExtension(std::string(inputPath.cstr));
         if (ext == ".blend") {
-            LOGE("Unsupported format: .blend — Assimp's Blender importer is "
-                 "incomplete for modern files and requires Blender's Python "
-                 "runtime, which is unavailable on Android. "
-                 "Export to FBX or OBJ from Blender first.");
+            LOGE("Unsupported format: .blend — Assimp's Blender importer is incomplete...");
         } else if (ext == ".max") {
-            LOGE("Unsupported format: .max — 3ds Max's native format is "
-                 "proprietary and unreadable by any open-source library. "
-                 "Export to FBX from 3ds Max first.");
+            LOGE("Unsupported format: .max — 3ds Max's native format is proprietary...");
         } else {
             LOGE("Unsupported format: %s", ext.c_str());
         }
-        env->ReleaseStringUTFChars(inputPathJ,  inputPath);
-        env->ReleaseStringUTFChars(outputPathJ, outputPath);
         return JNI_FALSE;
     }
 
     Assimp::Importer importer;
 
-
-
-    const bool applyGlobalScale = (fmt == InputFormat::STL   ||
-            fmt == InputFormat::FBX   ||
-            fmt == InputFormat::DAE   ||
+    const bool applyGlobalScale = (fmt == InputFormat::STL  ||
+            fmt == InputFormat::FBX  ||
+            fmt == InputFormat::DAE  ||
             fmt == InputFormat::THRDS);
 
     if (fmt == InputFormat::STL) {
         importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.001f);
-        LOGI("STL input — applying 0.001 global scale (mm → m)");
     } else if (fmt == InputFormat::FBX) {
         importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
-        LOGI("FBX input — GlobalScale enabled (Assimp reads embedded unit metadata)");
     } else if (fmt == InputFormat::DAE) {
         importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 1.0f);
-        LOGI("DAE input — GlobalScale enabled (Assimp reads Collada <unit> element)");
     } else if (fmt == InputFormat::THRDS) {
         importer.SetPropertyFloat(AI_CONFIG_GLOBAL_SCALE_FACTOR_KEY, 0.001f);
-        LOGI("3DS input — applying 0.001 global scale (mm → m, CAD convention)");
     }
 
     const bool hasSkeleton = (fmt == InputFormat::FBX || fmt == InputFormat::DAE);
 
+    importer.SetPropertyBool(AI_CONFIG_PP_FD_REMOVE, true);
+
     const unsigned int ppFlags =
-            aiProcess_Triangulate            |
-                    aiProcess_GenSmoothNormals       |
-                    aiProcess_FlipUVs                |
-                    aiProcess_JoinIdenticalVertices  |
-                    aiProcess_ValidateDataStructure  |
+            aiProcess_Triangulate              |
+                    aiProcess_GenSmoothNormals         |
+                    aiProcess_FlipUVs                  |
+                    aiProcess_JoinIdenticalVertices    |
+                    aiProcess_ValidateDataStructure    |
+                    aiProcess_RemoveRedundantMaterials |
+                    aiProcess_OptimizeMeshes           |
+                    aiProcess_ImproveCacheLocality     |
+                    aiProcess_FindDegenerates          |
                     (applyGlobalScale ? aiProcess_GlobalScale          : 0u) |
                     (hasSkeleton      ? aiProcess_PopulateArmatureData : 0u) |
                     (hasSkeleton      ? aiProcess_LimitBoneWeights     : 0u);
 
-    const aiScene* scene = importer.ReadFile(inputPath, ppFlags);
+    const aiScene* scene = importer.ReadFile(inputPath.cstr, ppFlags);
 
     if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode) {
         LOGE("Assimp import failed: %s", importer.GetErrorString());
-        env->ReleaseStringUTFChars(inputPathJ,  inputPath);
-        env->ReleaseStringUTFChars(outputPathJ, outputPath);
         return JNI_FALSE;
     }
 
@@ -192,16 +207,14 @@ Java_com_example_WymiAR_converter_GlbConverter_nativeConvert(
     centreMeshes(mutableScene);
 
     Assimp::Exporter exporter;
-    aiReturn result = exporter.Export(scene, "glb2", outputPath);
+    aiReturn result = exporter.Export(scene, "glb2", outputPath.cstr);
 
-    env->ReleaseStringUTFChars(inputPathJ,  inputPath);
-    env->ReleaseStringUTFChars(outputPathJ, outputPath);
+    importer.FreeScene();
 
     if (result != aiReturn_SUCCESS) {
         LOGE("Assimp export failed: %s", exporter.GetErrorString());
-        return JNI_FALSE;
     }
 
-    LOGI("Conversion successful → %s", outputPath);
+    LOGI("Conversion successful -> %s", outputPath.cstr);
     return JNI_TRUE;
 }
