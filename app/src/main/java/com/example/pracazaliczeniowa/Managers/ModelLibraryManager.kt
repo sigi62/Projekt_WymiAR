@@ -14,6 +14,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.cardview.widget.CardView
 import androidx.core.content.ContextCompat
+import androidx.core.content.res.TypedArrayUtils.getString
 import androidx.recyclerview.widget.RecyclerView
 import com.example.pracazaliczeniowa.Objects.ModelItem
 import com.example.pracazaliczeniowa.R
@@ -77,7 +78,7 @@ class ModelLibraryManager(
         val dimText = buildDimensionString(item)
         if (dimText != null) {
             holder.dimensions.visibility = View.VISIBLE
-            holder.dimensions.text = "Dimensions: $dimText"
+            holder.dimensions.text = context.getString(R.string.card_dimensions_label,dimText )
         } else {
             holder.dimensions.visibility = View.GONE
         }

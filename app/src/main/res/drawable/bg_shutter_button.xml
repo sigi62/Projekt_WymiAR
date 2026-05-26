@@ -1,0 +1,19 @@
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer white ring via stroke -->
+    <item>
+        <shape android:shape="oval">
+            <solid android:color="#00000000"/>
+            <stroke android:width="3dp" android:color="#FFFFFF"/>
+        </shape>
+    </item>
+    <!-- Inner white circle with a margin equal to ring width + gap -->
+    <item
+        android:top="7dp"
+        android:bottom="7dp"
+        android:left="7dp"
+        android:right="7dp">
+        <shape android:shape="oval">
+            <solid android:color="#FFFFFF"/>
+        </shape>
+    </item>
+</layer-list>

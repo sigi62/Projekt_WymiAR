@@ -34,6 +34,18 @@
             android:scaleType="centerInside"
             android:contentDescription="@string/back"/>
 
+        <ImageButton
+            android:id="@+id/btnCameraMode"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:layout_marginTop="12dp"
+            android:layout_marginStart="16dp"
+            android:src="@drawable/ic_camera"
+            android:background="@drawable/rounded_button"
+            android:scaleType="centerInside"
+            android:padding="10dp"
+            android:contentDescription="Toggle camera mode"/>
+
         <FrameLayout
             android:id="@+id/btnModelColour"
             android:layout_width="48dp"
@@ -262,4 +274,63 @@
 
     </LinearLayout>
 
+    <!-- Camera mode shutter button -->
+    <ImageButton
+        android:id="@+id/btnCapturePhoto"
+        android:layout_width="56dp"
+        android:layout_height="56dp"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="100dp"
+        android:src="@drawable/ic_shutter"
+        android:background="@drawable/bg_shutter_button"
+        android:scaleType="centerInside"
+        android:padding="8dp"
+        android:visibility="gone"
+        android:contentDescription="Take photo"/>
+
+
+    <!-- Plane scanning onboarding overlay -->
+    <FrameLayout
+        android:id="@+id/planeScanOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <!-- Animated phone icon -->
+            <ImageView
+                android:id="@+id/scanPhoneIcon"
+                android:layout_width="80dp"
+                android:layout_height="160dp"
+                android:src="@drawable/ic_phone_screen" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/plane_detect_move"
+                android:textColor="@android:color/white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/plane_detect_pan"
+                android:textColor="#AAFFFFFF"
+                android:textSize="14sp"
+                android:gravity="center" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

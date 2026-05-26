@@ -53,8 +53,22 @@
     <string name="measure_tap_first">Kliknij aby postawić pierwszy punkt pomiarowy</string>
     <string name="measure_tap_second">Kliknij aby postawić drugi punkt</string>
     <string name="measure_no_point">Nie ma już żadnych punktów...</string>
-    <string name="measure_add_point"> · Kilknij aby dodać kolejny punkt</string>
+    <string name="measure_add_point"> · kilknij aby dodać kolejny punkt</string>
     <string name="measure_point_limit"> · limit osiągnięty</string>
+    <string name="status_move_camera_slow">Powoli ruszaj kamerą aby wykryć płaszczyzny…</string>
+    <string name="status_tap_on_surface">Kliknij na wykrytą płaszczyzne (zaznaczoną siatką)</string>
+    <string name="status_measurements_restored">Punkt przywrócony · kliknij aby dodać więcej</string>
+    <string name="status_max_measurements">Osiągnieto maksymalną liczbę pomiarów - %1$d </string>
+    <string name="status_point_removed">Punkt usunięty · zostało %1$d lini</string>
+
+    <!-- Plane detection -->
+    <string name="plane_detect_move">Poruszaj kamerą aby znaleźć płaszczyzny</string>
+    <string name="plane_detect_pan">Powoli szukaj płaszczyzn przy ścianach lub na podłodze</string>
+
+
+    <!-- Capture Mode -->
+    <string name="camera_capture_failed">Zapis zdjęcia się nie powiódł</string>
+    <string name="camera_photo_saved">Zdjecie zostało zapisane do galerii</string>
 
     <!-- Converter -->
     <string name="toast_converter_ready">Konwerter gotowy!</string>
@@ -89,6 +103,7 @@
     <string name="dialog_rename_title">Zmień nazwę</string>
     <string name="dialog_rename_hint">Nazwa modelu</string>
     <string name="btn_rename">Zmień</string>
+    <string name="card_dimensions_label">Wymiary: %1$s</string>
     <string name="toast_rename_success">\'%1$s\' zmieniono na \'%2$s\'</string>
     <string name="toast_rename_failed">Zmiana nieudana. %1$s</string>
     <string name="error_name_blank">Nazwa nie może być pusta.</string>
@@ -103,6 +118,7 @@
     <string name="preview_error_load">Error: Nie znaleziono pliku modelu lub jest on uszkodzony</string>
     <string name="preview_status_ready">Podgląd gotowy</string>
     <string name="preview_no_animations">Model nie posiada animacji</string>
+    <string name="status_animation_index">Animacja %1$d / %2$d</string>
     <string name="preview_dimensions_format">Szerokość: %1$.1f, Wysokość: %2$.1f, Głębokość: %3$.1f %4$s</string>
     <string name="preview_close">Zamykanie podglądu</string>
     <string name="change_background">Zmień tło</string>
@@ -110,6 +126,7 @@
     <string name="save_thumbnail">Zapisz zdjęcie</string>
     <string name="open_in_ar">Otwórz w AR</string>
     <string name="set_thumbnail">Ustaw zdjęcie</string>
+    <string name="thumbnail_set">Nowe zdjęcie ustawione</string>
 
 
 

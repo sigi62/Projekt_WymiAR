@@ -55,6 +55,22 @@
     <string name="measure_no_point">Nothing to undo...</string>
     <string name="measure_add_point"> · tap to add another</string>
     <string name="measure_point_limit"> · limit reached</string>
+    <string name="status_move_camera_slow">Move camera slowly to detect surfaces…</string>
+    <string name="status_tap_on_surface">Tap on a detected surface (grid area)</string>
+    <string name="status_measurements_restored">Measurements restored · tap to add more</string>
+    <string name="status_max_measurements">Maximum of %1$d measurements…</string>
+    <string name="status_point_removed">Point removed · %1$d lines remaining</string>
+
+
+    <!-- Plane detection -->
+    <string name="plane_detect_move">Move your camera\nto detect surfaces</string>
+    <string name="plane_detect_pan">Slowly pan around the floor or walls</string>
+
+    <!-- Capture Mode -->
+    <string name="camera_capture_failed">Photo capture failed </string>
+    <string name="camera_photo_saved">Photo has been saved to the gallery</string>
+
+
 
     <!-- Converter -->
     <string name="toast_converter_ready">Converter ready!</string>
@@ -89,6 +105,7 @@
     <string name="dialog_rename_title">Rename model</string>
     <string name="dialog_rename_hint">Model name</string>
     <string name="btn_rename">Rename</string>
+    <string name="card_dimensions_label">Dimensions: %1$s</string>
     <string name="toast_rename_success">\'%1$s\' renamed to \'%2$s\'</string>
     <string name="toast_rename_failed">Rename failed. %1$s</string>
     <string name="error_name_blank">Name cannot be blank.</string>
@@ -103,6 +120,7 @@
     <string name="preview_error_load">Error: model file not found or corrupted</string>
     <string name="preview_status_ready">Preview ready</string>
     <string name="preview_no_animations">Model has no animations</string>
+    <string name="status_animation_index">Animation %1$d / %2$d</string>
     <string name="preview_dimensions_format">W: %1$.1f, H: %2$.1f, D: %3$.1f %4$s</string>
     <string name="preview_close">Closing preview</string>
     <string name="change_background">Change background</string>
@@ -110,6 +128,7 @@
     <string name="save_thumbnail">Save Thumbnail</string>
     <string name="open_in_ar">Open in AR</string>
     <string name="set_thumbnail">Set Thumbnail</string>
+    <string name="thumbnail_set">New thumbnail set</string>
 
 
 
