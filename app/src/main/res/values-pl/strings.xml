@@ -61,6 +61,11 @@
     <string name="status_max_measurements">Osiągnieto maksymalną liczbę pomiarów - %1$d </string>
     <string name="status_point_removed">Punkt usunięty · zostało %1$d lini</string>
 
+    <!-- Plane detection -->
+    <string name="plane_detect_move">Poruszaj kamerą aby znaleźć powieszchnię camera\nto detect surfaces</string>
+    <string name="plane_detect_pan">Powoli poruszaj przy ścianach lub podłogach</string>
+
+
     <!-- Capture Mode -->
     <string name="camera_capture_failed">Zapis zdjęcia się nie powiódł</string>
     <string name="camera_photo_saved">Zdjecie zostało zapisane do galerii</string>

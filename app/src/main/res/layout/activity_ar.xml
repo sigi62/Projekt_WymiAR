@@ -288,4 +288,49 @@
         android:visibility="gone"
         android:contentDescription="Take photo"/>
 
+
+    <!-- Plane scanning onboarding overlay -->
+    <FrameLayout
+        android:id="@+id/planeScanOverlay"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#CC000000"
+        android:visibility="visible">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:padding="32dp">
+
+            <!-- Animated phone icon -->
+            <ImageView
+                android:id="@+id/scanPhoneIcon"
+                android:layout_width="80dp"
+                android:layout_height="120dp"
+                android:src="@drawable/ic_phone_screen" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="24dp"
+                android:text="@string/plane_detect_move"
+                android:textColor="@android:color/white"
+                android:textSize="22sp"
+                android:textStyle="bold"
+                android:gravity="center"
+                android:fontFamily="sans-serif-medium" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:text="@string/plane_detect_pan"
+                android:textColor="#AAFFFFFF"
+                android:textSize="14sp"
+                android:gravity="center" />
+        </LinearLayout>
+    </FrameLayout>
 </FrameLayout>

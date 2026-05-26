@@ -59,15 +59,18 @@
     <string name="status_tap_on_surface">Tap on a detected surface (grid area)</string>
     <string name="status_measurements_restored">Measurements restored · tap to add more</string>
     <string name="status_max_measurements">Maximum of %1$d measurements…</string>
-    <string name="status_point_removed">Point removed · %1$d line%2$s remaining</string>
+    <string name="status_point_removed">Point removed · %1$d lines remaining</string>
 
 
-
-
+    <!-- Plane detection -->
+    <string name="plane_detect_move">Move your camera\nto detect surfaces</string>
+    <string name="plane_detect_pan">Slowly pan around the floor or walls</string>
 
     <!-- Capture Mode -->
     <string name="camera_capture_failed">Photo capture failed </string>
     <string name="camera_photo_saved">Photo has been saved to the gallery</string>
+
+
 
     <!-- Converter -->
     <string name="toast_converter_ready">Converter ready!</string>

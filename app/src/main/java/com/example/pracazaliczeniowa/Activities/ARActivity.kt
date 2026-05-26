@@ -42,6 +42,9 @@ import kotlin.math.atan2
 import com.google.ar.sceneform.rendering.ViewAttachmentManager
 import java.io.File
 import java.util.UUID
+import android.animation.AnimatorSet
+import android.animation.ObjectAnimator
+import android.widget.ImageView
 
 
 fun log(msg: String) {
@@ -107,6 +110,10 @@ class ARActivity : AppCompatActivity() {
     // ── Animation state ──────────────────────────────
     private var isAnimationPlaying: Boolean = false
     private var isAnimationStarted: Boolean = false
+
+
+    private lateinit var planeScanOverlay: FrameLayout
+    private var hasDetectedFirstPlane = false
 
     // ── Measure state ────────────────────────────────────────────────────────
 
@@ -187,6 +194,10 @@ class ARActivity : AppCompatActivity() {
         dimH = dimensionHud.findViewById(R.id.dimensionH)
         dimD = dimensionHud.findViewById(R.id.dimensionD)
 
+
+        planeScanOverlay = findViewById(R.id.planeScanOverlay)
+        startScanAnimation()
+
         modelControls.applySettings(AppSettings(this))
         modelControls.onUnitChanged = { newUnit ->
             unit = newUnit
@@ -227,10 +238,16 @@ class ARActivity : AppCompatActivity() {
         // ── Custom plane renderer ─────────────────────────────────────────────
         planeGridRenderer = PlaneGridRenderer(arSceneView)
         planeGridRenderer.init()
-        arSceneView.onSessionUpdated = { _, _ ->
+        arSceneView.onSessionUpdated = { session, frame ->
             if (!isClosing) {
                 if (arSceneView.session != null) {
                     planeGridRenderer.update(planeMode)
+                }
+                // ← ADD THIS
+                if (!hasDetectedFirstPlane) {
+                    val hasPlane = frame.getUpdatedTrackables(Plane::class.java)
+                        .any { it.trackingState == TrackingState.TRACKING }
+                    if (hasPlane) hideScanOverlay()
                 }
             }
         }
@@ -709,7 +726,7 @@ class ARActivity : AppCompatActivity() {
             statusText.text = if (linesCount == 0)
                 getString(R.string.measure_tap_first)
             else
-                getString(R.string.status_point_removed, linesCount, if (linesCount != 1) "s" else "")
+                getString(R.string.status_point_removed, linesCount)
         } else if (measureLines.isNotEmpty()) {
             val lastLine = measureLines.removeAt(measureLines.size - 1)
             val (nodeA, nodeB) = lastLine
@@ -1321,6 +1338,43 @@ class ARActivity : AppCompatActivity() {
             val y = event.getY(0) - event.getY(1)
             sqrt(x * x + y * y)
         } catch (e: IllegalArgumentException) { 10f }
+    }
+
+    private fun startScanAnimation() {
+        val icon = planeScanOverlay.findViewById<ImageView>(R.id.scanPhoneIcon)
+
+        val tilt = ObjectAnimator.ofFloat(icon, "rotation", -20f, 20f).apply {
+            duration = 900
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+
+        val float = ObjectAnimator.ofFloat(icon, "translationY", 0f, -12f).apply {
+            duration = 1200
+            repeatCount = ObjectAnimator.INFINITE
+            repeatMode = ObjectAnimator.REVERSE
+            interpolator = android.view.animation.AccelerateDecelerateInterpolator()
+        }
+
+        AnimatorSet().apply {
+            playTogether(tilt, float)
+            start()
+        }.also { icon.tag = it }
+    }
+
+    private fun hideScanOverlay() {
+        if (hasDetectedFirstPlane) return
+        hasDetectedFirstPlane = true
+
+        val icon = planeScanOverlay.findViewById<ImageView>(R.id.scanPhoneIcon)
+        (icon?.tag as? AnimatorSet)?.cancel()
+
+        planeScanOverlay.animate()
+            .alpha(0f)
+            .setDuration(600)
+            .withEndAction { planeScanOverlay.visibility = View.GONE }
+            .start()
     }
 
     override fun onSupportNavigateUp(): Boolean {
