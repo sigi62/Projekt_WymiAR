@@ -57,7 +57,7 @@
                 android:paddingLeft="2dp"
                 android:textColor="@color/text_primary"/>
 
-            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+            <com.example.WymiAR.Helpers.RulerSeekBar
                 android:id="@+id/seek1"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -91,7 +91,7 @@
                 android:paddingLeft="2dp"
                 android:textColor="@color/text_primary"/>
 
-            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+            <com.example.WymiAR.Helpers.RulerSeekBar
                 android:id="@+id/seek2"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -125,7 +125,7 @@
                 android:paddingLeft="2dp"
                 android:textColor="@color/text_primary"/>
 
-            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+            <com.example.WymiAR.Helpers.RulerSeekBar
                 android:id="@+id/seek3"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
@@ -160,7 +160,7 @@
                 android:paddingLeft="2dp"
                 android:textColor="@color/text_primary"/>
 
-            <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+            <com.example.WymiAR.Helpers.RulerSeekBar
                 android:id="@+id/seekUniversalScale"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"

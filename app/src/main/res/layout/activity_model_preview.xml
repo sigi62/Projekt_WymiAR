@@ -102,7 +102,7 @@
         android:src="@drawable/ic_skip_next"
         android:visibility="gone" />
 
-    <com.example.pracazaliczeniowa.Overlays.CropOverlayView
+    <com.example.WymiAR.Overlays.CropOverlayView
         android:id="@+id/cropOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -139,7 +139,7 @@
     </LinearLayout>
 
 
-    <com.example.pracazaliczeniowa.Helpers.RulerSeekBar
+    <com.example.WymiAR.Helpers.RulerSeekBar
         android:id="@+id/rotationSlider"
         android:layout_width="match_parent"
         android:layout_height="80dp"

@@ -9,7 +9,7 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <com.example.pracazaliczeniowa.Overlays.MeasureTapeOverlayView
+    <com.example.WymiAR.Overlays.MeasureTapeOverlayView
         android:id="@+id/measureOverlay"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -265,7 +265,7 @@
             android:layout_marginBottom="4dp"
             android:visibility="gone" />
 
-        <com.example.pracazaliczeniowa.Overlays.ModelControlOverlayView
+        <com.example.WymiAR.Overlays.ModelControlOverlayView
             android:id="@+id/modelControls"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"

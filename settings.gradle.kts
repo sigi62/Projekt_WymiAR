@@ -19,6 +19,6 @@ dependencyResolutionManagement {
     }
 }
 
-rootProject.name = "PracaZaliczeniowa"
+rootProject.name = "WymiAR"
 include(":app")
 include(":converter")

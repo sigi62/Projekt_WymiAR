@@ -22,7 +22,7 @@
         android:label="@string/app_name"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
-        android:theme="@style/Theme.PracaZaliczeniowa">
+        android:theme="@style/Theme.WymiAR">
 
         <!-- ARCore meta data -->
         <meta-data android:name="com.google.ar.core" android:value="required" tools:replace="android:value" />
@@ -30,7 +30,7 @@
             android:name=".Activities.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.PracaZaliczeniowa">
+            android:theme="@style/Theme.WymiAR">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 

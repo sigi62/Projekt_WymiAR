@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.PracaZaliczeniowa" parent="Theme.Material3.DayNight.NoActionBar">
+    <style name="Theme.WymiAR" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/color_primary</item>
     </style>
 

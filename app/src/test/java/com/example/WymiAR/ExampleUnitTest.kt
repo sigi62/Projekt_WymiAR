@@ -1,4 +1,4 @@
-package com.example.WymiAR.converter
+package com.example.WymiAR
 
 import org.junit.Test
 

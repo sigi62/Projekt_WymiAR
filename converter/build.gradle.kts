@@ -3,21 +3,17 @@ plugins {
     id("com.android.dynamic-feature")
 }
 android {
-    namespace = "com.example.pracazaliczeniowa.converter"
+    namespace = "com.example.WymiAR.converter"
     compileSdk = 36
-//        version = release(36)
-//   }
 
     defaultConfig {
         minSdk = 25
         externalNativeBuild {
             cmake {
                 cppFlags("-std=c++17")
-                // Use arguments += to add multiple arguments without overwriting
                 arguments("-DANDROID_STL=c++_shared")
             }
         }
-        // Correct Kotlin DSL syntax for ndk filters
         ndk {
             abiFilters.addAll(listOf("arm64-v8a", "x86_64"))
         }

@@ -6,14 +6,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.pracazaliczeniowa"
+    namespace = "com.example.WymiAR"
     compileSdk  = 36
-//
-//        version = release(36)
-//    }
 
     defaultConfig {
-        applicationId = "com.example.pracazaliczeniowa"
+        applicationId = "com.example.WymiAR"
         minSdk = 25
         targetSdk = 35
         versionCode = 1

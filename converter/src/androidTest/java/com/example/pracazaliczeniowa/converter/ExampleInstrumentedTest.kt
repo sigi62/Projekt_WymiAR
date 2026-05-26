@@ -1,4 +1,4 @@
-package com.example.pracazaliczeniowa.converter
+package com.example.WymiAR.converter
 
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4

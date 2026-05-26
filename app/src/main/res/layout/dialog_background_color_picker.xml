@@ -265,7 +265,7 @@
                 android:textColor="@color/text_primary"
                 android:layout_marginBottom="10dp" />
 
-            <com.example.pracazaliczeniowa.Helpers.HsvColorPicker
+            <com.example.WymiAR.Helpers.HsvColorPicker
                 android:id="@+id/interactiveColorPicker"
                 android:layout_width="match_parent"
                 android:layout_height="240dp"
