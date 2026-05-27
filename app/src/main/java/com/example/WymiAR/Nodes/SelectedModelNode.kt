@@ -103,6 +103,14 @@ class SelectedModelNode(
         isDimensionsVisible = true
     }
 
+    fun destroyDimensionOverlay() {
+        getDimensionOverlay()?.let { overlay ->
+            overlay.childNodes.toList().forEach { child ->
+                child.parent = null
+            }
+            overlay.parent = null
+        }
+    }
     private var initialPinchScale = 1.0f
 
     fun startPinching() {

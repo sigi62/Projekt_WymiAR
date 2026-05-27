@@ -346,13 +346,13 @@ class LibraryActivity : AppCompatActivity() {
         }
 
         ExportProfilePickerDialog.Companion.newInstance(item.modelId, item.name).apply {
-            onProfileSelected = { _, profile ->
-                launchExportWithProfile(item, profile)
+            onProfileSelected = { label, profile ->
+                launchExportWithProfile(item, profile,label)
             }
         }.show(supportFragmentManager, "export_profile")
     }
 
-    private fun launchExportWithProfile(item: ModelItem, profile: ModelProfile?) {
+    private fun launchExportWithProfile(item: ModelItem, profile: ModelProfile?, profileLabel : String? = null) {
         pendingExportItem = item
 
         lifecycleScope.launch {
@@ -386,7 +386,7 @@ class LibraryActivity : AppCompatActivity() {
                 return@launch
             }
             pendingExportBytes = bytes
-            exportFileLauncher.launch("${item.name}.glb")
+            exportFileLauncher.launch("${item.name}-${profileLabel ?: "Default"}.glb")
         }
     }
 
@@ -568,6 +568,33 @@ class LibraryActivity : AppCompatActivity() {
         } else {
             Toast.makeText(this, getString(R.string.toast_delete_failed, item.name), Toast.LENGTH_SHORT).show()
         }
+    }
+
+    override fun onResume() {
+        super.onResume()
+
+        val refreshedProfileSaved = allModels
+            .filter { profileManager.hasAnyProfile(it.modelId) }
+            .map    { it.modelId }
+            .toSet()
+
+        adapter.updateSavedProfiles(refreshedProfileSaved)
+
+        val savedSort      = filterManager.current
+        val savedAscending = filterManager.ascending
+        val savedSubset    = filterManager.activeSubset
+
+        filterManager = LibraryFilterManager(refreshedProfileSaved)
+        if (savedSort != LibraryFilterManager.Filter.RECENT || savedAscending) {
+            filterManager.selectSort(savedSort)
+            if (filterManager.ascending != savedAscending) filterManager.selectSort(savedSort)
+        }
+        savedSubset?.let { filterManager.selectSubset(it) }
+
+        wireFilterChips()
+        val sorted = filterManager.apply(allModels)
+        adapter.updateItems(sorted)
+        updateCountLabel()
     }
 
 

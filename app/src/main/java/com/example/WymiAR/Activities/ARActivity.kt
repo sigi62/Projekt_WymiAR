@@ -114,6 +114,7 @@ class ARActivity : AppCompatActivity() {
 
     private lateinit var planeScanOverlay: FrameLayout
     private var hasDetectedFirstPlane = false
+    private var scanTimeoutRunnable: Runnable? = null
 
     // ── Measure state ────────────────────────────────────────────────────────
 
@@ -866,9 +867,9 @@ class ARActivity : AppCompatActivity() {
                 node.scale = Float3(profile.scaleX, profile.scaleY, profile.scaleZ)
             }
 
-            val savedColour = profileManager.loadColorOverride(node.getModeleName())
+            val savedColour = profileManager.loadColorOverride(activeModelId)
             if (savedColour != null &&
-                modelSourceFormats[node.getModeleName()] in setOf("stl", "obj", "ply", "3ds")) {
+                activeModelSourceFormat in setOf("stl", "obj", "ply", "3ds", "fbx")) {
                 val rm = arSceneView.engine.renderableManager
                 for (entity in node.modelInstance.asset.renderableEntities) {
                     val ri = rm.getInstance(entity)
@@ -1003,6 +1004,7 @@ class ARActivity : AppCompatActivity() {
         isAnimationStarted = false
         refreshAnimationUI()
         rotationRingToggleButton.visibility = View.GONE
+        selectedModel?.destroyDimensionOverlay()
         dimensionHud.visibility             = View.GONE
         currentAnimationIndex               = 0
         statusText.text = getString(R.string.status_model_deselected)
@@ -1361,11 +1363,17 @@ class ARActivity : AppCompatActivity() {
             playTogether(tilt, float)
             start()
         }.also { icon.tag = it }
+        scanTimeoutRunnable = Runnable { hideScanOverlay() }.also {
+            planeScanOverlay.postDelayed(it, 5_000L)
+        }
     }
 
     private fun hideScanOverlay() {
         if (hasDetectedFirstPlane) return
         hasDetectedFirstPlane = true
+
+        scanTimeoutRunnable?.let { planeScanOverlay.removeCallbacks(it) }
+        scanTimeoutRunnable = null
 
         val icon = planeScanOverlay.findViewById<ImageView>(R.id.scanPhoneIcon)
         (icon?.tag as? AnimatorSet)?.cancel()
@@ -1397,6 +1405,15 @@ class ARActivity : AppCompatActivity() {
             isAnimationStarted = false
         }
 
+        scanTimeoutRunnable?.let { planeScanOverlay.removeCallbacks(it) }
+        scanTimeoutRunnable = null
+
+        val icon = planeScanOverlay.findViewById<ImageView>(R.id.scanPhoneIcon)
+        (icon?.tag as? AnimatorSet)?.cancel()
+
+        planeScanOverlay.visibility = View.GONE
+
+        selectedModel?.destroyDimensionOverlay()
         selectedModel?.let { deselectModel() }
         selectedModel = null
 
@@ -1419,6 +1436,7 @@ class ARActivity : AppCompatActivity() {
         placedMeasureNodes.clear()
 
         try { arSceneView.engine.flushAndWait() } catch (_: Exception) {}
+
 
         planeGridRenderer.destroy()
         arSceneView.destroy()
@@ -1444,6 +1462,9 @@ class ARActivity : AppCompatActivity() {
             selectedModel?.let { deselectModel() }
             selectedModel = null
 
+            scanTimeoutRunnable?.let { planeScanOverlay.removeCallbacks(it) }
+            scanTimeoutRunnable = null
+
             placedModelNodes.forEach { anchorNode ->
                 anchorNode.childNodes.toList().forEach { child ->
                     (child as? DefaultModelNode)?.destroy()
@@ -1467,7 +1488,6 @@ class ARActivity : AppCompatActivity() {
             planeGridRenderer.destroy()
             arSceneView.destroy()
         }
-        viewAttachmentManager.onPause()
         super.onDestroy()
     }
 

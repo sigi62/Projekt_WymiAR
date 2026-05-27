@@ -1,1 +1,5 @@
 Dodać foldery do biblioteki modeli?
+
+
+nazwa eskportowanego modelu : nazwa-profil.glb
+

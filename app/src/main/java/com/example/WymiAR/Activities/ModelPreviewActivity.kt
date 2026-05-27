@@ -770,7 +770,7 @@ class ModelPreviewActivity : AppCompatActivity() {
 
         if (resolvedFormat != null) activeSourceFormat = resolvedFormat
 
-        modelNeedsColourPicker = resolvedFormat in setOf("stl", "obj", "ply", "3ds")
+        modelNeedsColourPicker = resolvedFormat in setOf("stl", "obj", "ply", "3ds", "fbx")
         btnModelColour.visibility = if (modelNeedsColourPicker) View.VISIBLE else View.GONE
         if (modelNeedsColourPicker) {
             val defaultGrey = Color.parseColor("#B2B2B2")

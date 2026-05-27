@@ -24,7 +24,7 @@ import java.util.Locale
 
 class ModelLibraryManager(
     items: List<ModelItem>,
-    private val savedProfiles: Set<String>,
+    private var savedProfiles: Set<String>,
     private var selectedModelId: String? = null,
     private val onItemClick: (ModelItem) -> Unit,
     private val onPreviewClick: (ModelItem) -> Unit,
@@ -162,6 +162,10 @@ class ModelLibraryManager(
     fun updateItems(newItems: List<ModelItem>) {
         items.clear()
         items.addAll(newItems)
+        notifyDataSetChanged()
+    }
+    fun updateSavedProfiles(profiles: Set<String>) {
+        savedProfiles = profiles
         notifyDataSetChanged()
     }
 
