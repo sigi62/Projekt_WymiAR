@@ -1,14 +1,11 @@
 package com.example.WymiAR.Nodes
 
+import android.view.Choreographer
 import dev.romainguy.kotlin.math.Float3
 import io.github.sceneview.ar.ARSceneView
 import io.github.sceneview.model.ModelInstance
 import io.github.sceneview.node.ModelNode
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.isActive
-import kotlinx.coroutines.launch
 
 
 
@@ -32,8 +29,30 @@ class DefaultModelNode(
     var activeAnimationIndex: Int = 0
         private set
     private val elapsedTimes = mutableMapOf<Int, Float>()
-    private var animJob: Job? = null
     private var lastTickNanos: Long = 0L
+    private var isAnimating: Boolean = false
+    private val choreographer = Choreographer.getInstance()
+
+    private val frameCallback = object : Choreographer.FrameCallback {
+        override fun doFrame(frameTimeNanos: Long) {
+            if (!isAnimating) return
+
+            val animator = modelInstance.animator ?: return
+            val duration = animator.getAnimationDuration(activeAnimationIndex)
+            if (duration <= 0f) return
+
+            val delta = (frameTimeNanos - lastTickNanos) / 1_000_000_000f
+            lastTickNanos = frameTimeNanos
+
+            val elapsed = (elapsedTimes[activeAnimationIndex] ?: 0f) + delta
+            elapsedTimes[activeAnimationIndex] = elapsed % duration
+
+            animator.applyAnimation(activeAnimationIndex, elapsedTimes[activeAnimationIndex]!!)
+            animator.updateBoneMatrices()
+
+            choreographer.postFrameCallback(this)
+        }
+    }
 
     fun resumeAnimation(index: Int) {
         if (!hasAnimations()) return
@@ -41,39 +60,23 @@ class DefaultModelNode(
         val count = animator.animationCount
         if (index !in 0 until count) return
 
-        animJob?.cancel()
+        stopAnimating()
         activeAnimationIndex = index
         val duration = animator.getAnimationDuration(index)
         if (duration <= 0f) return
 
         lastTickNanos = System.nanoTime()
-
-        animJob = scope.launch {
-            while (isActive) {
-                val now = System.nanoTime()
-                val delta = (now - lastTickNanos) / 1_000_000_000f
-                lastTickNanos = now
-
-                val elapsed = (elapsedTimes[index] ?: 0f) + delta
-                elapsedTimes[index] = elapsed % duration
-
-                animator.applyAnimation(index, elapsedTimes[index]!!)
-                animator.updateBoneMatrices()
-
-                delay(16)
-            }
-        }
+        isAnimating = true
+        choreographer.postFrameCallback(frameCallback)
     }
 
     fun pauseAnimation() {
         if (!hasAnimations()) return
-        animJob?.cancel()
-        animJob = null
+        stopAnimating()
     }
 
     fun stopAllAnimations() {
-        animJob?.cancel()
-        animJob = null
+        stopAnimating()
         elapsedTimes.clear()
         activeAnimationIndex = 0
         val animator = modelInstance.animator ?: return
@@ -81,6 +84,12 @@ class DefaultModelNode(
             animator.applyAnimation(0, 0f)
             animator.updateBoneMatrices()
         }
+    }
+
+    // Centralised helper — cancels the VSync loop without touching animation state.
+    private fun stopAnimating() {
+        isAnimating = false
+        choreographer.removeFrameCallback(frameCallback)
     }
 
     fun setAnimationPlaying(playing: Boolean) {

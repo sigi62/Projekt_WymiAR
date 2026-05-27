@@ -64,31 +64,29 @@ static bool needsDefaultMaterial(const aiScene* scene) {
     return scene->mNumMaterials == 0;
 }
 
-static void injectDefaultPbrMaterial(aiScene* scene) {
-    LOGI("Injecting default PBR material (scene had no materials)");
+static void injectDefaultPbrMaterial(const aiScene* scene,
+        aiScene**       outScene) {
+    aiCopyScene(scene, outScene);
+    aiScene* s = *outScene;
+
+    for (unsigned int i = 0; i < s->mNumMaterials; ++i) {
+        delete s->mMaterials[i];
+        s->mMaterials[i] = nullptr;
+    }
+    delete[] s->mMaterials;
 
     auto* mat = new aiMaterial();
-
     aiColor4D baseColor(0.7f, 0.7f, 0.7f, 1.0f);
     mat->AddProperty(&baseColor, 1, AI_MATKEY_BASE_COLOR);
-
-    float metallic  = 0.0f;
-    float roughness = 0.6f;
+    float metallic = 0.0f, roughness = 0.6f;
     mat->AddProperty(&metallic,  1, AI_MATKEY_METALLIC_FACTOR);
     mat->AddProperty(&roughness, 1, AI_MATKEY_ROUGHNESS_FACTOR);
 
-    for (unsigned int i = 0; i < scene->mNumMaterials; ++i) {
-        delete scene->mMaterials[i];
-        scene->mMaterials[i] = nullptr;
-    }
-    delete[] scene->mMaterials;
+    s->mMaterials    = new aiMaterial*[1]{ mat };
+    s->mNumMaterials = 1;
 
-    scene->mMaterials    = new aiMaterial*[1]{ mat };
-    scene->mNumMaterials = 1;
-
-    for (unsigned int i = 0; i < scene->mNumMeshes; i++) {
-        scene->mMeshes[i]->mMaterialIndex = 0;
-    }
+    for (unsigned int i = 0; i < s->mNumMeshes; ++i)
+        s->mMeshes[i]->mMaterialIndex = 0;
 }
 
 static void centreMeshes(aiScene* scene) {
@@ -198,17 +196,25 @@ Java_com_example_WymiAR_converter_GlbConverter_nativeConvert(
         return JNI_FALSE;
     }
 
-    aiScene* mutableScene = const_cast<aiScene*>(scene);
+    aiScene* workScene = nullptr;
+    bool     ownsCopy  = false;
 
     if (needsDefaultMaterial(scene)) {
-        injectDefaultPbrMaterial(mutableScene);
+        injectDefaultPbrMaterial(scene, &workScene);
+        ownsCopy = true;
+    } else {
+        aiCopyScene(scene, &workScene);
+        ownsCopy = true;
     }
-
-    centreMeshes(mutableScene);
+    centreMeshes(workScene);
 
     Assimp::Exporter exporter;
-    aiReturn result = exporter.Export(scene, "glb2", outputPath.cstr);
+    aiReturn result = exporter.Export(workScene, "glb2", outputPath.cstr);
 
+    if (ownsCopy) {
+        aiFreeScene(workScene);
+        workScene = nullptr;
+    }
     importer.FreeScene();
 
     if (result != aiReturn_SUCCESS) {
